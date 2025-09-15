@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  supabase:
+    image: supabase/supabase-dev:latest
+    container_name: supabase-dev
+    ports:
+      - "54322:5432" # Postgres
+      - "54323:5433" # Postgres admin
+      - "8000:8000" # Kong
+      - "8001:8001" # Kong admin
+      - "9000:9000" # Storage
+      - "9001:9001" # Storage admin
+      - "54324:54324" # Auth
+      - "54325:54325" # Auth admin
+      - "54326:54326" # Realtime
+      - "54327:54327" # Realtime admin
+      - "54328:54328" # Edge Functions
+      - "54329:54329" # Edge Functions admin
+    environment:
+      POSTGRES_PASSWORD: your-super-secret-and-long-postgres-password
+      JWT_SECRET: your-super-secret-jwt-token-with-at-least-32-characters-long
+      ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+    volumes:
+      - ./supabase:/supabase
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - supabase-network
+
+  postgres:
+    image: postgres:15
+    container_name: postgres-dev
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your-super-secret-and-long-postgres-password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - supabase-network
+
+volumes:
+  postgres_data:
+
+networks:
+  supabase-network:
+    driver: bridge

@@ -1,0 +1,20 @@
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "supabase:start": "docker-compose up -d",
+    "supabase:stop": "docker-compose down",
+    "supabase:restart": "docker-compose restart",
+    "supabase:logs": "docker-compose logs -f",
+    "supabase:reset": "docker-compose down -v && docker-compose up -d",
+    "db:migrate": "docker-compose exec supabase supabase db reset",
+    "db:studio": "open http://localhost:54323"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "dotenv": "^17.2.2"
+  }
+}

@@ -58,8 +58,8 @@
    VEO_API_KEY=your_veo_api_key
 
    # Dropshipping
-   GELATO_API_KEY=your_gelato_api_key
    PRODIGI_API_KEY=your_prodigi_api_key
+   GELATO_API_KEY=your_gelato_api_key
 
    # Email
    RESEND_API_KEY=your_resend_api_key
