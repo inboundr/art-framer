@@ -200,8 +200,11 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
         },
         body: JSON.stringify({
           cartItemIds: cartItems.map(item => item.id),
-          successUrl: `${window.location.origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${window.location.origin}/checkout/cancel`,
+          shippingAddress: {
+            countryCode: shippingAddress.country,
+            stateOrCounty: shippingAddress.state,
+            postalCode: shippingAddress.zip,
+          },
         }),
       });
 
@@ -239,9 +242,9 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
   if (cartItems.length === 0) {
     return (
       <div className="text-center py-12">
-        <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
-        <p className="text-gray-500 mb-4">Add some items to your cart before checking out.</p>
+        <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-foreground mb-2">Your cart is empty</h3>
+        <p className="text-muted-foreground mb-4">Add some items to your cart before checking out.</p>
         <Button onClick={onCancel} variant="outline">
           Continue Shopping
         </Button>
@@ -406,7 +409,7 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
                   <Checkbox
                     id="sameAsShipping"
                     checked={sameAsShipping}
-                    onCheckedChange={setSameAsShipping}
+                    onCheckedChange={(checked) => setSameAsShipping(checked === true)}
                   />
                   <Label htmlFor="sameAsShipping">Same as shipping address</Label>
                 </div>

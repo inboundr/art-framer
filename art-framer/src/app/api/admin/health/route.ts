@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (!profile?.is_admin) {
+    if (!(profile as any)?.is_admin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -233,7 +233,7 @@ async function checkOrderSystemHealth(supabase: any) {
     }
 
     // Analyze order statuses
-    const statusCounts = recentOrders.reduce((acc, order) => {
+    const statusCounts = recentOrders.reduce((acc: Record<string, number>, order: any) => {
       acc[order.status] = (acc[order.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -291,8 +291,8 @@ async function checkNotificationSystemHealth(supabase: any) {
     }
 
     const totalNotifications = notifications.length;
-    const unreadNotifications = notifications.filter(n => !n.is_read).length;
-    const notificationTypes = notifications.reduce((acc, notif) => {
+    const unreadNotifications = notifications.filter((n: any) => !n.is_read).length;
+    const notificationTypes = notifications.reduce((acc: Record<string, number>, notif: any) => {
       acc[notif.type] = (acc[notif.type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (!profile?.is_admin) {
+    if (!(profile as any)?.is_admin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 

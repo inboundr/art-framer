@@ -269,6 +269,51 @@ export class ProdigiClient {
       throw error;
     }
   }
+
+  async calculateShippingCost(
+    items: ProdigiOrderItem[],
+    shippingAddress: {
+      countryCode: string;
+      stateOrCounty?: string;
+      postalCode?: string;
+    }
+  ): Promise<{
+    cost: number;
+    currency: string;
+    estimatedDays: number;
+    serviceName: string;
+  }> {
+    try {
+      const response = await this.request<{
+        cost: number;
+        currency: string;
+        estimatedDays: number;
+        serviceName: string;
+      }>('/shipping/calculate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: items.map(item => ({
+            sku: item.sku,
+            quantity: item.quantity
+          })),
+          destination: shippingAddress
+        })
+      });
+      return response;
+    } catch (error) {
+      console.error('Error calculating shipping cost:', error);
+      // Fallback to default shipping cost if API fails
+      return {
+        cost: 9.99,
+        currency: 'USD',
+        estimatedDays: 7,
+        serviceName: 'Standard Shipping'
+      };
+    }
+  }
 }
 
 // Create singleton instance

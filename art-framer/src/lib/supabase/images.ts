@@ -111,9 +111,6 @@ export class SupabaseImageAPI {
       queryBuilder = queryBuilder.eq('color', filters.color);
     }
 
-    // Get total count
-    const { count } = await queryBuilder.select('*', { count: 'exact', head: true });
-
     // Get images for current page
     const { data: images, error } = await queryBuilder
       .order('created_at', { ascending: false })
@@ -123,6 +120,25 @@ export class SupabaseImageAPI {
       throw new Error(`Failed to search images: ${error.message}`);
     }
 
+    // Get total count separately
+    let countQuery = supabase.from('images').select('*', { count: 'exact' })
+      .eq('is_public', true)
+      .ilike('prompt', `%${query}%`);
+    
+    if (filters?.aspect_ratio) {
+      countQuery = countQuery.eq('aspect_ratio', filters.aspect_ratio);
+    }
+    if (filters?.model) {
+      countQuery = countQuery.eq('model', filters.model);
+    }
+    if (filters?.style) {
+      countQuery = countQuery.eq('style', filters.style);
+    }
+    if (filters?.color) {
+      countQuery = countQuery.eq('color', filters.color);
+    }
+    
+    const { count } = await countQuery;
     const total = count || 0;
     const total_pages = Math.ceil(total / limit);
     const has_more = page < total_pages;

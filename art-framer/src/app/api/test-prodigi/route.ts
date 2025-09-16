@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     const prodigiOrder = prodigiClient.convertToProdigiOrder(testOrderData);
 
     // Test 4: Test API connectivity (optional - might fail in sandbox)
-    let apiTest = { status: 'skipped', message: 'API test skipped' };
+    let apiTest: { status: string; message: string; products?: any[]; note?: string } = { status: 'skipped', message: 'API test skipped' };
     
     try {
       // This might fail in sandbox mode, which is expected
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       apiTest = { 
         status: 'expected_failure', 
-        message: `API test failed (expected in sandbox): ${error.message}`,
+        message: `API test failed (expected in sandbox): ${error instanceof Error ? error.message : 'Unknown error'}`,
         note: 'This is normal in sandbox mode'
       };
     }

@@ -52,7 +52,7 @@ export class OrderRetryManager {
     payload: any,
     immediate: boolean = false
   ): Promise<string> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const operationId = `retry_${type}_${orderId}_${Date.now()}`;
     const nextRetry = immediate 
@@ -71,7 +71,7 @@ export class OrderRetryManager {
     };
 
     // Store in database for persistence
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('retry_operations')
       .insert({
         id: operationId,
@@ -102,10 +102,10 @@ export class OrderRetryManager {
    * Process a retryable operation
    */
   async processOperation(operationId: string): Promise<boolean> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Fetch operation from database
-    const { data: operation, error: fetchError } = await supabase
+    const { data: operation, error: fetchError } = await (supabase as any)
       .from('retry_operations')
       .select('*')
       .eq('id', operationId)
@@ -127,7 +127,7 @@ export class OrderRetryManager {
     }
 
     // Update operation status to processing
-    await supabase
+    await (supabase as any)
       .from('retry_operations')
       .update({
         status: 'processing',
@@ -181,7 +181,7 @@ export class OrderRetryManager {
       if (operation.attempts + 1 < this.config.maxRetries) {
         const nextRetry = new Date(Date.now() + this.calculateDelay(operation.attempts + 1));
         
-        await supabase
+        await (supabase as any)
           .from('retry_operations')
           .update({
             status: 'pending',
@@ -203,10 +203,10 @@ export class OrderRetryManager {
    * Execute Prodigi order creation
    */
   private async executeProdigiOrderCreation(orderId: string, payload: any): Promise<any> {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Fetch order details
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await (supabase as any)
       .from('orders')
       .select(`
         *,
@@ -231,7 +231,7 @@ export class OrderRetryManager {
     // Prepare Prodigi order data
     const prodigiOrderData = {
       orderReference: order.order_number || `ORDER-${orderId.slice(-8)}`,
-      items: order.order_items.map(item => ({
+      items: order.order_items.map((item: any) => ({
         productUid: prodigiClient.getProductSku(
           item.products?.frame_size || 'medium',
           item.products?.frame_style || 'black',
@@ -253,13 +253,13 @@ export class OrderRetryManager {
     const prodigiResponse = await prodigiClient.createOrder(prodigiOrder);
 
     // Update dropship order
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('dropship_orders')
       .update({
         provider_order_id: prodigiResponse.id,
         tracking_number: prodigiResponse.trackingNumber,
         tracking_url: prodigiResponse.trackingUrl,
-        estimated_delivery: prodigiResponse.estimatedDeliveryDate ? new Date(prodigiResponse.estimatedDeliveryDate) : null,
+        estimated_delivery: prodigiResponse.estimatedDelivery ? new Date(prodigiResponse.estimatedDelivery) : null,
         provider_response: prodigiResponse,
         status: prodigiResponse.status.toLowerCase(),
         updated_at: new Date().toISOString(),
@@ -272,7 +272,7 @@ export class OrderRetryManager {
     }
 
     // Update main order status
-    await supabase
+    await (supabase as any)
       .from('orders')
       .update({
         status: 'processing',
@@ -287,10 +287,10 @@ export class OrderRetryManager {
    * Execute Prodigi status update
    */
   private async executeProdigiStatusUpdate(orderId: string, payload: any): Promise<any> {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Fetch dropship order
-    const { data: dropshipOrder, error: dropshipError } = await supabase
+    const { data: dropshipOrder, error: dropshipError } = await (supabase as any)
       .from('dropship_orders')
       .select('*')
       .eq('order_id', orderId)
@@ -305,13 +305,13 @@ export class OrderRetryManager {
     const prodigiOrder = await prodigiClient.getOrder(dropshipOrder.provider_order_id);
 
     // Update local record
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('dropship_orders')
       .update({
         status: prodigiOrder.status.toLowerCase(),
         tracking_number: prodigiOrder.trackingNumber,
         tracking_url: prodigiOrder.trackingUrl,
-        estimated_delivery: prodigiOrder.estimatedDeliveryDate ? new Date(prodigiOrder.estimatedDeliveryDate) : null,
+        estimated_delivery: prodigiOrder.estimatedDelivery ? new Date(prodigiOrder.estimatedDelivery) : null,
         provider_response: prodigiOrder,
         updated_at: new Date().toISOString(),
       })
@@ -337,10 +337,10 @@ export class OrderRetryManager {
    * Execute notification sending
    */
   private async executeNotificationSend(orderId: string, payload: any): Promise<any> {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Create notification using the stored function
-    const { data, error } = await supabase.rpc('create_order_notification', {
+    const { data, error } = await (supabase as any).rpc('create_order_notification', {
       p_order_id: orderId,
       p_type: payload.type,
       p_title: payload.title,
@@ -359,9 +359,9 @@ export class OrderRetryManager {
    * Mark operation as completed
    */
   private async markOperationCompleted(operationId: string, result: any): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
-    await supabase
+    await (supabase as any)
       .from('retry_operations')
       .update({
         status: 'completed',
@@ -375,9 +375,9 @@ export class OrderRetryManager {
    * Mark operation as failed
    */
   private async markOperationFailed(operationId: string, error: string): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
-    await supabase
+    await (supabase as any)
       .from('retry_operations')
       .update({
         status: 'failed',
@@ -391,9 +391,9 @@ export class OrderRetryManager {
    * Mark operation with error (for retry)
    */
   private async markOperationError(operationId: string, error: string): Promise<void> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
-    await supabase
+    await (supabase as any)
       .from('retry_operations')
       .update({
         error,
@@ -405,10 +405,10 @@ export class OrderRetryManager {
    * Process all pending retry operations
    */
   async processPendingOperations(): Promise<{ processed: number; failed: number }> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Fetch all pending operations that are due for retry
-    const { data: operations, error } = await supabase
+    const { data: operations, error } = await (supabase as any)
       .from('retry_operations')
       .select('*')
       .eq('status', 'pending')
@@ -451,9 +451,9 @@ export class OrderRetryManager {
     failed: number;
     cancelled: number;
   }> {
-    const supabase = createClient();
+    const supabase = await createClient();
     
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('retry_operations')
       .select('status')
       .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()); // Last 24 hours
@@ -465,11 +465,11 @@ export class OrderRetryManager {
 
     const stats = {
       total: data.length,
-      pending: data.filter(op => op.status === 'pending').length,
-      processing: data.filter(op => op.status === 'processing').length,
-      completed: data.filter(op => op.status === 'completed').length,
-      failed: data.filter(op => op.status === 'failed').length,
-      cancelled: data.filter(op => op.status === 'cancelled').length,
+      pending: data.filter((op: any) => op.status === 'pending').length,
+      processing: data.filter((op: any) => op.status === 'processing').length,
+      completed: data.filter((op: any) => op.status === 'completed').length,
+      failed: data.filter((op: any) => op.status === 'failed').length,
+      cancelled: data.filter((op: any) => op.status === 'cancelled').length,
     };
 
     return stats;

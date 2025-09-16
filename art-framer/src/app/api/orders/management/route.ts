@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     console.error('Error in GET /api/orders/management:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid query parameters', details: error.errors },
+        { error: 'Invalid query parameters', details: error.issues },
         { status: 400 }
       );
     }
@@ -123,7 +123,7 @@ export async function PATCH(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (!profile?.is_admin) {
+    if (!(profile as any)?.is_admin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -152,7 +152,7 @@ export async function PATCH(request: NextRequest) {
       updateData.notes = validatedData.notes;
     }
 
-    const { data: updatedOrder, error: updateError } = await supabase
+    const { data: updatedOrder, error: updateError } = await (supabase as any)
       .from('orders')
       .update(updateData)
       .eq('id', validatedData.orderId)
@@ -165,7 +165,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Log the status change
-    await supabase
+    await (supabase as any)
       .from('order_logs')
       .insert({
         order_id: validatedData.orderId,
@@ -192,7 +192,7 @@ export async function PATCH(request: NextRequest) {
 
     const notification = notificationTypes[validatedData.status as keyof typeof notificationTypes];
     if (notification) {
-      await supabase.rpc('create_order_notification', {
+      await (supabase as any).rpc('create_order_notification', {
         p_order_id: validatedData.orderId,
         p_type: notification.type,
         p_title: notification.title,
@@ -216,7 +216,7 @@ export async function PATCH(request: NextRequest) {
     console.error('Error in PATCH /api/orders/management:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
@@ -20,9 +21,10 @@ import {
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 
 interface ShoppingCartProps {
-  onCheckout?: () => void;
+  onCheckout?: (shippingAddress?: any) => void;
   showAsModal?: boolean;
   trigger?: React.ReactNode;
 }
@@ -32,6 +34,17 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
   const { user } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState({
+    countryCode: 'US',
+    stateOrCounty: '',
+    postalCode: ''
+  });
+  const [shippingInfo, setShippingInfo] = useState({
+    cost: 9.99,
+    estimatedDays: 7,
+    serviceName: 'Standard Shipping'
+  });
+  const [calculatingShipping, setCalculatingShipping] = useState(false);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -39,6 +52,46 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
       currency: 'USD',
     }).format(price);
   };
+
+  const calculateShippingCost = async () => {
+    if (!shippingAddress.countryCode || !shippingAddress.postalCode) {
+      return;
+    }
+
+    setCalculatingShipping(true);
+    try {
+      const response = await fetch('/api/cart/shipping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(shippingAddress),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShippingInfo({
+          cost: data.shippingCost,
+          estimatedDays: data.estimatedDays,
+          serviceName: data.serviceName
+        });
+      } else {
+        console.error('Failed to calculate shipping cost');
+      }
+    } catch (error) {
+      console.error('Error calculating shipping cost:', error);
+    } finally {
+      setCalculatingShipping(false);
+    }
+  };
+
+  // Calculate shipping when address changes
+  React.useEffect(() => {
+    if (shippingAddress.countryCode && shippingAddress.postalCode) {
+      const timeoutId = setTimeout(calculateShippingCost, 500); // Debounce
+      return () => clearTimeout(timeoutId);
+    }
+  }, [shippingAddress]);
 
   const getFrameSizeLabel = (size: string) => {
     const labels = {
@@ -89,7 +142,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
       setIsOpen(false);
     }
     
-    onCheckout?.();
+    onCheckout?.(shippingAddress);
   };
 
   const handleClearCart = async () => {
@@ -105,9 +158,9 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
     <div className="space-y-4">
       {cartItems.length === 0 ? (
         <div className="text-center py-8">
-          <ShoppingCartIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
-          <p className="text-gray-500 mb-4">Add some framed art to get started!</p>
+          <ShoppingCartIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">Your cart is empty</h3>
+          <p className="text-muted-foreground mb-4">Add some framed art to get started!</p>
           {showAsModal && (
             <Button onClick={() => setIsOpen(false)} variant="outline">
               Continue Shopping
@@ -122,11 +175,17 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
               <Card key={item.id} className="p-4">
                 <div className="flex gap-4">
                   {/* Product Image */}
-                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                     <img
-                      src={item.products.images.thumbnail_url}
+                      src={getProxiedImageUrl(item.products.images.image_url || item.products.images.thumbnail_url)}
                       alt={item.products.images.prompt}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (target.src !== item.products.images.thumbnail_url) {
+                          target.src = item.products.images.thumbnail_url;
+                        }
+                      }}
                     />
                   </div>
 
@@ -135,10 +194,10 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                     <h4 className="font-medium text-sm line-clamp-2">
                       {getFrameSizeLabel(item.products.frame_size)} Frame
                     </h4>
-                    <p className="text-xs text-gray-600 mb-1">
+                    <p className="text-xs text-muted-foreground mb-1">
                       {getFrameStyleLabel(item.products.frame_style)} {getFrameMaterialLabel(item.products.frame_material)}
                     </p>
-                    <p className="text-xs text-gray-500 line-clamp-1 mb-2">
+                    <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
                       "{item.products.images.prompt}"
                     </p>
                     
@@ -193,7 +252,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                     <div className="font-medium text-sm">
                       {formatPrice(item.products.price * item.quantity)}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground">
                       {formatPrice(item.products.price)} each
                     </div>
                   </div>
@@ -201,6 +260,66 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
               </Card>
             ))}
           </div>
+
+          {/* Shipping Address Form */}
+          {cartItems.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Shipping Address</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Enter your address to calculate accurate shipping costs
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="country">Country</Label>
+                    <select
+                      id="country"
+                      value={shippingAddress.countryCode}
+                      onChange={(e) => setShippingAddress(prev => ({ ...prev, countryCode: e.target.value }))}
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="US">United States</option>
+                      <option value="CA">Canada</option>
+                      <option value="GB">United Kingdom</option>
+                      <option value="AU">Australia</option>
+                      <option value="DE">Germany</option>
+                      <option value="FR">France</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="state">State/Province</Label>
+                    <Input
+                      id="state"
+                      value={shippingAddress.stateOrCounty}
+                      onChange={(e) => setShippingAddress(prev => ({ ...prev, stateOrCounty: e.target.value }))}
+                      placeholder="e.g., CA, NY, ON"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="postalCode">ZIP/Postal Code</Label>
+                    <Input
+                      id="postalCode"
+                      value={shippingAddress.postalCode}
+                      onChange={(e) => setShippingAddress(prev => ({ ...prev, postalCode: e.target.value }))}
+                      placeholder="e.g., 90210"
+                    />
+                  </div>
+                </div>
+                {calculatingShipping && (
+                  <div className="text-sm text-muted-foreground">
+                    Calculating shipping costs...
+                  </div>
+                )}
+                {shippingInfo.serviceName && !calculatingShipping && (
+                  <div className="text-sm text-muted-foreground">
+                    {shippingInfo.serviceName} - {shippingInfo.estimatedDays} days
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Cart Summary */}
           <Card>
@@ -231,16 +350,28 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
               </div>
               <div className="flex justify-between text-sm">
                 <span>Shipping</span>
-                <span>{formatPrice(totals.shippingAmount)}</span>
+                <span>
+                  {calculatingShipping ? (
+                    <span className="text-muted-foreground">Calculating...</span>
+                  ) : (
+                    formatPrice(shippingInfo.cost)
+                  )}
+                </span>
               </div>
               <Separator />
               <div className="flex justify-between font-semibold text-lg">
                 <span>Total</span>
-                <span>{formatPrice(totals.total)}</span>
+                <span>
+                  {calculatingShipping ? (
+                    <span className="text-muted-foreground">Calculating...</span>
+                  ) : (
+                    formatPrice(totals.subtotal + totals.taxAmount + shippingInfo.cost)
+                  )}
+                </span>
               </div>
 
               {/* Trust Badges */}
-              <div className="flex items-center justify-center gap-4 pt-2 text-xs text-gray-500">
+              <div className="flex items-center justify-center gap-4 pt-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Shield className="h-3 w-3" />
                   <span>Secure</span>

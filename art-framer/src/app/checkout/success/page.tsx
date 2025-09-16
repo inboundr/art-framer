@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 interface CheckoutSuccessPageProps {
-  searchParams: {
+  searchParams: Promise<{
     session_id?: string;
-  };
+  }>;
 }
 
-export default function CheckoutSuccessPage({ searchParams }: CheckoutSuccessPageProps) {
-  const sessionId = searchParams.session_id;
+export default async function CheckoutSuccessPage({ searchParams }: CheckoutSuccessPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const sessionId = resolvedSearchParams.session_id;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">

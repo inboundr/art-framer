@@ -97,7 +97,7 @@ export async function PUT(
     }
 
     // Update product
-    const { data: updatedProduct, error: updateError } = await supabase
+    const { data: updatedProduct, error: updateError } = await (supabase as any)
       .from('products')
       .update({
         ...validatedData,
@@ -130,7 +130,7 @@ export async function PUT(
     console.error('Error in PUT /api/products/[id]:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }
@@ -182,7 +182,7 @@ export async function DELETE(
     const { data: orderItems, error: orderItemsError } = await supabase
       .from('order_items')
       .select('id')
-      .eq('product_id', params.id)
+      .eq('product_id', id)
       .limit(1);
 
     if (orderItemsError) {
@@ -195,10 +195,10 @@ export async function DELETE(
 
     if (orderItems && orderItems.length > 0) {
       // If product has orders, mark as discontinued instead of deleting
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('products')
         .update({ 
-          status: 'discontinued',
+          status: 'discontinued' as const,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);
@@ -216,7 +216,7 @@ export async function DELETE(
       });
     } else {
       // Safe to delete
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await (supabase as any)
         .from('products')
         .delete()
         .eq('id', id);

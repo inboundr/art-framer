@@ -25,7 +25,7 @@ export async function GET(
 
     const response = await fetch(url.toString(), {
       headers: {
-        'Api-Key': apiKey,
+        'Api-Key': apiKey || '',
         'Content-Type': 'application/json',
       },
     });
@@ -71,7 +71,7 @@ export async function POST(
     const response = await fetch(`https://api.ideogram.ai/${pathString}`, {
       method: 'POST',
       headers: {
-        'Api-Key': apiKey,
+        'Api-Key': apiKey || '',
         // Don't set Content-Type for FormData - let fetch handle it with boundary
       },
       body: formData,

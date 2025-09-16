@@ -42,11 +42,11 @@ export async function PUT(
     }
 
     // Update cart item
-    const updateData = { 
+    const updateData: any = { 
       quantity: validatedData.quantity,
       updated_at: new Date().toISOString()
     };
-    const { data: updatedItem, error: updateError } = await supabase
+    const { data: updatedItem, error: updateError } = await (supabase as any)
       .from('cart_items')
       .update(updateData)
       .eq('id', id)
@@ -79,7 +79,7 @@ export async function PUT(
     console.error('Error in PUT /api/cart/[id]:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }

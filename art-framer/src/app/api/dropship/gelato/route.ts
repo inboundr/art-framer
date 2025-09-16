@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (order.status !== 'paid') {
+    if ((order as any).status !== 'paid') {
       return NextResponse.json(
         { error: 'Order must be paid before creating dropship order' },
         { status: 400 }
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       .eq('provider', 'gelato')
       .single();
 
-    if (existingDropship && existingDropship.status !== 'failed') {
+    if (existingDropship && (existingDropship as any).status !== 'failed') {
       return NextResponse.json(
         { error: 'Dropship order already exists for this order' },
         { status: 409 }
@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
 
     // Prepare order data for Gelato
     const gelatoOrderData = {
-      orderReference: order.order_number,
-      items: order.order_items.map((item: any) => ({
+      orderReference: (order as any).order_number,
+      items: (order as any).order_items.map((item: any) => ({
         productUid: gelatoClient.getProductUid(
           item.products.frame_size,
           item.products.frame_style,
@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
         frameStyle: item.products.frame_style,
         frameMaterial: item.products.frame_material,
       })),
-      shippingAddress: order.shipping_address,
-      customerEmail: order.customer_email,
-      customerPhone: order.customer_phone,
+      shippingAddress: (order as any).shipping_address,
+      customerEmail: (order as any).customer_email,
+      customerPhone: (order as any).customer_phone,
     };
 
     // Convert to Gelato format
@@ -111,10 +111,10 @@ export async function POST(request: NextRequest) {
 
     if (existingDropship) {
       // Update existing record
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('dropship_orders')
         .update(dropshipOrderData)
-        .eq('id', existingDropship.id);
+        .eq('id', (existingDropship as any).id);
 
       if (updateError) {
         console.error('Error updating dropship order:', updateError);
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Create new record
-      const { error: insertError } = await supabase
+      const { error: insertError } = await (supabase as any)
         .from('dropship_orders')
         .insert(dropshipOrderData);
 
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update main order status
-    const { error: orderUpdateError } = await supabase
+    const { error: orderUpdateError } = await (supabase as any)
       .from('orders')
       .update({ 
         status: 'processing',
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     console.error('Error in POST /api/dropship/gelato:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }
@@ -217,12 +217,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get updated status from Gelato
-    if (dropshipOrder.provider_order_id) {
+    if ((dropshipOrder as any).provider_order_id) {
       try {
-        const gelatoOrder = await gelatoClient.getOrder(dropshipOrder.provider_order_id);
+        const gelatoOrder = await gelatoClient.getOrder((dropshipOrder as any).provider_order_id);
         
         // Update local record with latest status
-        const { error: updateError } = await supabase
+        const { error: updateError } = await (supabase as any)
           .from('dropship_orders')
           .update({
             status: gelatoOrder.status,
@@ -232,7 +232,7 @@ export async function GET(request: NextRequest) {
             provider_response: gelatoOrder,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', dropshipOrder.id);
+          .eq('id', (dropshipOrder as any).id);
 
         if (updateError) {
           console.error('Error updating dropship order status:', updateError);
@@ -240,7 +240,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
           dropshipOrder: {
-            ...dropshipOrder,
+            ...(dropshipOrder as any),
             status: gelatoOrder.status,
             trackingNumber: gelatoOrder.trackingNumber,
             trackingUrl: gelatoOrder.trackingUrl,

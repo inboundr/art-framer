@@ -111,16 +111,13 @@ export function useImageGeneration(options: UseImageGenerationOptions = {}) {
       width: generation.width,
       height: generation.height,
       model: generation.model as any,
-      number_of_images: generation.number_of_images as any,
-      render_speed: generation.render_speed as any,
+      num_images: generation.number_of_images as any,
+      rendering_speed: generation.render_speed as any,
       magic_prompt: generation.magic_prompt as any,
-      style: generation.style as any,
-      color: generation.color as any,
-      character: generation.character,
-      reference_image: generation.reference_image,
+      style_type: generation.style as any,
+      color_palette: generation.color as any,
+      character_reference_images: generation.character ? [generation.character] : undefined,
       seed: generation.seed,
-      guidance_scale: generation.guidance_scale,
-      num_inference_steps: generation.num_inference_steps,
     };
 
     return generateImage(request);

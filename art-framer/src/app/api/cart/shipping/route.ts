@@ -1,0 +1,95 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { prodigiClient } from '@/lib/prodigi';
+import { z } from 'zod';
+
+const ShippingAddressSchema = z.object({
+  countryCode: z.string().min(2).max(2),
+  stateOrCounty: z.string().optional(),
+  postalCode: z.string().optional(),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const validatedAddress = ShippingAddressSchema.parse(body);
+
+    // Get cart items
+    const { data: cartItems, error: cartError } = await supabase
+      .from('cart_items')
+      .select(`
+        *,
+        products (
+          *,
+          images (
+            id,
+            prompt,
+            image_url,
+            thumbnail_url,
+            user_id,
+            created_at
+          )
+        )
+      `)
+      .eq('user_id', user.id);
+
+    if (cartError) {
+      console.error('Error fetching cart items:', cartError);
+      return NextResponse.json(
+        { error: 'Failed to fetch cart items' },
+        { status: 500 }
+      );
+    }
+
+    if (!cartItems || cartItems.length === 0) {
+      return NextResponse.json({
+        shippingCost: 0,
+        estimatedDays: 0,
+        serviceName: 'No items in cart'
+      });
+    }
+
+    // Prepare items for Prodigi shipping calculation
+    const prodigiItems = cartItems.map((item: any) => ({
+      sku: item.products.sku,
+      quantity: item.quantity,
+      imageUrl: item.products.images.image_url
+    }));
+
+    // Calculate shipping cost using Prodigi
+    const shippingInfo = await prodigiClient.calculateShippingCost(
+      prodigiItems,
+      validatedAddress
+    );
+
+    return NextResponse.json({
+      shippingCost: shippingInfo.cost,
+      estimatedDays: shippingInfo.estimatedDays,
+      serviceName: shippingInfo.serviceName,
+      currency: shippingInfo.currency
+    });
+
+  } catch (error) {
+    console.error('Error calculating shipping cost:', error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid address data', details: error.issues },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to calculate shipping cost' },
+      { status: 500 }
+    );
+  }
+}

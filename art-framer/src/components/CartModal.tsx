@@ -251,12 +251,12 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-background rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-3">
-            <ShoppingCart className="h-6 w-6 text-blue-600" />
-            <h2 className="text-2xl font-bold text-gray-900">Shopping Cart</h2>
+            <ShoppingCart className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold text-foreground">Shopping Cart</h2>
             {cartData && (
               <Badge variant="secondary" className="ml-2">
                 {cartData.totals.itemCount} {cartData.totals.itemCount === 1 ? 'item' : 'items'}
@@ -283,9 +283,9 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
               </div>
             ) : !cartData || cartData.cartItems.length === 0 ? (
               <div className="text-center py-12">
-                <ShoppingCart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Your cart is empty</h3>
-                <p className="text-gray-500 mb-4">Add some framed art to get started!</p>
+                <ShoppingCart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">Your cart is empty</h3>
+                <p className="text-muted-foreground mb-4">Add some framed art to get started!</p>
                 <Button onClick={onClose} variant="outline">
                   Continue Shopping
                 </Button>
@@ -298,7 +298,7 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
                       <div className="flex gap-4">
                         {/* Product Image */}
                         <div className="flex-shrink-0">
-                          <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
+                          <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted">
                             <img
                               src={getProxiedImageUrl(item.products.images.image_url)}
                               alt={item.products.images.prompt}
@@ -311,21 +311,21 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <h4 className="font-semibold text-gray-900 truncate">
+                              <h4 className="font-semibold text-foreground truncate">
                                 {item.products.images.prompt}
                               </h4>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-sm text-muted-foreground mt-1">
                                 {getFrameSizeLabel(item.products.frame_size)} • {getFrameStyleLabel(item.products.frame_style)} • {getFrameMaterialLabel(item.products.frame_material)}
                               </p>
-                              <p className="text-sm text-gray-500 mt-1">
+                              <p className="text-sm text-muted-foreground mt-1">
                                 SKU: {item.products.sku}
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="font-semibold text-gray-900">
+                              <p className="font-semibold text-foreground">
                                 {formatPrice(item.products.price)}
                               </p>
-                              <p className="text-sm text-gray-500">
+                              <p className="text-sm text-muted-foreground">
                                 {item.products.dimensions_cm.width}cm × {item.products.dimensions_cm.height}cm
                               </p>
                             </div>
@@ -377,7 +377,7 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
 
           {/* Order Summary */}
           {cartData && cartData.cartItems.length > 0 && (
-            <div className="lg:w-80 border-l bg-gray-50 p-6">
+            <div className="lg:w-80 border-l bg-muted/30 p-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -411,14 +411,14 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
 
                   <Button
                     onClick={handleCheckout}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    className="w-full"
                     size="lg"
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Proceed to Checkout
                   </Button>
 
-                  <p className="text-xs text-gray-500 text-center">
+                  <p className="text-xs text-muted-foreground text-center">
                     Secure checkout powered by Stripe
                   </p>
                 </CardContent>

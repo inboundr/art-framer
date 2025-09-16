@@ -4,11 +4,16 @@ import { z } from "zod";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-08-27.basil',
 });
 
 const CreateCheckoutSessionSchema = z.object({
   cartItemIds: z.array(z.string().uuid()).min(1),
+  shippingAddress: z.object({
+    countryCode: z.string().min(2).max(2),
+    stateOrCounty: z.string().optional(),
+    postalCode: z.string().optional(),
+  }).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -80,13 +85,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate totals
-    const subtotal = cartItems.reduce((sum, item) => {
+    const subtotal = cartItems.reduce((sum: number, item: any) => {
       return sum + (item.products.price * item.quantity);
     }, 0);
 
     const taxRate = 0.08; // 8% tax
     const taxAmount = subtotal * taxRate;
-    const shippingAmount = 9.99; // Fixed shipping
+    
+    // Calculate shipping cost
+    let shippingAmount = 9.99; // Default shipping
+    if (validatedData.shippingAddress) {
+      try {
+        const { prodigiClient } = await import('@/lib/prodigi');
+        const prodigiItems = cartItems.map((item: any) => ({
+          sku: item.products.sku,
+          quantity: item.quantity,
+          imageUrl: item.products.images.image_url
+        }));
+        
+        const shippingInfo = await prodigiClient.calculateShippingCost(
+          prodigiItems,
+          validatedData.shippingAddress
+        );
+        shippingAmount = shippingInfo.cost;
+      } catch (error) {
+        console.error('Error calculating shipping cost:', error);
+        // Fallback to default shipping
+      }
+    }
+    
     const total = subtotal + taxAmount + shippingAmount;
 
     // Create Stripe checkout session
@@ -94,28 +121,8 @@ export async function POST(request: NextRequest) {
       payment_method_types: ['card'],
       mode: 'payment',
       customer_email: user.email,
-      line_items: cartItems.map(item => ({
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: `${item.products.images.prompt} - ${getFrameSizeLabel(item.products.frame_size)} ${getFrameStyleLabel(item.products.frame_style)} ${getFrameMaterialLabel(item.products.frame_material)}`,
-            description: `Framed print: ${item.products.images.prompt}`,
-            images: [item.products.images.image_url],
-            metadata: {
-              image_id: item.products.images.id,
-              frame_size: item.products.frame_size,
-              frame_style: item.products.frame_style,
-              frame_material: item.products.frame_material,
-              sku: item.products.sku,
-            },
-          },
-          unit_amount: Math.round(item.products.price * 100), // Convert to cents
-        },
-        quantity: item.quantity,
-      })),
-      // Add tax and shipping as separate line items
       line_items: [
-        ...cartItems.map(item => ({
+        ...cartItems.map((item: any) => ({
           price_data: {
             currency: 'usd',
             product_data: {
@@ -176,7 +183,7 @@ export async function POST(request: NextRequest) {
     console.error('Error creating checkout session:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }

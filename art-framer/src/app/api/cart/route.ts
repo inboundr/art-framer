@@ -77,13 +77,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate totals
-    const subtotal = cartItems.reduce((sum, item) => {
+    const subtotal = cartItems.reduce((sum: number, item: any) => {
       return sum + (item.products.price * item.quantity);
     }, 0);
 
     const taxRate = 0.08; // 8% tax
     const taxAmount = subtotal * taxRate;
-    const shippingAmount = 9.99; // Fixed shipping
+    
+    // Default shipping amount (will be updated when address is provided)
+    const shippingAmount = 9.99;
     const total = subtotal + taxAmount + shippingAmount;
 
     return NextResponse.json({
@@ -93,7 +95,7 @@ export async function GET(request: NextRequest) {
         taxAmount,
         shippingAmount,
         total,
-        itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0)
+        itemCount: cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0)
       }
     });
   } catch (error) {
@@ -179,7 +181,7 @@ export async function POST(request: NextRequest) {
 
     if (existingItem) {
       // Update existing item quantity
-      const newQuantity = existingItem.quantity + validatedData.quantity;
+      const newQuantity = (existingItem as any).quantity + validatedData.quantity;
       if (newQuantity > 10) {
         return NextResponse.json(
           { error: 'Maximum quantity per item is 10' },
@@ -187,13 +189,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const { data: updatedItem, error: updateError } = await serviceSupabase
+      const { data: updatedItem, error: updateError } = await (serviceSupabase as any)
         .from('cart_items')
         .update({ 
           quantity: newQuantity,
           updated_at: new Date().toISOString()
         })
-        .eq('id', existingItem.id)
+        .eq('id', (existingItem as any).id)
         .select(`
           *,
           products (
@@ -224,7 +226,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Create new cart item
-      const { data: newItem, error: insertError } = await serviceSupabase
+      const { data: newItem, error: insertError } = await (serviceSupabase as any)
         .from('cart_items')
         .insert({
           user_id: user.id,
@@ -264,7 +266,7 @@ export async function POST(request: NextRequest) {
     console.error('Error in POST /api/cart:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }
@@ -317,7 +319,7 @@ export async function PATCH(request: NextRequest) {
     const serviceSupabase = createServiceClient();
 
     // Update cart item quantity
-    const { data: updatedItem, error: updateError } = await serviceSupabase
+    const { data: updatedItem, error: updateError } = await (serviceSupabase as any)
       .from('cart_items')
       .update({ 
         quantity: validatedData.quantity,
@@ -357,7 +359,7 @@ export async function PATCH(request: NextRequest) {
     console.error('Error in PATCH /api/cart:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }

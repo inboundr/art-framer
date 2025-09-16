@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     console.error('Error in GET /api/orders:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid parameters', details: error.errors },
+        { error: 'Invalid parameters', details: error.issues },
         { status: 400 }
       );
     }

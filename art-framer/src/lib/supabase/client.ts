@@ -8,9 +8,6 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true
-  },
-  storage: {
-    retryAttempts: 3
   }
 })
 

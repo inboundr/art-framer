@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const orderId = dropshipOrder.order_id;
-    const oldStatus = dropshipOrder.status;
+    const orderId = (dropshipOrder as any).order_id;
+    const oldStatus = (dropshipOrder as any).status;
     const newStatus = validatedData.data.status.toLowerCase();
 
     // Update dropship order
@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
     // Store the full webhook response
     updateData.provider_response = validatedData;
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('dropship_orders')
       .update(updateData)
-      .eq('id', dropshipOrder.id);
+      .eq('id', (dropshipOrder as any).id);
 
     if (updateError) {
       console.error('Error updating dropship order:', updateError);
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update main order
-    const { error: orderUpdateError } = await supabase
+    const { error: orderUpdateError } = await (supabase as any)
       .from('orders')
       .update(orderStatusUpdate)
       .eq('id', orderId);
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the status change
-    await supabase
+    await (supabase as any)
       .from('order_logs')
       .insert({
         order_id: orderId,
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
 
     const notification = notificationTypes[newStatus as keyof typeof notificationTypes];
     if (notification) {
-      await supabase.rpc('create_order_notification', {
+      await (supabase as any).rpc('create_order_notification', {
         p_order_id: orderId,
         p_type: notification.type,
         p_title: notification.title,
@@ -210,9 +210,9 @@ export async function POST(request: NextRequest) {
     console.error('Error processing Prodigi webhook:', error);
     
     if (error instanceof z.ZodError) {
-      console.error('Webhook validation error:', error.errors);
+      console.error('Webhook validation error:', error.issues);
       return NextResponse.json(
-        { error: 'Invalid webhook payload', details: error.errors },
+        { error: 'Invalid webhook payload', details: error.issues },
         { status: 400 }
       );
     }

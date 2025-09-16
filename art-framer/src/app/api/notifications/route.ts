@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
     console.error('Error in GET /api/notifications:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid query parameters', details: error.errors },
+        { error: 'Invalid query parameters', details: error.issues },
         { status: 400 }
       );
     }
@@ -112,7 +112,7 @@ export async function PATCH(request: NextRequest) {
     const validatedData = MarkAsReadSchema.parse(body);
 
     // Mark notifications as read
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('customer_notifications')
       .update({ is_read: true })
       .in('id', validatedData.notificationIds)
@@ -132,7 +132,7 @@ export async function PATCH(request: NextRequest) {
     console.error('Error in PATCH /api/notifications:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }
@@ -155,7 +155,7 @@ export async function DELETE(request: NextRequest) {
 
     if (action === 'mark_all_read') {
       // Mark all notifications as read
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('customer_notifications')
         .update({ is_read: true })
         .eq('user_id', user.id)

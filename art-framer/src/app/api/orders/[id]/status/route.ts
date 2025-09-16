@@ -9,7 +9,7 @@ const OrderIdSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -20,7 +20,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const validatedParams = OrderIdSchema.parse({ id: params.id });
+    const { id } = await params;
+    const validatedParams = OrderIdSchema.parse({ id });
 
     // Fetch order with all related data
     const { data: order, error: orderError } = await supabase
@@ -40,7 +41,7 @@ export async function GET(
       .eq('id', user.id)
       .single();
 
-    if (order.user_id !== user.id && !profile?.is_admin) {
+    if ((order as any).user_id !== user.id && !(profile as any)?.is_admin) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -80,42 +81,42 @@ export async function GET(
     // If there's a Prodigi order, try to get updated status
     let prodigiStatus = null;
     if (dropshipOrders && dropshipOrders.length > 0) {
-      const prodigiOrder = dropshipOrders.find(d => d.provider === 'prodigi' && d.provider_order_id);
+      const prodigiOrder = dropshipOrders.find((d: any) => d.provider === 'prodigi' && d.provider_order_id);
       
       if (prodigiOrder) {
         try {
-          const updatedProdigiOrder = await prodigiClient.getOrder(prodigiOrder.provider_order_id);
+          const updatedProdigiOrder = await prodigiClient.getOrder((prodigiOrder as any).provider_order_id);
           prodigiStatus = {
             id: updatedProdigiOrder.id,
             status: updatedProdigiOrder.status,
             trackingNumber: updatedProdigiOrder.trackingNumber,
             trackingUrl: updatedProdigiOrder.trackingUrl,
-            estimatedDelivery: updatedProdigiOrder.estimatedDeliveryDate,
+            estimatedDelivery: updatedProdigiOrder.estimatedDelivery,
             lastUpdated: new Date().toISOString(),
           };
 
           // Update local dropship order if status changed
-          if (prodigiOrder.status !== updatedProdigiOrder.status.toLowerCase()) {
-            await supabase
+          if ((prodigiOrder as any).status !== updatedProdigiOrder.status.toLowerCase()) {
+            await (supabase as any)
               .from('dropship_orders')
               .update({
                 status: updatedProdigiOrder.status.toLowerCase(),
                 tracking_number: updatedProdigiOrder.trackingNumber,
                 tracking_url: updatedProdigiOrder.trackingUrl,
-                estimated_delivery: updatedProdigiOrder.estimatedDeliveryDate ? new Date(updatedProdigiOrder.estimatedDeliveryDate) : null,
+                estimated_delivery: updatedProdigiOrder.estimatedDelivery ? new Date(updatedProdigiOrder.estimatedDelivery) : null,
                 provider_response: updatedProdigiOrder,
                 updated_at: new Date().toISOString(),
               })
-              .eq('id', prodigiOrder.id);
+              .eq('id', (prodigiOrder as any).id);
 
             // Log the status update
-            await supabase
+            await (supabase as any)
               .from('order_logs')
               .insert({
                 order_id: validatedParams.id,
                 action: 'prodigi_status_updated',
                 details: {
-                  old_status: prodigiOrder.status,
+                  old_status: (prodigiOrder as any).status,
                   new_status: updatedProdigiOrder.status.toLowerCase(),
                   tracking_number: updatedProdigiOrder.trackingNumber,
                   tracking_url: updatedProdigiOrder.trackingUrl,
@@ -123,14 +124,14 @@ export async function GET(
               });
 
             // Update main order if it has tracking info
-            if (updatedProdigiOrder.trackingNumber && !order.tracking_number) {
-              await supabase
+            if (updatedProdigiOrder.trackingNumber && !(order as any).tracking_number) {
+              await (supabase as any)
                 .from('orders')
                 .update({
                   tracking_number: updatedProdigiOrder.trackingNumber,
                   tracking_url: updatedProdigiOrder.trackingUrl,
-                  estimated_delivery_date: updatedProdigiOrder.estimatedDeliveryDate ? new Date(updatedProdigiOrder.estimatedDeliveryDate) : null,
-                  status: updatedProdigiOrder.status.toLowerCase() === 'shipped' ? 'shipped' : order.status,
+                  estimated_delivery_date: updatedProdigiOrder.estimatedDelivery ? new Date(updatedProdigiOrder.estimatedDelivery) : null,
+                  status: updatedProdigiOrder.status.toLowerCase() === 'shipped' ? 'shipped' : (order as any).status,
                   updated_at: new Date().toISOString(),
                 })
                 .eq('id', validatedParams.id);
@@ -167,7 +168,7 @@ export async function GET(
 
     return NextResponse.json({
       order: {
-        ...order,
+        ...(order as any),
         items: orderItems || [],
       },
       statusHistory: statusHistory || [],
@@ -181,7 +182,7 @@ export async function GET(
     console.error('Error in GET /api/orders/[id]/status:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid order ID', details: error.errors },
+        { error: 'Invalid order ID', details: error.issues },
         { status: 400 }
       );
     }
@@ -191,7 +192,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -209,11 +210,12 @@ export async function POST(
       .eq('id', user.id)
       .single();
 
-    if (!profile?.is_admin) {
+    if (!(profile as any)?.is_admin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const validatedParams = OrderIdSchema.parse({ id: params.id });
+    const { id } = await params;
+    const validatedParams = OrderIdSchema.parse({ id });
     const body = await request.json();
     
     const { action } = body;
@@ -231,34 +233,34 @@ export async function POST(
       }
 
       const prodigiOrder = dropshipOrders[0];
-      if (!prodigiOrder.provider_order_id) {
+      if (!(prodigiOrder as any).provider_order_id) {
         return NextResponse.json({ error: 'No Prodigi order ID found' }, { status: 404 });
       }
 
       try {
-        const updatedProdigiOrder = await prodigiClient.getOrder(prodigiOrder.provider_order_id);
+        const updatedProdigiOrder = await prodigiClient.getOrder((prodigiOrder as any).provider_order_id);
         
         // Update dropship order
-        await supabase
+        await (supabase as any)
           .from('dropship_orders')
           .update({
             status: updatedProdigiOrder.status.toLowerCase(),
             tracking_number: updatedProdigiOrder.trackingNumber,
             tracking_url: updatedProdigiOrder.trackingUrl,
-            estimated_delivery: updatedProdigiOrder.estimatedDeliveryDate ? new Date(updatedProdigiOrder.estimatedDeliveryDate) : null,
+            estimated_delivery: updatedProdigiOrder.estimatedDelivery ? new Date(updatedProdigiOrder.estimatedDelivery) : null,
             provider_response: updatedProdigiOrder,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', prodigiOrder.id);
+          .eq('id', (prodigiOrder as any).id);
 
         // Log the manual refresh
-        await supabase
+        await (supabase as any)
           .from('order_logs')
           .insert({
             order_id: validatedParams.id,
             action: 'manual_prodigi_refresh',
             details: {
-              old_status: prodigiOrder.status,
+              old_status: (prodigiOrder as any).status,
               new_status: updatedProdigiOrder.status.toLowerCase(),
               tracking_number: updatedProdigiOrder.trackingNumber,
               tracking_url: updatedProdigiOrder.trackingUrl,
@@ -274,7 +276,7 @@ export async function POST(
             status: updatedProdigiOrder.status,
             trackingNumber: updatedProdigiOrder.trackingNumber,
             trackingUrl: updatedProdigiOrder.trackingUrl,
-            estimatedDelivery: updatedProdigiOrder.estimatedDeliveryDate,
+            estimatedDelivery: updatedProdigiOrder.estimatedDelivery,
             lastUpdated: new Date().toISOString(),
           },
         });
@@ -282,7 +284,7 @@ export async function POST(
       } catch (error) {
         console.error('Error refreshing Prodigi status:', error);
         return NextResponse.json(
-          { error: 'Failed to refresh Prodigi status', details: error.message },
+          { error: 'Failed to refresh Prodigi status', details: error instanceof Error ? error.message : 'Unknown error' },
           { status: 500 }
         );
       }
@@ -294,7 +296,7 @@ export async function POST(
     console.error('Error in POST /api/orders/[id]/status:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid order ID', details: error.errors },
+        { error: 'Invalid order ID', details: error.issues },
         { status: 400 }
       );
     }

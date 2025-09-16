@@ -215,7 +215,7 @@ class IdeogramAPI {
     const url = `${this.baseURL}${endpoint}`;
     
     // Prepare headers
-    const headers: Record<string, string> = {
+    const headers: any = {
       'Api-Key': this.apiKey,
       ...options.headers,
     };
@@ -299,7 +299,7 @@ class IdeogramAPI {
     });
     
     console.log('Ideogram API response received:', response);
-    console.log('Number of images in response:', response.data ? response.data.length : 'No data array');
+    console.log('Number of images in response:', response.images ? response.images.length : 'No images array');
     
     return response;
   }
@@ -593,20 +593,3 @@ class IdeogramAPI {
 // Export singleton instance
 export const ideogramAPI = new IdeogramAPI();
 
-// Export types for use in other parts of the application
-export type {
-  IdeogramImageGenerationRequest,
-  IdeogramImageGenerationResponse,
-  IdeogramImage,
-  IdeogramGalleryResponse,
-  IdeogramGalleryImage,
-  IdeogramUserProfile,
-  IdeogramUserImagesResponse,
-  IdeogramLikeResponse,
-  IdeogramComment,
-  IdeogramCommentsResponse,
-  IdeogramSearchResponse,
-  IdeogramTrendingResponse,
-  IdeogramCollection,
-  IdeogramCollectionsResponse,
-};

@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     console.error('Error in GET /api/products:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid parameters', details: error.errors },
+        { error: 'Invalid parameters', details: error.issues },
         { status: 400 }
       );
     }
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (image.status !== 'completed') {
+    if (image && (image as any).status !== 'completed') {
       return NextResponse.json(
         { error: 'Image must be completed before creating products' },
         { status: 400 }
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
 
     // Create product using service client to bypass RLS
     const serviceSupabase = createServiceClient();
-    const { data: product, error: productError } = await serviceSupabase
+    const { data: product, error: productError } = await (serviceSupabase as any)
       .from('products')
       .insert({
         image_id: validatedData.imageId,
@@ -252,12 +252,12 @@ export async function POST(request: NextRequest) {
     console.error('Error in POST /api/products:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

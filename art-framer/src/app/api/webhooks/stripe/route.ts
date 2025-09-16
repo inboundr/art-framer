@@ -102,7 +102,7 @@ async function handleCheckoutSessionCompleted(
         customer_email: session.customer_email,
         customer_name: session.customer_details?.name,
         customer_phone: session.customer_details?.phone,
-        shipping_address: session.shipping_details?.address,
+        shipping_address: (session as any).shipping_details?.address,
         billing_address: session.customer_details?.address,
         subtotal: parseFloat(session.metadata?.subtotal || '0'),
         tax_amount: parseFloat(session.metadata?.taxAmount || '0'),
@@ -123,7 +123,7 @@ async function handleCheckoutSessionCompleted(
     }
 
     // Create order items
-    const orderItems = cartItems.map(item => ({
+    const orderItems = cartItems.map((item: any) => ({
       order_id: order.id,
       product_id: item.product_id,
       quantity: item.quantity,
@@ -157,7 +157,7 @@ async function handleCheckoutSessionCompleted(
         .from('dropship_orders')
         .insert({
           order_id: order.id,
-          order_item_id: orderItems.find(oi => oi.product_id === item.product_id)?.id,
+          order_item_id: orderItems.find((oi: any) => oi.product_id === item.product_id)?.id,
           provider: 'prodigi', // Primary provider - Prodigi
           status: 'pending',
         });
@@ -283,7 +283,7 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
     // Prepare order data for Prodigi
     const prodigiOrderData = {
       orderReference: order.order_number || `ORDER-${orderId.slice(-8)}`,
-      items: order.order_items.map(item => ({
+      items: order.order_items.map((item: any) => ({
         productUid: prodigiClient.getProductSku(
           item.products?.frame_size || 'medium',
           item.products?.frame_style || 'black',
@@ -311,7 +311,7 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
       provider_order_id: prodigiResponse.id,
       tracking_number: prodigiResponse.trackingNumber,
       tracking_url: prodigiResponse.trackingUrl,
-      estimated_delivery: prodigiResponse.estimatedDeliveryDate ? new Date(prodigiResponse.estimatedDeliveryDate) : null,
+      estimated_delivery: prodigiResponse.estimatedDelivery ? new Date(prodigiResponse.estimatedDelivery) : null,
       provider_response: prodigiResponse,
       status: prodigiResponse.status.toLowerCase(),
       updated_at: new Date().toISOString(),
@@ -382,8 +382,8 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
         order_id: orderId,
         action: 'prodigi_order_failed',
         details: {
-          error: error.message,
-          stack: error.stack,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
         },
         created_at: new Date().toISOString(),
       });
