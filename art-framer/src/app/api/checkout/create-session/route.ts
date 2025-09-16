@@ -99,8 +99,7 @@ export async function POST(request: NextRequest) {
         const { prodigiClient } = await import('@/lib/prodigi');
         const prodigiItems = cartItems.map((item: any) => ({
           sku: item.products.sku,
-          quantity: item.quantity,
-          imageUrl: item.products.images.image_url
+          quantity: item.quantity
         }));
         
         const shippingInfo = await prodigiClient.calculateShippingCost(

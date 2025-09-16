@@ -60,8 +60,7 @@ export async function POST(request: NextRequest) {
     // Prepare items for Prodigi shipping calculation
     const prodigiItems = cartItems.map((item: any) => ({
       sku: item.products.sku,
-      quantity: item.quantity,
-      imageUrl: item.products.images.image_url
+      quantity: item.quantity
     }));
 
     // Calculate shipping cost using Prodigi

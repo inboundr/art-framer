@@ -271,7 +271,7 @@ export class ProdigiClient {
   }
 
   async calculateShippingCost(
-    items: ProdigiOrderItem[],
+    items: { sku: string; quantity: number }[],
     shippingAddress: {
       countryCode: string;
       stateOrCounty?: string;
@@ -295,10 +295,7 @@ export class ProdigiClient {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: items.map(item => ({
-            sku: item.sku,
-            quantity: item.quantity
-          })),
+          items: items,
           destination: shippingAddress
         })
       });
