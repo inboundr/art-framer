@@ -58,6 +58,26 @@ export function CreationsModal({
       return;
     }
 
+    if (!imageId) {
+      toast({
+        title: 'Image Error',
+        description: 'Image ID is missing. Please try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate that imageId is a proper UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(imageId)) {
+      toast({
+        title: 'Image Not Ready',
+        description: 'The image is still being processed. Please wait a moment and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       // Create a product from the image and frame selection
       const response = await fetch('/api/products', {
@@ -67,7 +87,7 @@ export function CreationsModal({
         },
         credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
-          imageId: imageId || 'temp-image-id', // Use the actual image ID if available
+          imageId: imageId, // This should now be the actual database UUID
           frameSize: frame.size,
           frameStyle: frame.style,
           frameMaterial: frame.material,

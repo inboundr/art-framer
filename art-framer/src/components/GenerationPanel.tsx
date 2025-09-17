@@ -91,14 +91,16 @@ export function GenerationPanel({
             return newImages;
           });
           
-          // Save each generated image to Supabase Storage
+          // Save each generated image to Supabase Storage and update IDs
           if (user) {
             console.log('💾 Saving images to Supabase...');
             setGenerationStatus('Saving images...');
             
-            for (const img of response.data) {
+            const savedImages: { id: string; url: string; originalUrl?: string; isLoaded: boolean }[] = [];
+            for (let i = 0; i < response.data.length; i++) {
+              const img = response.data[i];
               try {
-                await saveGeneratedImageToSupabase({
+                const savedImage = await saveGeneratedImageToSupabase({
                   imageUrl: img.url,
                   prompt: promptText,
                   aspectRatio: aspectRatio,
@@ -107,12 +109,27 @@ export function GenerationPanel({
                   color: color !== 'AUTO' ? color : undefined,
                   userId: user.id,
                 });
-                console.log('✅ Image saved to Supabase');
+                console.log('✅ Image saved to Supabase with ID:', savedImage.id);
+                savedImages.push({
+                  ...actualImages[i],
+                  id: savedImage.id, // Use the actual database UUID
+                });
               } catch (error) {
                 console.error('❌ Failed to save image to Supabase:', error);
-                // Continue with other images even if one fails
+                // Keep the temporary ID if saving fails
+                savedImages.push(actualImages[i]);
               }
             }
+            
+            // Update the images array with the correct database IDs
+            setImages(prevImages => {
+              const updatedImages = [...prevImages];
+              // Replace the last batch of images with the saved versions
+              const startIndex = updatedImages.length - actualImages.length;
+              updatedImages.splice(startIndex, actualImages.length, ...savedImages);
+              return updatedImages;
+            });
+            
             setGenerationStatus(`Generated and saved ${actualImages.length} images!`);
           } else {
             setGenerationStatus(`Generated ${actualImages.length} images!`);
