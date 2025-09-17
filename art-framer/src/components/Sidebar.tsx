@@ -200,19 +200,33 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               onClick={() => handleNavClick('/creations')}
             />
             
-            {/* Cart Button for Mobile - Only show for authenticated users */}
-            {user && (
-              <div className="flex w-full">
-                <div className="flex w-full h-12 px-4 items-center gap-3 rounded-lg hover:bg-white/5 transition-colors">
-                  <div className="flex items-center justify-center w-6 h-6">
-                    <CartButton />
-                  </div>
-                  <span className="text-gray-text text-sm font-medium">
-                    Cart
-                  </span>
+            {/* Cart Button for Mobile - Always visible */}
+            <div className="flex w-full">
+              <button
+                onClick={() => {
+                  if (!user) {
+                    // Show auth modal for non-authenticated users
+                    if (onOpenAuthModal) {
+                      onOpenAuthModal();
+                      if (isMobile && onClose) {
+                        onClose();
+                      }
+                    }
+                  } else {
+                    // Navigate to cart for authenticated users
+                    handleNavClick('/cart');
+                  }
+                }}
+                className="flex w-full h-12 px-4 items-center gap-3 rounded-lg hover:bg-white/5 transition-colors"
+              >
+                <div className="flex items-center justify-center w-6 h-6">
+                  <CartButton />
                 </div>
-              </div>
-            )}
+                <span className="text-gray-text text-sm font-medium">
+                  Cart
+                </span>
+              </button>
+            </div>
             
             {/* Other navigation items... */}
           </div>
@@ -358,14 +372,36 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               label="Character"
             /> */}
             
-            {/* Cart Button - Only show for authenticated users */}
-            {user && (
-              <div className="flex pt-1 flex-col items-start">
-                <div className="flex w-11 h-11 flex-col justify-center items-center">
-                  <CartButton />
+            {/* Cart Button - Always visible */}
+            <div className="flex pt-1 flex-col items-start">
+              <button
+                onClick={() => {
+                  if (!user) {
+                    // Show auth modal for non-authenticated users
+                    if (onOpenAuthModal) {
+                      onOpenAuthModal();
+                    }
+                  } else {
+                    // Navigate to cart for authenticated users
+                    handleNavClick('/cart');
+                  }
+                }}
+                className="flex w-16 h-16 flex-col justify-center items-center gap-[-2px] rounded hover:bg-white/5 transition-colors relative"
+              >
+                <div className="flex p-2 justify-center items-center rounded-md">
+                  <div className="flex flex-col items-start">
+                    <CartButton />
+                  </div>
                 </div>
-              </div>
-            )}
+                <div className="flex flex-col items-start">
+                  <div className="flex flex-col items-center">
+                    <span className="text-gray-text text-center text-[11px] font-semibold leading-5 tracking-[-0.55px]">
+                      Cart
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
           
           <div className="flex-1 self-stretch" />
