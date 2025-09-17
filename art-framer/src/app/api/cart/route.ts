@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
     const taxRate = 0.08; // 8% tax
     const taxAmount = subtotal * taxRate;
     
-    // Default shipping amount (will be updated when address is provided)
-    const shippingAmount = 9.99;
+    // No default shipping - will be calculated when address is provided
+    const shippingAmount = 0;
     const total = subtotal + taxAmount + shippingAmount;
 
     return NextResponse.json({

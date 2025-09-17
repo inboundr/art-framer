@@ -21,6 +21,7 @@ import {
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useAddresses } from '@/hooks/useAddresses';
 
 interface CheckoutFlowProps {
   onSuccess?: (orderId: string) => void;
@@ -54,6 +55,7 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
   const { cartItems, totals, loading, refreshCart } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { addresses, getDefaultAddress, saveAddress } = useAddresses();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [processing, setProcessing] = useState(false);
@@ -83,6 +85,24 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Load default address when component mounts
+  useEffect(() => {
+    const defaultAddress = getDefaultAddress();
+    if (defaultAddress) {
+      setShippingAddress({
+        firstName: defaultAddress.firstName,
+        lastName: defaultAddress.lastName,
+        address1: defaultAddress.address1,
+        address2: defaultAddress.address2 || '',
+        city: defaultAddress.city,
+        state: defaultAddress.state,
+        zip: defaultAddress.zip,
+        country: defaultAddress.country,
+        phone: defaultAddress.phone,
+      });
+    }
+  }, [getDefaultAddress]);
 
   useEffect(() => {
     if (user) {
@@ -192,6 +212,12 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
     try {
       setProcessing(true);
 
+      // Validate shipping address before proceeding
+      if (!validateShippingAddress()) {
+        setProcessing(false);
+        return;
+      }
+
       // Create checkout session
       const response = await fetch('/api/checkout/create-session', {
         method: 'POST',
@@ -214,6 +240,25 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
       }
 
       const data = await response.json();
+
+      // Save address for future use
+      try {
+        saveAddress({
+          firstName: shippingAddress.firstName,
+          lastName: shippingAddress.lastName,
+          address1: shippingAddress.address1,
+          address2: shippingAddress.address2,
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          zip: shippingAddress.zip,
+          country: shippingAddress.country,
+          phone: shippingAddress.phone,
+          isDefault: true,
+        });
+      } catch (error) {
+        console.error('Error saving address:', error);
+        // Don't fail checkout if address saving fails
+      }
 
       // Redirect to Stripe Checkout
       if (data.url) {

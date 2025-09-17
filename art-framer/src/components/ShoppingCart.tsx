@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 
 interface ShoppingCartProps {
-  onCheckout?: (shippingAddress?: any) => void;
+  onCheckout?: () => void;
   showAsModal?: boolean;
   trigger?: React.ReactNode;
 }
@@ -34,17 +34,6 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
   const { user } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState({
-    countryCode: 'US',
-    stateOrCounty: '',
-    postalCode: ''
-  });
-  const [shippingInfo, setShippingInfo] = useState({
-    cost: 9.99,
-    estimatedDays: 7,
-    serviceName: 'Standard Shipping'
-  });
-  const [calculatingShipping, setCalculatingShipping] = useState(false);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -53,45 +42,6 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
     }).format(price);
   };
 
-  const calculateShippingCost = async () => {
-    if (!shippingAddress.countryCode || !shippingAddress.postalCode) {
-      return;
-    }
-
-    setCalculatingShipping(true);
-    try {
-      const response = await fetch('/api/cart/shipping', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(shippingAddress),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setShippingInfo({
-          cost: data.shippingCost,
-          estimatedDays: data.estimatedDays,
-          serviceName: data.serviceName
-        });
-      } else {
-        console.error('Failed to calculate shipping cost');
-      }
-    } catch (error) {
-      console.error('Error calculating shipping cost:', error);
-    } finally {
-      setCalculatingShipping(false);
-    }
-  };
-
-  // Calculate shipping when address changes
-  React.useEffect(() => {
-    if (shippingAddress.countryCode && shippingAddress.postalCode) {
-      const timeoutId = setTimeout(calculateShippingCost, 500); // Debounce
-      return () => clearTimeout(timeoutId);
-    }
-  }, [shippingAddress]);
 
   const getFrameSizeLabel = (size: string) => {
     const labels = {
@@ -142,7 +92,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
       setIsOpen(false);
     }
     
-    onCheckout?.(shippingAddress);
+    onCheckout?.();
   };
 
   const handleClearCart = async () => {
@@ -261,62 +211,20 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
             ))}
           </div>
 
-          {/* Shipping Address Form */}
+          {/* Shipping Information */}
           {cartItems.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Shipping Address</CardTitle>
+                <CardTitle className="text-lg">Shipping</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Enter your address to calculate accurate shipping costs
+                  Shipping costs will be calculated during checkout when you provide your address
                 </p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="country">Country</Label>
-                    <select
-                      id="country"
-                      value={shippingAddress.countryCode}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, countryCode: e.target.value }))}
-                      className="w-full p-2 border rounded-md bg-background"
-                    >
-                      <option value="US">United States</option>
-                      <option value="CA">Canada</option>
-                      <option value="GB">United Kingdom</option>
-                      <option value="AU">Australia</option>
-                      <option value="DE">Germany</option>
-                      <option value="FR">France</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label htmlFor="state">State/Province</Label>
-                    <Input
-                      id="state"
-                      value={shippingAddress.stateOrCounty}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, stateOrCounty: e.target.value }))}
-                      placeholder="e.g., CA, NY, ON"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="postalCode">ZIP/Postal Code</Label>
-                    <Input
-                      id="postalCode"
-                      value={shippingAddress.postalCode}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, postalCode: e.target.value }))}
-                      placeholder="e.g., 90210"
-                    />
-                  </div>
+              <CardContent>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Truck className="h-4 w-4" />
+                  <span>Accurate shipping rates calculated at checkout</span>
                 </div>
-                {calculatingShipping && (
-                  <div className="text-sm text-muted-foreground">
-                    Calculating shipping costs...
-                  </div>
-                )}
-                {shippingInfo.serviceName && !calculatingShipping && (
-                  <div className="text-sm text-muted-foreground">
-                    {shippingInfo.serviceName} - {shippingInfo.estimatedDays} days
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
@@ -350,24 +258,15 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
               </div>
               <div className="flex justify-between text-sm">
                 <span>Shipping</span>
-                <span>
-                  {calculatingShipping ? (
-                    <span className="text-muted-foreground">Calculating...</span>
-                  ) : (
-                    formatPrice(shippingInfo.cost)
-                  )}
-                </span>
+                <span className="text-muted-foreground">Calculated at checkout</span>
               </div>
               <Separator />
               <div className="flex justify-between font-semibold text-lg">
-                <span>Total</span>
-                <span>
-                  {calculatingShipping ? (
-                    <span className="text-muted-foreground">Calculating...</span>
-                  ) : (
-                    formatPrice(totals.subtotal + totals.taxAmount + shippingInfo.cost)
-                  )}
-                </span>
+                <span>Subtotal (excl. shipping)</span>
+                <span>{formatPrice(totals.subtotal + totals.taxAmount)}</span>
+              </div>
+              <div className="text-xs text-muted-foreground text-center">
+                Final total will include shipping costs calculated at checkout
               </div>
 
               {/* Trust Badges */}

@@ -13,7 +13,7 @@ const CreateCheckoutSessionSchema = z.object({
     countryCode: z.string().min(2).max(2),
     stateOrCounty: z.string().optional(),
     postalCode: z.string().optional(),
-  }).optional(),
+  }),
 });
 
 export async function POST(request: NextRequest) {
@@ -92,25 +92,26 @@ export async function POST(request: NextRequest) {
     const taxRate = 0.08; // 8% tax
     const taxAmount = subtotal * taxRate;
     
-    // Calculate shipping cost
-    let shippingAmount = 9.99; // Default shipping
-    if (validatedData.shippingAddress) {
-      try {
-        const { prodigiClient } = await import('@/lib/prodigi');
-        const prodigiItems = cartItems.map((item: any) => ({
-          sku: item.products.sku,
-          quantity: item.quantity
-        }));
-        
-        const shippingInfo = await prodigiClient.calculateShippingCost(
-          prodigiItems,
-          validatedData.shippingAddress
-        );
-        shippingAmount = shippingInfo.cost;
-      } catch (error) {
-        console.error('Error calculating shipping cost:', error);
-        // Fallback to default shipping
-      }
+    // Calculate shipping cost using provided address
+    let shippingAmount = 0;
+    try {
+      const { prodigiClient } = await import('@/lib/prodigi');
+      const prodigiItems = cartItems.map((item: any) => ({
+        sku: item.products.sku,
+        quantity: item.quantity
+      }));
+      
+      const shippingInfo = await prodigiClient.calculateShippingCost(
+        prodigiItems,
+        validatedData.shippingAddress
+      );
+      shippingAmount = shippingInfo.cost;
+    } catch (error) {
+      console.error('Error calculating shipping cost:', error);
+      return NextResponse.json(
+        { error: 'Failed to calculate shipping cost. Please check your address and try again.' },
+        { status: 400 }
+      );
     }
     
     const total = subtotal + taxAmount + shippingAmount;
