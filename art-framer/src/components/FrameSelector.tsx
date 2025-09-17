@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Check, Star, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useFrameImages } from '@/hooks/useFrameImages';
 
 interface FrameOption {
   size: 'small' | 'medium' | 'large' | 'extra_large';
@@ -123,6 +124,13 @@ export function FrameSelector({
   const [selectedSize, setSelectedSize] = useState<string>('medium');
   const [selectedStyle, setSelectedStyle] = useState<string>('black');
   const [selectedMaterial, setSelectedMaterial] = useState<string>('wood');
+
+  // Get frame images for the selected frame
+  const { frameDetails, loading: frameLoading } = useFrameImages(
+    selectedSize,
+    selectedStyle,
+    selectedMaterial
+  );
   const [filteredFrames, setFilteredFrames] = useState<FrameOption[]>(FRAME_OPTIONS);
   const [previewScale, setPreviewScale] = useState<number>(1);
   const [previewRotation, setPreviewRotation] = useState<number>(0);
@@ -254,44 +262,79 @@ export function FrameSelector({
           </div>
           
           <div className="flex justify-center">
-            <div 
-              className="relative transition-all duration-300 ease-in-out"
-              style={{
-                transform: `scale(${previewScale}) rotate(${previewRotation}deg)`,
-                transformOrigin: 'center',
-              }}
-            >
-              {/* Frame with realistic shadow and depth */}
-              <div
-                className="relative rounded-lg overflow-hidden"
+            {frameLoading && (
+              <div className="flex items-center justify-center p-8">
+                <div className="text-sm text-muted-foreground">Loading frame preview...</div>
+              </div>
+            )}
+            {!frameLoading && (
+              <div 
+                className="relative transition-all duration-300 ease-in-out"
                 style={{
-                  width: previewSize.width,
-                  height: previewSize.height,
-                  boxShadow: getFrameShadow(selectedStyle),
-                  border: `8px solid ${getFrameColor(selectedStyle)}`,
-                  background: selectedStyle === 'gold' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' :
-                             selectedStyle === 'silver' ? 'linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%)' :
-                             selectedStyle === 'natural' ? 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)' :
-                             selectedStyle === 'white' ? 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' :
-                             'linear-gradient(135deg, #1a1a1a 0%, #000000 100%)',
+                  transform: `scale(${previewScale}) rotate(${previewRotation}deg)`,
+                  transformOrigin: 'center',
                 }}
               >
-                {/* Inner mat */}
-                <div className="absolute inset-2 bg-white rounded-sm shadow-inner">
-                  <img
-                    src={imageUrl}
-                    alt={imagePrompt}
-                    className="w-full h-full object-cover rounded-sm"
+              {/* Frame with actual frame image or fallback to CSS */}
+              {frameDetails?.images?.[0] ? (
+                <div
+                  className="relative rounded-lg overflow-hidden"
+                  style={{
+                    width: previewSize.width,
+                    height: previewSize.height,
+                    boxShadow: getFrameShadow(selectedStyle),
+                  }}
+                >
+                  {/* Frame image as background */}
+                  <div
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                    style={{
+                      backgroundImage: `url(${frameDetails.images[0].url})`,
+                    }}
                   />
+                  
+                  {/* Inner mat with image */}
+                  <div className="absolute inset-4 bg-white rounded-sm shadow-inner overflow-hidden">
+                    <img
+                      src={imageUrl}
+                      alt={imagePrompt}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 </div>
-                
-                {/* Frame corner details */}
-                <div className="absolute top-0 left-0 w-4 h-4 border-l-2 border-t-2 border-white/20 rounded-tl-lg"></div>
-                <div className="absolute top-0 right-0 w-4 h-4 border-r-2 border-t-2 border-white/20 rounded-tr-lg"></div>
-                <div className="absolute bottom-0 left-0 w-4 h-4 border-l-2 border-b-2 border-white/20 rounded-bl-lg"></div>
-                <div className="absolute bottom-0 right-0 w-4 h-4 border-r-2 border-b-2 border-white/20 rounded-br-lg"></div>
+              ) : (
+                <div
+                  className="relative rounded-lg overflow-hidden"
+                  style={{
+                    width: previewSize.width,
+                    height: previewSize.height,
+                    boxShadow: getFrameShadow(selectedStyle),
+                    border: `8px solid ${getFrameColor(selectedStyle)}`,
+                    background: selectedStyle === 'gold' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' :
+                               selectedStyle === 'silver' ? 'linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%)' :
+                               selectedStyle === 'natural' ? 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)' :
+                               selectedStyle === 'white' ? 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' :
+                               'linear-gradient(135deg, #1a1a1a 0%, #000000 100%)',
+                  }}
+                >
+                  {/* Inner mat */}
+                  <div className="absolute inset-2 bg-white rounded-sm shadow-inner">
+                    <img
+                      src={imageUrl}
+                      alt={imagePrompt}
+                      className="w-full h-full object-cover rounded-sm"
+                    />
+                  </div>
+                  
+                  {/* Frame corner details */}
+                  <div className="absolute top-0 left-0 w-4 h-4 border-l-2 border-t-2 border-white/20 rounded-tl-lg"></div>
+                  <div className="absolute top-0 right-0 w-4 h-4 border-r-2 border-t-2 border-white/20 rounded-tr-lg"></div>
+                  <div className="absolute bottom-0 left-0 w-4 h-4 border-l-2 border-b-2 border-white/20 rounded-bl-lg"></div>
+                  <div className="absolute bottom-0 right-0 w-4 h-4 border-r-2 border-b-2 border-white/20 rounded-br-lg"></div>
+                </div>
+              )}
               </div>
-            </div>
+            )}
           </div>
           
           {/* Frame details below preview */}

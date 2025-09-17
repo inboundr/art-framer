@@ -16,6 +16,12 @@ interface ProdigiProduct {
     material?: string;
     finish?: string;
   };
+  images?: {
+    url: string;
+    type: 'preview' | 'thumbnail' | 'full';
+    width: number;
+    height: number;
+  }[];
 }
 
 interface ProdigiOrderItem {
@@ -113,6 +119,16 @@ export class ProdigiClient {
       return response.products;
     } catch (error) {
       console.error('Error fetching Prodigi products:', error);
+      throw error;
+    }
+  }
+
+  async getProductDetails(sku: string): Promise<ProdigiProduct> {
+    try {
+      const response = await this.request<ProdigiProduct>(`/products/${sku}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching Prodigi product details:', error);
       throw error;
     }
   }
