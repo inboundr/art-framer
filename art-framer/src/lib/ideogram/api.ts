@@ -286,10 +286,35 @@ class IdeogramAPI {
       formData.append('color_palette', JSON.stringify(request.color_palette));
     }
     
+    // Handle character reference images
+    if (request.character_reference_images && request.character_reference_images.length > 0) {
+      // For each reference image, we need to fetch it and add it as a File to FormData
+      for (let i = 0; i < request.character_reference_images.length; i++) {
+        const imageUrl = request.character_reference_images[i];
+        try {
+          // Fetch the image
+          const response = await fetch(imageUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            const file = new File([blob], `reference_image_${i}.jpg`, { type: 'image/jpeg' });
+            formData.append(`character_reference_images`, file);
+          } else {
+            console.warn(`Failed to fetch reference image ${i}: ${imageUrl}`);
+          }
+        } catch (error) {
+          console.error(`Error fetching reference image ${i}:`, error);
+        }
+      }
+    }
+    
     // Log the FormData contents for debugging
     console.log('Sending FormData to Ideogram API with:');
     for (const [key, value] of formData.entries()) {
-      console.log(`- ${key}: ${value}`);
+      if (value instanceof File) {
+        console.log(`- ${key}: [File] ${value.name} (${value.size} bytes)`);
+      } else {
+        console.log(`- ${key}: ${value}`);
+      }
     }
     
     const response = await this.request<IdeogramImageGenerationResponse>('/v1/ideogram-v3/generate', {
