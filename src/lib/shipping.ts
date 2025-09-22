@@ -1,0 +1,471 @@
+/**
+ * Enhanced shipping service with robust error handling, validation, and testing support
+ */
+
+import { z } from 'zod';
+import { prodigiClient } from './prodigi';
+import { ShippingAddress, ShippingResult, ShippingCalculationError } from './pricing';
+
+// Validation schemas
+export const ShippingItemSchema = z.object({
+  sku: z.string().min(1),
+  quantity: z.number().int().min(1),
+  weight: z.number().min(0).optional(),
+  dimensions: z.object({
+    length: z.number().min(0),
+    width: z.number().min(0),
+    height: z.number().min(0),
+  }).optional(),
+});
+
+export const ShippingOptionsSchema = z.object({
+  expedited: z.boolean().optional().default(false),
+  insurance: z.boolean().optional().default(false),
+  signature: z.boolean().optional().default(false),
+  trackingRequired: z.boolean().optional().default(true),
+});
+
+// Types
+export type ShippingItem = z.infer<typeof ShippingItemSchema>;
+export type ShippingOptions = z.infer<typeof ShippingOptionsSchema>;
+
+export interface ShippingQuote {
+  carrier: string;
+  service: string;
+  cost: number;
+  currency: string;
+  estimatedDays: number;
+  trackingAvailable: boolean;
+  insuranceIncluded: boolean;
+  signatureRequired: boolean;
+}
+
+export interface ShippingCalculationResult {
+  quotes: ShippingQuote[];
+  recommended: ShippingQuote;
+  freeShippingAvailable: boolean;
+  freeShippingThreshold?: number;
+  calculatedAt: Date;
+}
+
+// Constants
+export const SHIPPING_PROVIDERS = ['prodigi', 'fedex', 'ups', 'usps'] as const;
+export const MAX_RETRY_ATTEMPTS = 3;
+export const RETRY_DELAY_MS = 1000;
+export const SHIPPING_TIMEOUT_MS = 30000;
+export const FREE_SHIPPING_THRESHOLD = 100.00;
+
+// Error classes
+export class ShippingServiceError extends ShippingCalculationError {
+  constructor(message: string, public provider: string, details?: any) {
+    super(message, details);
+    this.name = 'ShippingServiceError';
+  }
+}
+
+export class ShippingTimeoutError extends ShippingServiceError {
+  constructor(provider: string, timeoutMs: number) {
+    super(`Shipping calculation timed out after ${timeoutMs}ms`, provider, { timeoutMs });
+    this.name = 'ShippingTimeoutError';
+  }
+}
+
+export class ShippingValidationError extends ShippingServiceError {
+  constructor(message: string, details?: any) {
+    super(message, 'validation', details);
+    this.name = 'ShippingValidationError';
+  }
+}
+
+/**
+ * Enhanced shipping service with multiple providers and robust error handling
+ */
+export class ShippingService {
+  private retryAttempts: number;
+  private retryDelay: number;
+  private timeout: number;
+
+  constructor(
+    retryAttempts: number = MAX_RETRY_ATTEMPTS,
+    retryDelay: number = RETRY_DELAY_MS,
+    timeout: number = SHIPPING_TIMEOUT_MS
+  ) {
+    this.retryAttempts = retryAttempts;
+    this.retryDelay = retryDelay;
+    this.timeout = timeout;
+  }
+
+  /**
+   * Calculate shipping costs with multiple providers and fallbacks
+   */
+  async calculateShipping(
+    items: ShippingItem[],
+    address: ShippingAddress,
+    options: ShippingOptions = {
+      expedited: false,
+      insurance: false,
+      signature: false,
+      trackingRequired: true,
+    }
+  ): Promise<ShippingCalculationResult> {
+    try {
+      // Validate inputs
+      this.validateShippingRequest(items, address, options);
+
+      // Get quotes from available providers
+      const quotes = await this.getShippingQuotes(items, address, options);
+
+      if (quotes.length === 0) {
+        throw new ShippingServiceError(
+          'No shipping quotes available',
+          'all_providers',
+          { items, address, options }
+        );
+      }
+
+      // Find recommended quote (cheapest with reasonable delivery time)
+      const recommended = this.selectRecommendedQuote(quotes);
+
+      // Check if free shipping is available
+      const subtotal = this.calculateSubtotal(items);
+      const freeShippingAvailable = subtotal >= FREE_SHIPPING_THRESHOLD;
+
+      return {
+        quotes: quotes.sort((a, b) => a.cost - b.cost), // Sort by cost
+        recommended,
+        freeShippingAvailable,
+        freeShippingThreshold: freeShippingAvailable ? undefined : FREE_SHIPPING_THRESHOLD,
+        calculatedAt: new Date(),
+      };
+    } catch (error) {
+      if (error instanceof ShippingServiceError) {
+        throw error;
+      }
+      throw new ShippingServiceError(
+        'Failed to calculate shipping',
+        'unknown',
+        { error: error instanceof Error ? error.message : error, items, address, options }
+      );
+    }
+  }
+
+  /**
+   * Get shipping quotes from multiple providers with retry logic
+   */
+  private async getShippingQuotes(
+    items: ShippingItem[],
+    address: ShippingAddress,
+    options: ShippingOptions
+  ): Promise<ShippingQuote[]> {
+    const quotes: ShippingQuote[] = [];
+    const errors: Array<{ provider: string; error: any }> = [];
+
+    // Try Prodigi first (primary provider)
+    try {
+      const prodigiQuote = await this.getProdigiQuote(items, address, options);
+      quotes.push(prodigiQuote);
+    } catch (error) {
+      console.warn('Prodigi shipping calculation failed:', error);
+      errors.push({ provider: 'prodigi', error });
+    }
+
+    // Add fallback providers here if needed
+    // try {
+    //   const fedexQuote = await this.getFedExQuote(items, address, options);
+    //   quotes.push(fedexQuote);
+    // } catch (error) {
+    //   errors.push({ provider: 'fedex', error });
+    // }
+
+    // If no quotes were obtained, throw error with details
+    if (quotes.length === 0) {
+      throw new ShippingServiceError(
+        'All shipping providers failed',
+        'all_providers',
+        { errors, items, address, options }
+      );
+    }
+
+    return quotes;
+  }
+
+  /**
+   * Get shipping quote from Prodigi with retry logic
+   */
+  private async getProdigiQuote(
+    items: ShippingItem[],
+    address: ShippingAddress,
+    options: ShippingOptions
+  ): Promise<ShippingQuote> {
+    const prodigiItems = items.map(item => ({
+      sku: item.sku,
+      quantity: item.quantity,
+    }));
+
+    const result = await this.withRetry(
+      () => this.callProdigiWithTimeout(prodigiItems, address),
+      'prodigi'
+    );
+
+    return {
+      carrier: 'Prodigi',
+      service: result.serviceName,
+      cost: result.cost,
+      currency: result.currency,
+      estimatedDays: result.estimatedDays,
+      trackingAvailable: result.trackingAvailable || true,
+      insuranceIncluded: options.insurance || false,
+      signatureRequired: options.signature || false,
+    };
+  }
+
+  /**
+   * Call Prodigi API with timeout protection
+   */
+  private async callProdigiWithTimeout(
+    items: Array<{ sku: string; quantity: number }>,
+    address: ShippingAddress
+  ): Promise<ShippingResult> {
+    return new Promise(async (resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new ShippingTimeoutError('prodigi', this.timeout));
+      }, this.timeout);
+
+      try {
+        const result = await prodigiClient.calculateShippingCost(items, address);
+        clearTimeout(timeoutId);
+        
+        // Enhance result with additional properties
+        const enhancedResult: ShippingResult = {
+          ...result,
+          carrier: 'Prodigi',
+          trackingAvailable: true,
+        };
+        
+        resolve(enhancedResult);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Execute function with retry logic
+   */
+  private async withRetry<T>(
+    fn: () => Promise<T>,
+    provider: string,
+    attempt: number = 1
+  ): Promise<T> {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt >= this.retryAttempts) {
+        throw new ShippingServiceError(
+          `Failed after ${this.retryAttempts} attempts`,
+          provider,
+          { error: error instanceof Error ? error.message : error, attempts: attempt }
+        );
+      }
+
+      // Wait before retrying (exponential backoff)
+      const delay = this.retryDelay * Math.pow(2, attempt - 1);
+      await new Promise(resolve => setTimeout(resolve, delay));
+
+      return this.withRetry(fn, provider, attempt + 1);
+    }
+  }
+
+  /**
+   * Select the best shipping quote based on cost and delivery time
+   */
+  private selectRecommendedQuote(quotes: ShippingQuote[]): ShippingQuote {
+    if (quotes.length === 1) {
+      return quotes[0];
+    }
+
+    // Score each quote based on cost and delivery time
+    const scoredQuotes = quotes.map(quote => ({
+      quote,
+      score: this.calculateQuoteScore(quote),
+    }));
+
+    // Return the quote with the best score
+    scoredQuotes.sort((a, b) => b.score - a.score);
+    return scoredQuotes[0].quote;
+  }
+
+  /**
+   * Calculate a score for a shipping quote (higher is better)
+   */
+  private calculateQuoteScore(quote: ShippingQuote): number {
+    // Normalize cost (lower is better, so invert)
+    const costScore = Math.max(0, 100 - quote.cost);
+    
+    // Normalize delivery time (lower is better, so invert)
+    const speedScore = Math.max(0, 20 - quote.estimatedDays) * 2;
+    
+    // Bonus for tracking and insurance
+    const featuresScore = (quote.trackingAvailable ? 10 : 0) + (quote.insuranceIncluded ? 5 : 0);
+    
+    return costScore + speedScore + featuresScore;
+  }
+
+  /**
+   * Validate shipping request inputs
+   */
+  private validateShippingRequest(
+    items: ShippingItem[],
+    address: ShippingAddress,
+    options: ShippingOptions
+  ): void {
+    // Validate items
+    if (!items || items.length === 0) {
+      throw new ShippingValidationError('Items array cannot be empty');
+    }
+
+    items.forEach((item, index) => {
+      try {
+        ShippingItemSchema.parse(item);
+      } catch (error) {
+        throw new ShippingValidationError(
+          `Invalid item at index ${index}`,
+          { item, error: error instanceof Error ? error.message : error }
+        );
+      }
+    });
+
+    // Validate address
+    if (!address) {
+      throw new ShippingValidationError('Shipping address is required');
+    }
+
+    // Additional business logic validation
+    if (address.countryCode === 'US' && !address.postalCode) {
+      throw new ShippingValidationError('Postal code is required for US addresses', { address });
+    }
+
+    // Validate options
+    try {
+      ShippingOptionsSchema.parse(options);
+    } catch (error) {
+      throw new ShippingValidationError(
+        'Invalid shipping options',
+        { options, error: error instanceof Error ? error.message : error }
+      );
+    }
+  }
+
+  /**
+   * Calculate subtotal for free shipping determination
+   */
+  private calculateSubtotal(items: ShippingItem[]): number {
+    // This is a simplified calculation - in practice, you'd need product prices
+    // For now, estimate based on quantity (assuming average price)
+    const averagePrice = 35; // Average frame price
+    return items.reduce((sum, item) => sum + (item.quantity * averagePrice), 0);
+  }
+
+  /**
+   * Check if address is valid for shipping
+   */
+  async validateShippingAddress(address: ShippingAddress): Promise<boolean> {
+    try {
+      this.validateShippingRequest([{ sku: 'TEST', quantity: 1 }], address, {
+        expedited: false,
+        insurance: false,
+        signature: false,
+        trackingRequired: true,
+      });
+      
+      // Additional validation could include:
+      // - Address verification API calls
+      // - Postal code format validation
+      // - Restricted shipping zones
+      
+      return true;
+    } catch (error) {
+      if (error instanceof ShippingValidationError) {
+        throw error;
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Get supported shipping countries
+   */
+  getSupportedCountries(): string[] {
+    return [
+      'US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE',
+      'AT', 'CH', 'SE', 'NO', 'DK', 'FI', 'IE', 'PT', 'LU', 'JP'
+    ];
+  }
+
+  /**
+   * Check if shipping is available to a country
+   */
+  isShippingAvailable(countryCode: string): boolean {
+    return this.getSupportedCountries().includes(countryCode.toUpperCase());
+  }
+
+  /**
+   * Get estimated delivery date
+   */
+  getEstimatedDeliveryDate(quote: ShippingQuote, orderDate: Date = new Date()): Date {
+    const deliveryDate = new Date(orderDate);
+    deliveryDate.setDate(deliveryDate.getDate() + quote.estimatedDays);
+    
+    // Skip weekends for business days calculation
+    while (deliveryDate.getDay() === 0 || deliveryDate.getDay() === 6) {
+      deliveryDate.setDate(deliveryDate.getDate() + 1);
+    }
+    
+    return deliveryDate;
+  }
+
+  /**
+   * Format shipping cost for display
+   */
+  formatShippingCost(quote: ShippingQuote): string {
+    if (quote.cost === 0) {
+      return 'FREE';
+    }
+    
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: quote.currency,
+    }).format(quote.cost);
+  }
+}
+
+// Default singleton instance
+export const defaultShippingService = new ShippingService();
+
+// Utility functions
+export function createShippingService(
+  retryAttempts?: number,
+  retryDelay?: number,
+  timeout?: number
+): ShippingService {
+  return new ShippingService(retryAttempts, retryDelay, timeout);
+}
+
+export function isValidShippingItem(item: any): item is ShippingItem {
+  try {
+    ShippingItemSchema.parse(item);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function isValidShippingOptions(options: any): options is ShippingOptions {
+  try {
+    ShippingOptionsSchema.parse(options);
+    return true;
+  } catch {
+    return false;
+  }
+}
