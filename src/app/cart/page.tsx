@@ -1,10 +1,46 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { ShoppingCart } from '@/components/ShoppingCart';
+import { CheckoutFlow } from '@/components/CheckoutFlow';
 
 export default function CartPage() {
+  const [showCheckout, setShowCheckout] = useState(false);
+
+  const handleCheckout = () => {
+    setShowCheckout(true);
+  };
+
+  const handleCheckoutSuccess = (orderId: string) => {
+    setShowCheckout(false);
+    // Redirect to success page or show success message
+    window.location.href = `/checkout/success?order_id=${orderId}`;
+  };
+
+  const handleCheckoutCancel = () => {
+    setShowCheckout(false);
+  };
+
+  if (showCheckout) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col min-h-screen bg-background">
+          {/* Top Spacer - same as other pages */}
+          <div className="h-16 min-h-16 self-stretch bg-background" />
+          
+          {/* Main Content */}
+          <div className="flex-1 container mx-auto px-4 py-8">
+            <CheckoutFlow
+              onSuccess={handleCheckoutSuccess}
+              onCancel={handleCheckoutCancel}
+            />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="flex flex-col min-h-screen bg-background">
@@ -18,7 +54,7 @@ export default function CartPage() {
             <p className="text-muted-foreground mb-8">
               Review your selected items and proceed to checkout.
             </p>
-            <ShoppingCart />
+            <ShoppingCart onCheckout={handleCheckout} />
           </div>
         </div>
       </div>
