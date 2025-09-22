@@ -3,9 +3,24 @@ import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const GetOrdersSchema = z.object({
-  status: z.enum(['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']).optional(),
-  limit: z.coerce.number().min(1).max(100).default(20),
-  offset: z.coerce.number().min(0).default(0),
+  status: z.string().optional().refine((val) => {
+    if (!val) return true; // Allow empty/undefined
+    return ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'].includes(val);
+  }, {
+    message: "Invalid status: expected one of 'pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'"
+  }),
+  limit: z.string().optional().transform((val) => {
+    if (!val) return 20; // Default value
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num < 1) return 20;
+    return Math.min(num, 100); // Cap at 100
+  }),
+  offset: z.string().optional().transform((val) => {
+    if (!val) return 0; // Default value
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num < 0) return 0;
+    return num;
+  }),
 });
 
 export async function GET(request: NextRequest) {
@@ -22,10 +37,16 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    
+    // Handle query parameters safely
+    const statusParam = searchParams.get('status');
+    const limitParam = searchParams.get('limit');
+    const offsetParam = searchParams.get('offset');
+    
     const params = GetOrdersSchema.parse({
-      status: searchParams.get('status'),
-      limit: searchParams.get('limit'),
-      offset: searchParams.get('offset'),
+      status: statusParam || undefined,
+      limit: limitParam || undefined,
+      offset: offsetParam || undefined,
     });
 
     let query = supabase
