@@ -54,7 +54,7 @@ interface CartContextType {
   refreshCart: () => Promise<void>;
   addToCart: (productId: string, quantity?: number) => Promise<boolean>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<boolean>;
-  removeFromCart: (productId: string) => Promise<boolean>;
+  removeFromCart: (cartItemId: string) => Promise<boolean>;
   clearCart: () => Promise<boolean>;
 }
 
@@ -145,11 +145,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const removeFromCart = async (productId: string): Promise<boolean> => {
+  const removeFromCart = async (cartItemId: string): Promise<boolean> => {
     if (!user) return false;
 
     try {
-      const response = await fetch(`/api/cart?productId=${productId}`, {
+      const response = await fetch(`/api/cart/${cartItemId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
