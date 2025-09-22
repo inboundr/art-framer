@@ -74,100 +74,206 @@ export function FramePreview({
 
   const dimensions = getFrameDimensions(frameSize);
 
-  // Wall context component
+  // Enhanced wall context with realistic room environment
   const WallContext = ({ children }: { children: React.ReactNode }) => {
     if (!showWallContext) return <>{children}</>;
 
+    const wallPadding = Math.max(dimensions.width * 0.3, 40);
+    const shadowSize = Math.max(dimensions.width * 0.1, 8);
+
     return (
-      <div className="relative bg-gradient-to-b from-amber-50 to-amber-100 p-8 rounded-lg shadow-inner">
-        {/* Wall texture */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="w-full h-full bg-gradient-to-br from-amber-200/30 to-amber-300/30 rounded-lg"></div>
+      <div 
+        className="relative bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 rounded-lg shadow-inner overflow-hidden"
+        style={{
+          padding: wallPadding,
+          minWidth: dimensions.width + wallPadding * 2,
+          minHeight: dimensions.height + wallPadding * 2,
+        }}
+      >
+        {/* Wall texture with subtle pattern */}
+        <div className="absolute inset-0">
+          <div 
+            className="w-full h-full rounded-lg opacity-30"
+            style={{
+              background: `
+                radial-gradient(circle at 25% 25%, rgba(0,0,0,0.02) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(0,0,0,0.02) 0%, transparent 50%),
+                linear-gradient(45deg, rgba(0,0,0,0.01) 25%, transparent 25%),
+                linear-gradient(-45deg, rgba(0,0,0,0.01) 25%, transparent 25%)
+              `,
+              backgroundSize: '60px 60px, 60px 60px, 20px 20px, 20px 20px'
+            }}
+          />
         </div>
         
-        {/* Wall shadow */}
-        <div className="absolute inset-0 rounded-lg shadow-2xl"></div>
-        
-        {/* Frame shadow on wall */}
+        {/* Ambient lighting effect */}
         <div 
-          className="absolute rounded-lg shadow-lg"
+          className="absolute rounded-full opacity-20"
           style={{
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: dimensions.width + 20,
-            height: dimensions.height + 20,
-            background: 'linear-gradient(135deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 100%)',
-            filter: 'blur(8px)',
+            top: '10%',
+            left: '20%',
+            width: '60%',
+            height: '40%',
+            background: 'radial-gradient(ellipse, rgba(255,255,255,0.8) 0%, transparent 70%)',
+            filter: 'blur(30px)',
           }}
         />
         
-        {children}
+        {/* Frame shadow on wall - more realistic */}
+        <div 
+          className="absolute rounded-lg"
+          style={{
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-45%, -45%)',
+            width: dimensions.width + shadowSize,
+            height: dimensions.height + shadowSize,
+            background: 'linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.1) 100%)',
+            filter: `blur(${shadowSize / 2}px)`,
+            borderRadius: '4px',
+          }}
+        />
+        
+        {/* Secondary softer shadow */}
+        <div 
+          className="absolute rounded-lg"
+          style={{
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-48%, -48%)',
+            width: dimensions.width + shadowSize * 2,
+            height: dimensions.height + shadowSize * 2,
+            background: 'radial-gradient(ellipse, rgba(0,0,0,0.1) 0%, transparent 70%)',
+            filter: `blur(${shadowSize}px)`,
+          }}
+        />
+        
+        {/* Wall corner details for depth */}
+        <div className="absolute top-2 left-2 w-8 h-8 border-l border-t border-slate-200/50 rounded-tl-lg"></div>
+        <div className="absolute top-2 right-2 w-8 h-8 border-r border-t border-slate-200/50 rounded-tr-lg"></div>
+        <div className="absolute bottom-2 left-2 w-8 h-8 border-l border-b border-slate-200/50 rounded-bl-lg"></div>
+        <div className="absolute bottom-2 right-2 w-8 h-8 border-r border-b border-slate-200/50 rounded-br-lg"></div>
+        
+        <div className="relative z-10">
+          {children}
+        </div>
       </div>
     );
   };
 
-  // Frame component with realistic styling
+  // Enhanced frame component with realistic materials and lighting
   const FrameComponent = () => {
-    const frameColor = frameStyle === 'gold' ? '#FFD700' :
-                      frameStyle === 'silver' ? '#C0C0C0' :
-                      frameStyle === 'natural' ? '#8B4513' :
-                      frameStyle === 'white' ? '#ffffff' : '#1a1a1a';
+    const frameWidth = Math.max(dimensions.width * 0.08, 12);
+    const matWidth = Math.max(dimensions.width * 0.06, 8);
+    
+    // Advanced frame styling based on material and style
+    const getFrameStyles = () => {
+      const baseStyles = {
+        width: dimensions.width,
+        height: dimensions.height,
+        transform: `scale(${previewScale})`,
+        transformOrigin: 'center',
+      };
+
+      const materialStyles = {
+        gold: {
+          background: `
+            linear-gradient(135deg, #FFD700 0%, #FFA500 30%, #FFD700 60%, #B8860B 100%),
+            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 0%, transparent 50%)
+          `,
+          boxShadow: 'inset 0 2px 4px rgba(255,215,0,0.3), inset 0 -2px 4px rgba(184,134,11,0.3)',
+          border: '2px solid #B8860B',
+        },
+        silver: {
+          background: `
+            linear-gradient(135deg, #E8E8E8 0%, #C0C0C0 30%, #D3D3D3 60%, #A8A8A8 100%),
+            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 50%)
+          `,
+          boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(169,169,169,0.3)',
+          border: '2px solid #A8A8A8',
+        },
+        natural: {
+          background: `
+            linear-gradient(135deg, #D2B48C 0%, #8B4513 30%, #A0522D 60%, #654321 100%),
+            repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px)
+          `,
+          boxShadow: 'inset 0 2px 4px rgba(210,180,140,0.3), inset 0 -2px 4px rgba(101,67,33,0.3)',
+          border: '2px solid #654321',
+        },
+        white: {
+          background: `
+            linear-gradient(135deg, #ffffff 0%, #f8f8f8 30%, #f0f0f0 60%, #e8e8e8 100%),
+            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, transparent 50%)
+          `,
+          boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.8), inset 0 -2px 4px rgba(200,200,200,0.3)',
+          border: '2px solid #e0e0e0',
+        },
+        black: {
+          background: `
+            linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 30%, #0f0f0f 60%, #000000 100%),
+            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%)
+          `,
+          boxShadow: 'inset 0 2px 4px rgba(80,80,80,0.3), inset 0 -2px 4px rgba(0,0,0,0.8)',
+          border: '2px solid #000000',
+        },
+      };
+
+      return {
+        ...baseStyles,
+        ...materialStyles[frameStyle as keyof typeof materialStyles] || materialStyles.black,
+      };
+    };
 
     return (
       <div
-        className="relative rounded-lg overflow-hidden shadow-lg"
-        style={{
-          width: dimensions.width,
-          height: dimensions.height,
-          transform: `scale(${previewScale})`,
-          transformOrigin: 'center',
-        }}
+        className="relative rounded-lg overflow-hidden shadow-2xl transition-all duration-300"
+        style={getFrameStyles()}
       >
-        {/* Frame with actual frame image or fallback */}
-        {frameDetails?.images?.[0] ? (
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat rounded-lg"
+        {/* Frame border with depth */}
+        <div 
+          className="absolute inset-0 rounded-lg"
+          style={{
+            padding: frameWidth,
+          }}
+        >
+          {/* Mat/mounting area */}
+          <div 
+            className="relative w-full h-full bg-gradient-to-br from-white via-gray-50 to-gray-100 rounded-sm shadow-inner overflow-hidden"
             style={{
-              backgroundImage: `url(${frameDetails.images[0].url})`,
+              padding: matWidth,
             }}
-          />
-        ) : (
-          <div
-            className="absolute inset-0 rounded-lg"
-            style={{
-              background: frameStyle === 'gold' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' :
-                         frameStyle === 'silver' ? 'linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%)' :
-                         frameStyle === 'natural' ? 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)' :
-                         frameStyle === 'white' ? 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' :
-                         'linear-gradient(135deg, #1a1a1a 0%, #000000 100%)',
-              border: `4px solid ${frameColor}`,
-            }}
-          />
-        )}
-        
-        {/* Inner mat */}
-        <div className="absolute inset-4 bg-white rounded-sm shadow-inner overflow-hidden">
-          <img
-            src={getProxiedImageUrl(imageUrl)}
-            alt={imagePrompt}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = '/placeholder-image.jpg';
-            }}
-          />
+          >
+            {/* Image area */}
+            <div className="relative w-full h-full bg-white rounded-sm overflow-hidden shadow-lg">
+              <img
+                src={getProxiedImageUrl(imageUrl)}
+                alt={imagePrompt}
+                className="w-full h-full object-cover transition-all duration-300"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/placeholder-image.jpg';
+                }}
+              />
+              
+              {/* Glass reflection effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-30 pointer-events-none"></div>
+            </div>
+          </div>
         </div>
         
-        {/* Frame corner details for non-image frames */}
-        {!frameDetails?.images?.[0] && (
-          <>
-            <div className="absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 border-white/20 rounded-tl-lg"></div>
-            <div className="absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 border-white/20 rounded-tr-lg"></div>
-            <div className="absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 border-white/20 rounded-bl-lg"></div>
-            <div className="absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 border-white/20 rounded-br-lg"></div>
-          </>
-        )}
+        {/* Frame corner accents */}
+        <div className="absolute top-1 left-1 w-4 h-4 border-l-2 border-t-2 border-white/30 rounded-tl-lg"></div>
+        <div className="absolute top-1 right-1 w-4 h-4 border-r-2 border-t-2 border-white/30 rounded-tr-lg"></div>
+        <div className="absolute bottom-1 left-1 w-4 h-4 border-l-2 border-b-2 border-white/30 rounded-bl-lg"></div>
+        <div className="absolute bottom-1 right-1 w-4 h-4 border-r-2 border-b-2 border-white/30 rounded-br-lg"></div>
+        
+        {/* Hanging wire simulation (subtle) */}
+        <div 
+          className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-gray-400 rounded-full opacity-50"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, #666 20%, #666 80%, transparent 100%)',
+          }}
+        ></div>
       </div>
     );
   };
@@ -218,12 +324,13 @@ export function FramePreview({
                     onClick={() => setIsPreviewOpen(true)}
                   >
                     <Eye className="h-3 w-3 mr-1" />
-                    Preview
+                    Wall Preview
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setPreviewScale(prev => prev === 1 ? 1.2 : 1)}
+                    title="Zoom in/out"
                   >
                     <Maximize2 className="h-3 w-3" />
                   </Button>
@@ -259,29 +366,102 @@ export function FramePreview({
           </DialogHeader>
           
           <div className="space-y-6">
-            {/* Large wall preview */}
+            {/* Large immersive room preview */}
             <div className="flex justify-center">
-              <div className="relative bg-gradient-to-b from-amber-50 to-amber-100 p-12 rounded-lg shadow-inner">
-                {/* Wall texture */}
-                <div className="absolute inset-0 opacity-20">
-                  <div className="w-full h-full bg-gradient-to-br from-amber-200/30 to-amber-300/30 rounded-lg"></div>
+              <div 
+                className="relative bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 rounded-lg shadow-2xl overflow-hidden"
+                style={{
+                  padding: Math.max(dimensions.width * 0.4, 60),
+                  minWidth: dimensions.width * 2 + 120,
+                  minHeight: dimensions.height * 1.5 + 120,
+                }}
+              >
+                {/* Room environment */}
+                <div className="absolute inset-0">
+                  {/* Wall texture */}
+                  <div 
+                    className="absolute inset-0 opacity-40"
+                    style={{
+                      background: `
+                        repeating-linear-gradient(
+                          0deg,
+                          transparent,
+                          transparent 100px,
+                          rgba(0,0,0,0.02) 100px,
+                          rgba(0,0,0,0.02) 101px
+                        ),
+                        repeating-linear-gradient(
+                          90deg,
+                          transparent,
+                          transparent 100px,
+                          rgba(0,0,0,0.02) 100px,
+                          rgba(0,0,0,0.02) 101px
+                        )
+                      `,
+                    }}
+                  />
+                  
+                  {/* Ceiling light effect */}
+                  <div 
+                    className="absolute rounded-full opacity-30"
+                    style={{
+                      top: '5%',
+                      left: '30%',
+                      width: '40%',
+                      height: '30%',
+                      background: 'radial-gradient(ellipse, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.3) 50%, transparent 80%)',
+                      filter: 'blur(40px)',
+                    }}
+                  />
+                  
+                  {/* Floor reflection hint */}
+                  <div 
+                    className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-300/20 to-transparent rounded-b-lg"
+                  />
                 </div>
                 
-                {/* Frame shadow on wall */}
+                {/* Multiple shadow layers for realism */}
                 <div 
-                  className="absolute rounded-lg shadow-2xl"
+                  className="absolute rounded-lg"
                   style={{
                     left: '50%',
                     top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: dimensions.width * 1.5 + 30,
-                    height: dimensions.height * 1.5 + 30,
-                    background: 'linear-gradient(135deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 100%)',
-                    filter: 'blur(12px)',
+                    transform: 'translate(-42%, -42%)',
+                    width: dimensions.width * 1.5 + 20,
+                    height: dimensions.height * 1.5 + 20,
+                    background: 'linear-gradient(135deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.15) 100%)',
+                    filter: 'blur(8px)',
+                    borderRadius: '8px',
                   }}
                 />
                 
-                <FrameComponent />
+                <div 
+                  className="absolute rounded-lg"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-45%, -45%)',
+                    width: dimensions.width * 1.5 + 40,
+                    height: dimensions.height * 1.5 + 40,
+                    background: 'radial-gradient(ellipse, rgba(0,0,0,0.1) 0%, transparent 70%)',
+                    filter: 'blur(20px)',
+                  }}
+                />
+                
+                {/* Ambient room elements */}
+                <div className="absolute top-4 left-4 w-12 h-12 bg-slate-200/30 rounded-lg shadow-sm"></div>
+                <div className="absolute top-4 right-4 w-8 h-16 bg-slate-200/20 rounded-lg shadow-sm"></div>
+                <div className="absolute bottom-4 left-6 w-16 h-4 bg-slate-300/20 rounded-lg shadow-sm"></div>
+                
+                <div 
+                  className="relative z-10"
+                  style={{
+                    transform: 'scale(1.5)',
+                    transformOrigin: 'center',
+                  }}
+                >
+                  <FrameComponent />
+                </div>
               </div>
             </div>
 

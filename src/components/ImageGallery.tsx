@@ -177,6 +177,9 @@ export function ImageGallery() {
   const { images, loading: isLoading, hasMore, loadMore } = useGallery();
   const { likeImage, unlikeImage, interactionLoading } = useImageInteractions();
   
+  // Hydration-safe state
+  const [isHydrated, setIsHydrated] = useState(false);
+  
   // Dynamic UI hooks with safe fallbacks
   const { 
     isMobile, 
@@ -190,6 +193,11 @@ export function ImageGallery() {
   const { createTransition, staggeredAnimate } = useDynamicAnimationsSafe();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
+  
+  // Ensure hydration safety
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -232,27 +240,27 @@ export function ImageGallery() {
       <div 
         className="flex flex-col items-center w-full max-w-7xl mx-auto"
         style={{ 
-          padding: `${getSpacing(24)} ${getSpacing(4)}`,
+          padding: isHydrated ? `${getSpacing(24)} ${getSpacing(4)}` : '24px 4px',
         }}
       >
         {/* Masonry Layout Container */}
         <div className="w-full">
           {/* Dynamic Responsive Masonry Columns */}
           <div 
-            className={getResponsiveClasses({
+            className={isHydrated ? getResponsiveClasses({
               xs: 'columns-1',
               sm: 'columns-2',
               md: 'columns-3',
               lg: 'columns-4',
               xl: 'columns-5',
               '2xl': 'columns-6',
-            })}
+            }) : 'columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6'}
             style={{
-              gap: `${optimalImageGrid.gap}px`,
-              transition: createTransition([
+              gap: isHydrated ? `${optimalImageGrid.gap}px` : '16px',
+              transition: isHydrated ? createTransition([
                 { property: 'column-count', duration: 300 },
                 { property: 'gap', duration: 300 },
-              ]),
+              ]) : undefined,
             }}
           >
             {images.map((image, index) => (
@@ -273,18 +281,18 @@ export function ImageGallery() {
           <div 
             ref={loadingRef}
             className="w-full text-center py-4"
-            style={{ marginTop: getSpacing(32) }}
+            style={{ marginTop: isHydrated ? getSpacing(32) : '32px' }}
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
                 <div 
                   className="w-4 h-4 rounded-full animate-spin"
                   style={{
-                    border: `2px solid ${theme.colors.border}`,
-                    borderTopColor: theme.colors.primary,
+                    border: isHydrated ? `2px solid ${theme.colors.border}` : '2px solid hsl(214.3, 31.8%, 91.4%)',
+                    borderTopColor: isHydrated ? theme.colors.primary : 'hsl(346, 77%, 49%)',
                   }}
                 />
-                <span style={{ color: theme.colors.mutedForeground }}>
+                <span style={{ color: isHydrated ? theme.colors.mutedForeground : 'hsl(215.4, 16.3%, 46.9%)' }}>
                   Loading more images...
                 </span>
               </div>
