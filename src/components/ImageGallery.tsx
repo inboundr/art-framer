@@ -33,18 +33,22 @@ function ImageCard({ image, onLike, onUnlike, isLiked = false, isInteracting = f
     }
   }, [animationRef]);
 
-  // Hover animations
+  // Hover animations - Fixed to prevent images from disappearing
   const handleMouseEnter = useCallback(() => {
     if (cardRef.current && !isMobile) {
-      animatePreset(cardRef.current, 'scaleIn', { duration: 200 });
+      // Use a gentle scale up without opacity change
+      cardRef.current.style.transform = 'scale(1.02)';
+      cardRef.current.style.transition = 'transform 0.2s ease-out';
     }
-  }, [animatePreset, isMobile]);
+  }, [isMobile]);
 
   const handleMouseLeave = useCallback(() => {
     if (cardRef.current && !isMobile) {
-      animatePreset(cardRef.current, 'scaleOut', { duration: 150 });
+      // Return to normal scale, keeping opacity at 1
+      cardRef.current.style.transform = 'scale(1)';
+      cardRef.current.style.transition = 'transform 0.15s ease-in';
     }
-  }, [animatePreset, isMobile]);
+  }, [isMobile]);
 
   // Like animation
   const handleLikeClick = useCallback((e: React.MouseEvent) => {
