@@ -7,7 +7,40 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    // Enhanced session storage configuration
+    storageKey: 'supabase.auth.token',
+    storage: {
+      getItem: (key: string) => {
+        if (typeof window !== 'undefined') {
+          return window.localStorage.getItem(key)
+        }
+        return null
+      },
+      setItem: (key: string, value: string) => {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(key, value)
+        }
+      },
+      removeItem: (key: string) => {
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(key)
+        }
+      },
+    }
+  },
+  // Enhanced cookie configuration (moved to top level)
+  cookieOptions: {
+    name: 'supabase-auth-token',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: '/',
+    sameSite: 'lax',
+  },
+  // Global configuration
+  global: {
+    headers: {
+      'X-Client-Info': 'art-framer-web'
+    }
   }
 })
 

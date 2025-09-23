@@ -28,33 +28,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    });
+    let mounted = true;
 
-    // Listen for auth changes
+    // Get initial session with better error handling
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+          // Try to recover from session error
+          await supabase.auth.refreshSession();
+          const { data: { session: recoveredSession } } = await supabase.auth.getSession();
+          
+          if (mounted) {
+            setSession(recoveredSession);
+            setUser(recoveredSession?.user ?? null);
+            if (recoveredSession?.user) {
+              await fetchProfile(recoveredSession.user.id);
+            }
+          }
+        } else {
+          if (mounted) {
+            setSession(session);
+            setUser(session?.user ?? null);
+            if (session?.user) {
+              await fetchProfile(session.user.id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    // Listen for auth changes with enhanced error handling
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      console.log('Auth state change:', event, session?.user?.email);
       
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
+      if (!mounted) return;
+
+      try {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+        }
+        
+        // Handle specific auth events
+        if (event === 'SIGNED_OUT') {
+          // Clear all local state
+          setProfile(null);
+          setSession(null);
+          setUser(null);
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed successfully');
+        } else if (event === 'SIGNED_IN') {
+          console.log('User signed in:', session?.user?.email);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error handling auth state change:', error);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {

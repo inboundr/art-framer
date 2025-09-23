@@ -15,13 +15,24 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+          })
           supabaseResponse = NextResponse.next({
             request,
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => {
+            // Enhanced cookie options for better persistence
+            const cookieOptions = {
+              ...options,
+              httpOnly: false, // Allow client-side access for session management
+              secure: process.env.NODE_ENV === 'production', // HTTPS in production
+              sameSite: 'lax' as const, // Better compatibility
+              path: '/', // Ensure cookie is available site-wide
+              maxAge: options?.maxAge || 60 * 60 * 24 * 7, // 7 days default
+            }
+            supabaseResponse.cookies.set(name, value, cookieOptions)
+          })
         },
       },
     }
@@ -31,9 +42,25 @@ export async function middleware(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  try {
+    const {
+      data: { user },
+      error
+    } = await supabase.auth.getUser()
+
+    if (error) {
+      console.error('Middleware auth error:', error)
+      // Don't block the request, let client handle it
+    }
+
+    // Add user info to response headers for debugging (optional)
+    if (user) {
+      supabaseResponse.headers.set('x-user-id', user.id)
+    }
+  } catch (error) {
+    console.error('Middleware error:', error)
+    // Don't block the request
+  }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:
