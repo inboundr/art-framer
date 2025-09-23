@@ -18,6 +18,45 @@ const CreateCheckoutSessionSchema = z.object({
   }),
 });
 
+// Currency mapping based on country
+const COUNTRY_CURRENCY_MAP: Record<string, string> = {
+  'US': 'usd',
+  'CA': 'cad', 
+  'GB': 'gbp',
+  'AU': 'aud',
+  'DE': 'eur',
+  'FR': 'eur',
+  'IT': 'eur',
+  'ES': 'eur',
+  'NL': 'eur',
+  'BE': 'eur',
+  'AT': 'eur',
+  'PT': 'eur',
+  'IE': 'eur',
+  'FI': 'eur',
+  'LU': 'eur',
+  'JP': 'jpy',
+  'KR': 'krw',
+  'SG': 'sgd',
+  'HK': 'hkd',
+  'CH': 'chf',
+  'SE': 'sek',
+  'NO': 'nok',
+  'DK': 'dkk',
+  'PL': 'pln',
+  'CZ': 'czk',
+  'HU': 'huf',
+  'MX': 'mxn',
+  'BR': 'brl',
+  'IN': 'inr',
+  'NZ': 'nzd',
+};
+
+// Get currency for country, default to USD
+function getCurrencyForCountry(countryCode: string): string {
+  return COUNTRY_CURRENCY_MAP[countryCode.toUpperCase()] || 'usd';
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -126,6 +165,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Determine currency based on shipping country
+    const currency = getCurrencyForCountry(validatedData.shippingAddress.countryCode);
+    
     // Calculate final pricing with shipping
     const pricingResult = defaultPricingCalculator.calculateTotal(pricingItems, shippingResult);
     
@@ -139,7 +181,7 @@ export async function POST(request: NextRequest) {
       line_items: [
         ...cartItems.map((item: any) => ({
           price_data: {
-            currency: 'usd',
+            currency: currency,
             product_data: {
               name: `${item.products.images.prompt} - ${getFrameSizeLabel(item.products.frame_size)} ${getFrameStyleLabel(item.products.frame_style)} ${getFrameMaterialLabel(item.products.frame_material)}`,
               description: `Framed print: ${item.products.images.prompt}`,
@@ -159,7 +201,7 @@ export async function POST(request: NextRequest) {
         // Tax line item
         {
           price_data: {
-            currency: 'usd',
+            currency: currency,
             product_data: {
               name: 'Tax',
               description: 'Sales tax',
@@ -171,10 +213,10 @@ export async function POST(request: NextRequest) {
         // Shipping line item
         {
           price_data: {
-            currency: 'usd',
+            currency: currency,
             product_data: {
               name: 'Shipping',
-              description: 'Standard shipping',
+              description: shippingResult.serviceName || 'Standard shipping',
             },
             unit_amount: Math.round(shippingAmount * 100),
           },

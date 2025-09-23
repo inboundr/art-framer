@@ -72,6 +72,7 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
     isEstimated: boolean;
     provider: string;
     addressValidated: boolean;
+    currency: string;
   } | null>(null);
   const [shippingLoading, setShippingLoading] = useState(false);
   const [addressValidated, setAddressValidated] = useState(false);
@@ -175,11 +176,26 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
     return () => clearTimeout(timer);
   }, [shippingAddress.country, shippingAddress.city, shippingAddress.zip, shippingAddress.state]);
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: currency.toUpperCase(),
     }).format(price);
+  };
+
+  // Get currency based on shipping address
+  const getDisplayCurrency = () => {
+    if (!shippingAddress.country) return 'USD';
+    
+    const currencyMap: Record<string, string> = {
+      'US': 'USD', 'CA': 'CAD', 'GB': 'GBP', 'AU': 'AUD', 'DE': 'EUR', 'FR': 'EUR',
+      'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR', 'BE': 'EUR', 'AT': 'EUR', 'PT': 'EUR',
+      'IE': 'EUR', 'FI': 'EUR', 'LU': 'EUR', 'JP': 'JPY', 'KR': 'KRW', 'SG': 'SGD',
+      'HK': 'HKD', 'CH': 'CHF', 'SE': 'SEK', 'NO': 'NOK', 'DK': 'DKK', 'PL': 'PLN',
+      'CZ': 'CZK', 'HU': 'HUF', 'MX': 'MXN', 'BR': 'BRL', 'IN': 'INR', 'NZ': 'NZD',
+    };
+    
+    return currencyMap[shippingAddress.country.toUpperCase()] || 'USD';
   };
 
   // Calculate shipping costs when address changes
@@ -213,6 +229,7 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
           isEstimated: data.isEstimated || false,
           provider: data.provider || 'unknown',
           addressValidated: data.addressValidated || false,
+          currency: data.currency || getDisplayCurrency(),
         });
       } else {
         console.error('Failed to calculate shipping');
@@ -789,11 +806,11 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>{formatPrice(totals.subtotal)}</span>
+                  <span>{formatPrice(totals.subtotal, getDisplayCurrency())}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax</span>
-                  <span>{formatPrice(totals.taxAmount)}</span>
+                  <span>{formatPrice(totals.taxAmount, getDisplayCurrency())}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="flex items-center gap-1">
@@ -824,7 +841,7 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
                       <span className="text-muted-foreground text-sm">Calculating...</span>
                     ) : calculatedShipping ? (
                       <div className="text-right">
-                        <div>{formatPrice(calculatedShipping.cost)}</div>
+                        <div>{formatPrice(calculatedShipping.cost, calculatedShipping.currency || getDisplayCurrency())}</div>
                         {calculatedShipping.isEstimated && (
                           <div className="text-xs text-amber-600">Estimated</div>
                         )}
@@ -842,8 +859,8 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
                 <span>Total</span>
                 <span>
                   {calculatedShipping ? 
-                    formatPrice(totals.subtotal + totals.taxAmount + calculatedShipping.cost) : 
-                    formatPrice(totals.subtotal + totals.taxAmount)
+                    formatPrice(totals.subtotal + totals.taxAmount + calculatedShipping.cost, getDisplayCurrency()) : 
+                    formatPrice(totals.subtotal + totals.taxAmount, getDisplayCurrency())
                   }
                 </span>
               </div>

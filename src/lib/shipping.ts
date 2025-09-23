@@ -40,6 +40,48 @@ export interface ShippingQuote {
   signatureRequired: boolean;
 }
 
+// Currency conversion rates (approximate, should be updated regularly or fetched from API)
+const CURRENCY_RATES: Record<string, number> = {
+  'USD': 1.0,      // Base currency
+  'CAD': 1.35,     // Canadian Dollar
+  'EUR': 0.85,     // Euro  
+  'GBP': 0.73,     // British Pound
+  'AUD': 1.50,     // Australian Dollar
+  'JPY': 150,      // Japanese Yen
+  'CHF': 0.88,     // Swiss Franc
+  'SEK': 10.5,     // Swedish Krona
+  'NOK': 10.8,     // Norwegian Krone
+  'DKK': 6.8,      // Danish Krone
+  'PLN': 4.0,      // Polish Zloty
+  'CZK': 22.5,     // Czech Koruna
+  'HUF': 360,      // Hungarian Forint
+  'SGD': 1.35,     // Singapore Dollar
+  'HKD': 7.8,      // Hong Kong Dollar
+  'KRW': 1300,     // South Korean Won
+  'MXN': 17.5,     // Mexican Peso
+  'BRL': 5.0,      // Brazilian Real
+  'INR': 83,       // Indian Rupee
+  'NZD': 1.65,     // New Zealand Dollar
+};
+
+// Convert amount from USD to target currency
+function convertCurrency(amountUSD: number, targetCurrency: string): number {
+  const rate = CURRENCY_RATES[targetCurrency.toUpperCase()] || 1.0;
+  return Math.round((amountUSD * rate) * 100) / 100; // Round to 2 decimal places
+}
+
+// Get currency for country code
+function getCurrencyForCountry(countryCode: string): string {
+  const currencyMap: Record<string, string> = {
+    'US': 'USD', 'CA': 'CAD', 'GB': 'GBP', 'AU': 'AUD', 'DE': 'EUR', 'FR': 'EUR',
+    'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR', 'BE': 'EUR', 'AT': 'EUR', 'PT': 'EUR',
+    'IE': 'EUR', 'FI': 'EUR', 'LU': 'EUR', 'JP': 'JPY', 'KR': 'KRW', 'SG': 'SGD',
+    'HK': 'HKD', 'CH': 'CHF', 'SE': 'SEK', 'NO': 'NOK', 'DK': 'DKK', 'PL': 'PLN',
+    'CZ': 'CZK', 'HU': 'HUF', 'MX': 'MXN', 'BR': 'BRL', 'IN': 'INR', 'NZ': 'NZD',
+  };
+  return currencyMap[countryCode.toUpperCase()] || 'USD';
+}
+
 export interface ShippingCalculationResult {
   quotes: ShippingQuote[];
   recommended: ShippingQuote;
@@ -145,6 +187,7 @@ export class ShippingService {
     address: ShippingAddress,
     options: ShippingOptions
   ): ShippingCalculationResult {
+    const targetCurrency = getCurrencyForCountry(address.countryCode);
     const subtotal = this.calculateSubtotal(items);
     const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
     
@@ -199,12 +242,16 @@ export class ShippingService {
       estimatedDays = options.expedited ? 7 : 14;
     }
     
+    // Convert to target currency
+    const convertedBaseCost = convertCurrency(baseCost, targetCurrency);
+    const convertedExpressCost = convertCurrency(baseCost * 1.6, targetCurrency);
+    
     // Create shipping quotes
     const standardQuote: ShippingQuote = {
       carrier: 'Estimated',
       service: options.expedited ? 'Express Shipping' : 'Standard Shipping',
-      cost: Math.round(baseCost * 100) / 100,
-      currency: 'USD',
+      cost: convertedBaseCost,
+      currency: targetCurrency,
       estimatedDays,
       trackingAvailable: true,
       insuranceIncluded: options.insurance || false,
@@ -215,8 +262,8 @@ export class ShippingService {
     const expressQuote: ShippingQuote = {
       carrier: 'Estimated',
       service: 'Express Shipping',
-      cost: Math.round(baseCost * 1.6 * 100) / 100,
-      currency: 'USD',
+      cost: convertedExpressCost,
+      currency: targetCurrency,
       estimatedDays: Math.max(1, Math.floor(estimatedDays * 0.6)),
       trackingAvailable: true,
       insuranceIncluded: true,
