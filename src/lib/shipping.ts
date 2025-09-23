@@ -46,6 +46,9 @@ export interface ShippingCalculationResult {
   freeShippingAvailable: boolean;
   freeShippingThreshold?: number;
   calculatedAt: Date;
+  isEstimated: boolean; // True if using fallback/estimated pricing
+  provider: string; // Which provider was used
+  addressValidated: boolean; // True if address was validated with Google
 }
 
 // Constants
@@ -96,6 +99,148 @@ export class ShippingService {
   }
 
   /**
+   * GUARANTEED shipping calculation - Always returns a result
+   * Uses multiple providers and intelligent fallbacks
+   */
+  async calculateShippingGuaranteed(
+    items: ShippingItem[],
+    address: ShippingAddress,
+    options: ShippingOptions = {
+      expedited: false,
+      insurance: false,
+      signature: false,
+      trackingRequired: true,
+    },
+    addressValidated: boolean = false
+  ): Promise<ShippingCalculationResult> {
+    try {
+      // First attempt: Use primary provider (Prodigi)
+      const result = await this.calculateShipping(items, address, options);
+      return {
+        ...result,
+        provider: 'prodigi',
+        addressValidated,
+        isEstimated: false,
+      };
+    } catch (error) {
+      console.warn('Primary shipping calculation failed, using intelligent fallback:', error);
+      
+      // Fallback: Use intelligent estimation based on address and items
+      const fallbackResult = this.calculateIntelligentFallback(items, address, options);
+      return {
+        ...fallbackResult,
+        provider: 'intelligent_fallback',
+        addressValidated,
+        isEstimated: true,
+      };
+    }
+  }
+
+  /**
+   * Intelligent fallback shipping calculation
+   * Uses location-based and weight-based estimation
+   */
+  private calculateIntelligentFallback(
+    items: ShippingItem[],
+    address: ShippingAddress,
+    options: ShippingOptions
+  ): ShippingCalculationResult {
+    const subtotal = this.calculateSubtotal(items);
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+    
+    // Base shipping cost calculation
+    let baseCost = 8.99; // Standard base rate
+    
+    // Country-based adjustments
+    const countryMultipliers = {
+      'US': 1.0,
+      'CA': 1.3,
+      'GB': 1.8,
+      'AU': 2.2,
+      'DE': 1.9,
+      'FR': 1.9,
+      'IT': 2.0,
+      'ES': 1.9,
+    };
+    
+    const countryMultiplier = countryMultipliers[address.countryCode as keyof typeof countryMultipliers] || 2.5;
+    baseCost *= countryMultiplier;
+    
+    // Quantity-based adjustments
+    if (totalQuantity > 1) {
+      baseCost += (totalQuantity - 1) * 3.99; // Additional items
+    }
+    
+    // Size-based adjustments (estimate from SKU if available)
+    const hasLargeItems = items.some(item => 
+      item.sku.includes('large') || item.sku.includes('extra_large')
+    );
+    if (hasLargeItems) {
+      baseCost += 5.99;
+    }
+    
+    // Expedited shipping
+    if (options.expedited) {
+      baseCost *= 1.8;
+    }
+    
+    // Insurance
+    if (options.insurance) {
+      baseCost += Math.max(2.99, subtotal * 0.02);
+    }
+    
+    // Estimate delivery days
+    let estimatedDays = 7; // Standard
+    if (address.countryCode === 'US') {
+      estimatedDays = options.expedited ? 2 : 5;
+    } else if (['CA', 'GB'].includes(address.countryCode)) {
+      estimatedDays = options.expedited ? 5 : 10;
+    } else {
+      estimatedDays = options.expedited ? 7 : 14;
+    }
+    
+    // Create shipping quotes
+    const standardQuote: ShippingQuote = {
+      carrier: 'Estimated',
+      service: options.expedited ? 'Express Shipping' : 'Standard Shipping',
+      cost: Math.round(baseCost * 100) / 100,
+      currency: 'USD',
+      estimatedDays,
+      trackingAvailable: true,
+      insuranceIncluded: options.insurance || false,
+      signatureRequired: options.signature || false,
+    };
+    
+    // Create alternative quote (slightly more expensive, faster)
+    const expressQuote: ShippingQuote = {
+      carrier: 'Estimated',
+      service: 'Express Shipping',
+      cost: Math.round(baseCost * 1.6 * 100) / 100,
+      currency: 'USD',
+      estimatedDays: Math.max(1, Math.floor(estimatedDays * 0.6)),
+      trackingAvailable: true,
+      insuranceIncluded: true,
+      signatureRequired: options.signature || false,
+    };
+    
+    const quotes = options.expedited ? [expressQuote, standardQuote] : [standardQuote, expressQuote];
+    
+    // Check free shipping
+    const freeShippingAvailable = subtotal >= FREE_SHIPPING_THRESHOLD;
+    
+    return {
+      quotes,
+      recommended: quotes[0],
+      freeShippingAvailable,
+      freeShippingThreshold: freeShippingAvailable ? undefined : FREE_SHIPPING_THRESHOLD,
+      calculatedAt: new Date(),
+      isEstimated: true,
+      provider: 'intelligent_fallback',
+      addressValidated: false,
+    };
+  }
+
+  /**
    * Calculate shipping costs with multiple providers and fallbacks
    */
   async calculateShipping(
@@ -136,6 +281,9 @@ export class ShippingService {
         freeShippingAvailable,
         freeShippingThreshold: freeShippingAvailable ? undefined : FREE_SHIPPING_THRESHOLD,
         calculatedAt: new Date(),
+        isEstimated: false,
+        provider: 'prodigi',
+        addressValidated: false,
       };
     } catch (error) {
       if (error instanceof ShippingServiceError) {

@@ -16,12 +16,15 @@ import {
   ArrowLeft,
   Lock,
   Clock,
-  Package
+  Package,
+  MapPin,
+  AlertTriangle
 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAddresses } from '@/hooks/useAddresses';
+import { GooglePlacesAutocomplete } from '@/components/ui/google-places-autocomplete';
 
 interface CheckoutFlowProps {
   onSuccess?: (orderId: string) => void;
@@ -62,6 +65,17 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [processing, setProcessing] = useState(false);
   const [sameAsShipping, setSameAsShipping] = useState(true);
+  const [calculatedShipping, setCalculatedShipping] = useState<{
+    cost: number;
+    estimatedDays: number;
+    serviceName: string;
+    isEstimated: boolean;
+    provider: string;
+    addressValidated: boolean;
+  } | null>(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [addressValidated, setAddressValidated] = useState(false);
+  const [googlePlacesAddress, setGooglePlacesAddress] = useState('');
   
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     firstName: '',
@@ -116,11 +130,100 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
     }
   }, [user]);
 
+  // Handle Google Places address selection
+  const handleGoogleAddressSelect = (addressData: {
+    address1: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+    countryCode: string;
+    lat: number;
+    lng: number;
+    formattedAddress: string;
+  }) => {
+    setShippingAddress(prev => ({
+      ...prev,
+      address1: addressData.address1,
+      city: addressData.city,
+      state: addressData.state,
+      zip: addressData.zip,
+      country: addressData.countryCode,
+    }));
+    
+    setAddressValidated(true);
+    
+    // Immediately calculate shipping for validated address
+    calculateShipping({
+      ...shippingAddress,
+      address1: addressData.address1,
+      city: addressData.city,
+      state: addressData.state,
+      zip: addressData.zip,
+      country: addressData.countryCode,
+    });
+  };
+
+  // Calculate shipping when address changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
+        calculateShipping(shippingAddress);
+      }
+    }, 500); // Debounce to avoid too many API calls
+
+    return () => clearTimeout(timer);
+  }, [shippingAddress.country, shippingAddress.city, shippingAddress.zip, shippingAddress.state]);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
     }).format(price);
+  };
+
+  // Calculate shipping costs when address changes
+  const calculateShipping = async (address: ShippingAddress) => {
+    if (!address.country || !address.city || !address.zip) {
+      setCalculatedShipping(null);
+      return;
+    }
+
+    setShippingLoading(true);
+    try {
+      const response = await fetch('/api/cart/shipping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          countryCode: address.country,
+          stateOrCounty: address.state,
+          postalCode: address.zip,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCalculatedShipping({
+          cost: data.shippingCost || 0,
+          estimatedDays: data.estimatedDays || 7,
+          serviceName: data.serviceName || 'Standard Shipping',
+          isEstimated: data.isEstimated || false,
+          provider: data.provider || 'unknown',
+          addressValidated: data.addressValidated || false,
+        });
+      } else {
+        console.error('Failed to calculate shipping');
+        setCalculatedShipping(null);
+      }
+    } catch (error) {
+      console.error('Error calculating shipping:', error);
+      setCalculatedShipping(null);
+    } finally {
+      setShippingLoading(false);
+    }
   };
 
   const getFrameSizeLabel = (size: string) => {
@@ -375,14 +478,31 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
                 </div>
 
                 <div>
-                  <Label htmlFor="address1">Address Line 1 *</Label>
-                  <Input
-                    id="address1"
-                    value={shippingAddress.address1}
-                    onChange={(e) => setShippingAddress(prev => ({ ...prev, address1: e.target.value }))}
-                    className={errors.address1 ? 'border-red-500' : ''}
+                  <GooglePlacesAutocomplete
+                    label="Street Address"
+                    placeholder="Start typing your address..."
+                    value={googlePlacesAddress}
+                    onChange={(value) => setGooglePlacesAddress(value)}
+                    onAddressSelect={handleGoogleAddressSelect}
+                    required={true}
+                    error={errors.address1}
                   />
-                  {errors.address1 && <p className="text-sm text-red-500 mt-1">{errors.address1}</p>}
+                  
+                  {/* Fallback manual input if Google Maps fails */}
+                  {!googlePlacesAddress && (
+                    <div className="mt-2 space-y-2">
+                      <Label htmlFor="address1-manual" className="text-sm text-muted-foreground">
+                        Or enter manually:
+                      </Label>
+                      <Input
+                        id="address1-manual"
+                        placeholder="Street address"
+                        value={shippingAddress.address1}
+                        onChange={(e) => setShippingAddress(prev => ({ ...prev, address1: e.target.value }))}
+                        className={errors.address1 ? 'border-red-500' : ''}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -676,8 +796,43 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
                   <span>{formatPrice(totals.taxAmount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span>{formatPrice(totals.shippingAmount)}</span>
+                  <span className="flex items-center gap-1">
+                    <Truck className="h-3 w-3" />
+                    Shipping
+                    {calculatedShipping && (
+                      <>
+                        <span className="text-xs text-muted-foreground">
+                          ({calculatedShipping.estimatedDays} days)
+                        </span>
+                        {calculatedShipping.isEstimated && (
+                          <span className="text-xs text-amber-600 flex items-center gap-1">
+                            <AlertTriangle className="h-2 w-2" />
+                            Est.
+                          </span>
+                        )}
+                        {calculatedShipping.addressValidated && (
+                          <span className="text-xs text-green-600 flex items-center gap-1">
+                            <CheckCircle className="h-2 w-2" />
+                            Verified
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </span>
+                  <span>
+                    {shippingLoading ? (
+                      <span className="text-muted-foreground text-sm">Calculating...</span>
+                    ) : calculatedShipping ? (
+                      <div className="text-right">
+                        <div>{formatPrice(calculatedShipping.cost)}</div>
+                        {calculatedShipping.isEstimated && (
+                          <div className="text-xs text-amber-600">Estimated</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Enter address</span>
+                    )}
+                  </span>
                 </div>
               </div>
               
@@ -685,7 +840,12 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
               
               <div className="flex justify-between font-semibold text-lg">
                 <span>Total</span>
-                <span>{formatPrice(totals.total)}</span>
+                <span>
+                  {calculatedShipping ? 
+                    formatPrice(totals.subtotal + totals.taxAmount + calculatedShipping.cost) : 
+                    formatPrice(totals.subtotal + totals.taxAmount)
+                  }
+                </span>
               </div>
 
               <div className="flex items-center gap-2 text-xs text-gray-500">

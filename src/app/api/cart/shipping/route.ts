@@ -66,10 +66,17 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
     }));
 
-    // Calculate shipping cost using enhanced shipping service
-    const shippingCalculation = await defaultShippingService.calculateShipping(
+    // Calculate shipping cost using GUARANTEED calculation
+    const shippingCalculation = await defaultShippingService.calculateShippingGuaranteed(
       shippingItems,
-      validatedAddress
+      validatedAddress,
+      {
+        expedited: false,
+        insurance: false,
+        signature: false,
+        trackingRequired: true,
+      },
+      false // Will be true when Google Maps validation is implemented
     );
 
     return NextResponse.json({
@@ -81,6 +88,9 @@ export async function POST(request: NextRequest) {
       freeShippingAvailable: shippingCalculation.freeShippingAvailable,
       freeShippingThreshold: shippingCalculation.freeShippingThreshold,
       allQuotes: shippingCalculation.quotes,
+      isEstimated: shippingCalculation.isEstimated,
+      provider: shippingCalculation.provider,
+      addressValidated: shippingCalculation.addressValidated,
     });
 
   } catch (error) {
