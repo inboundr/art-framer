@@ -261,24 +261,6 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               </button>
             </div>
 
-            {/* Privacy Link */}
-            <div className="flex w-full">
-              <button
-                onClick={() => handleNavClick('/privacy')}
-                className="flex w-full h-12 px-4 items-center gap-3 rounded-lg hover:bg-white/5 transition-colors"
-              >
-                <div className="flex items-center justify-center w-6 h-6">
-                  <svg width="22" height="22" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[22px] h-[22px]">
-                    <path d="M11.5 21C16.7467 21 21 16.7467 21 11.5C21 6.25329 16.7467 2 11.5 2C6.25329 2 2 6.25329 2 11.5C2 16.7467 6.25329 21 11.5 21Z" stroke="#AAAAB1" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M8.5 8.5C8.5 7.11929 9.61929 6 11 6C12.3807 6 13.5 7.11929 13.5 8.5C13.5 9.88071 12.3807 11 11 11V13" stroke="#AAAAB1" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M11 17H11.01" stroke="#AAAAB1" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <span className="text-gray-text text-sm font-medium">
-                  Privacy
-                </span>
-              </button>
-            </div>
             
             {/* Other navigation items... */}
           </div>

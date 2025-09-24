@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarAvatar } from './SidebarAvatar';
 
@@ -11,6 +12,7 @@ interface ProfilePopupProps {
 }
 
 export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps) {
+  const router = useRouter();
   const { user, profile, signOut } = useAuth();
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -174,7 +176,15 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
         <div className="flex items-center justify-between">
           <div className="flex gap-4">
             <button className="text-sm text-gray-500 hover:text-gray-700">Terms</button>
-            <button className="text-sm text-gray-500 hover:text-gray-700">Privacy</button>
+            <button 
+              onClick={() => {
+                router.push('/privacy');
+                onClose();
+              }}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Privacy
+            </button>
           </div>
           
           <div className="flex gap-2">
