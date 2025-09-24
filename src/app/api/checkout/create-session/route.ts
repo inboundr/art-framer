@@ -52,7 +52,6 @@ const COUNTRY_CURRENCY_MAP: Record<string, string> = {
   'NZ': 'nzd',
 };
 
-// Get currency for country, default to USD
 function getCurrencyForCountry(countryCode: string): string {
   return COUNTRY_CURRENCY_MAP[countryCode.toUpperCase()] || 'usd';
 }
@@ -61,16 +60,14 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     
-    // Check authentication - try both cookie and header methods
+    // Check authentication
     let user = null;
     let authError = null;
     
-    // Method 1: Try cookie-based auth
     const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
     if (!cookieError && cookieAuth.user) {
       user = cookieAuth.user;
     } else {
-      // Method 2: Try Authorization header
       const authHeader = request.headers.get('authorization');
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
@@ -95,10 +92,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = CreateCheckoutSessionSchema.parse(body);
 
-    // Use service client to fetch cart items
     const serviceSupabase = createServiceClient();
     
-    // Fetch cart items with product and image details
     const { data: cartItems, error: cartItemsError } = await serviceSupabase
       .from('cart_items')
       .select(`
@@ -125,7 +120,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate totals using robust pricing and shipping services
     const { defaultPricingCalculator } = await import('@/lib/pricing');
     const { defaultShippingService } = await import('@/lib/shipping');
     
@@ -142,7 +136,6 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
     }));
 
-    // Calculate shipping cost using enhanced shipping service
     let shippingResult;
     try {
       const shippingCalculation = await defaultShippingService.calculateShipping(
@@ -165,15 +158,10 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Determine currency based on shipping country
     const currency = getCurrencyForCountry(validatedData.shippingAddress.countryCode);
-    
-    // Calculate final pricing with shipping
     const pricingResult = defaultPricingCalculator.calculateTotal(pricingItems, shippingResult);
-    
     const { subtotal, taxAmount, shippingAmount, total } = pricingResult;
 
-    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -194,11 +182,10 @@ export async function POST(request: NextRequest) {
                 sku: item.products.sku,
               },
             },
-            unit_amount: Math.round(item.products.price * 100), // Convert to cents
+            unit_amount: Math.round(item.products.price * 100),
           },
           quantity: item.quantity,
         })),
-        // Tax line item
         {
           price_data: {
             currency: currency,
@@ -210,7 +197,6 @@ export async function POST(request: NextRequest) {
           },
           quantity: 1,
         },
-        // Shipping line item
         {
           price_data: {
             currency: currency,

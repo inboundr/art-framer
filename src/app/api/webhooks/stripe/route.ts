@@ -20,7 +20,11 @@ export async function POST(request: NextRequest) {
     const event = await constructWebhookEvent(body, signature);
     const supabase = await createClient();
 
-    console.log('Received Stripe webhook:', event.type);
+    console.log('🔍 Webhook received:', {
+      type: event.type,
+      timestamp: new Date().toISOString(),
+      eventId: event.id
+    });
 
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -57,15 +61,26 @@ async function handleCheckoutSessionCompleted(
   supabase: any
 ) {
   try {
-    console.log('Processing checkout session completed:', session.id);
+    console.log('📝 Processing checkout session completed:', {
+      sessionId: session.id,
+      paymentStatus: session.payment_status,
+      customerEmail: session.customer_email,
+      metadata: session.metadata
+    });
 
     const userId = session.metadata?.userId;
     const cartItemIds = session.metadata?.cartItemIds?.split(',') || [];
 
     if (!userId || cartItemIds.length === 0) {
-      console.error('Missing required metadata in session');
+      console.error('❌ Missing required metadata in session:', {
+        userId,
+        cartItemIds,
+        allMetadata: session.metadata
+      });
       return;
     }
+
+    console.log('🛒 Processing cart items:', { userId, cartItemIds });
 
     // Fetch cart items
     const { data: cartItems, error: cartItemsError } = await supabase
@@ -86,9 +101,15 @@ async function handleCheckoutSessionCompleted(
       .in('id', cartItemIds);
 
     if (cartItemsError || !cartItems) {
-      console.error('Error fetching cart items:', cartItemsError);
+      console.error('❌ Error fetching cart items:', {
+        error: cartItemsError,
+        userId,
+        cartItemIds
+      });
       return;
     }
+
+    console.log('✅ Cart items fetched:', { count: cartItems.length, items: cartItems.map((item: any) => ({ id: item.id, productId: item.product_id })) });
 
     // Create order
     const { data: order, error: orderError } = await supabase
@@ -118,9 +139,15 @@ async function handleCheckoutSessionCompleted(
       .single();
 
     if (orderError) {
-      console.error('Error creating order:', orderError);
+      console.error('❌ Error creating order:', {
+        error: orderError,
+        userId,
+        sessionId: session.id
+      });
       return;
     }
+
+    console.log('✅ Order created successfully:', { orderId: order.id, userId, total: order.total_amount });
 
     // Create order items
     const orderItems = cartItems.map((item: any) => ({
@@ -136,9 +163,15 @@ async function handleCheckoutSessionCompleted(
       .insert(orderItems);
 
     if (orderItemsError) {
-      console.error('Error creating order items:', orderItemsError);
+      console.error('❌ Error creating order items:', {
+        error: orderItemsError,
+        orderId: order.id,
+        itemCount: orderItems.length
+      });
       return;
     }
+
+    console.log('✅ Order items created:', { orderId: order.id, itemCount: orderItems.length });
 
     // Clear cart items
     const { error: clearCartError } = await supabase
@@ -152,18 +185,27 @@ async function handleCheckoutSessionCompleted(
     }
 
     // Create dropship orders for each item
+    console.log('📦 Creating dropship orders for', cartItems.length, 'items');
     for (const item of cartItems) {
+      const orderItem = orderItems.find((oi: any) => oi.product_id === item.product_id);
       const { error: dropshipError } = await supabase
         .from('dropship_orders')
         .insert({
           order_id: order.id,
-          order_item_id: orderItems.find((oi: any) => oi.product_id === item.product_id)?.id,
+          order_item_id: orderItem?.id,
           provider: 'prodigi', // Primary provider - Prodigi
           status: 'pending',
         });
 
       if (dropshipError) {
-        console.error('Error creating dropship order:', dropshipError);
+        console.error('❌ Error creating dropship order:', {
+          error: dropshipError,
+          orderId: order.id,
+          productId: item.product_id,
+          orderItemId: orderItem?.id
+        });
+      } else {
+        console.log('✅ Dropship order created for product:', item.product_id);
       }
     }
 
@@ -180,7 +222,13 @@ async function handleCheckoutSessionCompleted(
       // Don't fail the webhook if scheduling fails - we can retry later
     }
 
-    console.log('Order created successfully:', order.id);
+    console.log('🎉 Order processing completed successfully:', {
+      orderId: order.id,
+      userId,
+      sessionId: session.id,
+      itemCount: cartItems.length,
+      totalAmount: order.total_amount
+    });
   } catch (error) {
     console.error('Error handling checkout session completed:', error);
   }
