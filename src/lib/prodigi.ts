@@ -25,41 +25,34 @@ interface ProdigiProduct {
 }
 
 interface ProdigiOrderItem {
+  merchantReference?: string;
   sku: string;
-  quantity: number;
-  imageUrl: string;
-  personalization?: {
-    text?: string;
-    color?: string;
-  };
+  copies: number;
+  sizing: string;
+  attributes?: Record<string, string>;
+  assets: Array<{
+    printArea: string;
+    url: string;
+    md5Hash?: string;
+  }>;
 }
 
 interface ProdigiOrder {
   merchantReference: string;
+  shippingMethod: string;
+  recipient: {
+    name: string;
+    address: {
+      line1: string;
+      line2?: string;
+      postalOrZipCode: string;
+      countryCode: string;
+      townOrCity: string;
+      stateOrCounty?: string;
+    };
+  };
   items: ProdigiOrderItem[];
-  shippingAddress: {
-    recipientName: string;
-    addressLine1: string;
-    addressLine2?: string;
-    city: string;
-    stateOrCounty: string;
-    postalCode: string;
-    countryCode: string;
-    phoneNumber?: string;
-    email?: string;
-  };
-  billingAddress?: {
-    recipientName: string;
-    addressLine1: string;
-    addressLine2?: string;
-    city: string;
-    stateOrCounty: string;
-    postalCode: string;
-    countryCode: string;
-  };
-  currency: string;
-  customerEmail: string;
-  customerPhone?: string;
+  metadata?: Record<string, any>;
 }
 
 interface ProdigiOrderResponse {
@@ -145,7 +138,8 @@ export class ProdigiClient {
 
   async createOrder(order: ProdigiOrder): Promise<ProdigiOrderResponse> {
     try {
-      const response = await this.request<ProdigiOrderResponse>('/orders', {
+      // Use correct Orders endpoint with capital O from Postman collection
+      const response = await this.request<ProdigiOrderResponse>('/Orders', {
         method: 'POST',
         body: JSON.stringify(order),
       });
@@ -158,7 +152,8 @@ export class ProdigiClient {
 
   async getOrder(orderId: string): Promise<ProdigiOrderResponse> {
     try {
-      const response = await this.request<ProdigiOrderResponse>(`/orders/${orderId}`);
+      // Use correct Orders endpoint with capital O
+      const response = await this.request<ProdigiOrderResponse>(`/Orders/${orderId}`);
       return response;
     } catch (error) {
       console.error('Error fetching Prodigi order:', error);
@@ -180,41 +175,42 @@ export class ProdigiClient {
 
   // Map our frame specifications to Prodigi SKUs
   getProductSku(frameSize: string, frameStyle: string, frameMaterial: string): string {
+    // Updated to use real Prodigi SKUs from the official Postman collection
     const productMap: Record<string, string> = {
-      // Small frames (8" x 10")
-      'small-black-wood': 'FRAME-SM-BLK-WD',
-      'small-white-wood': 'FRAME-SM-WHT-WD',
-      'small-natural-wood': 'FRAME-SM-NAT-WD',
-      'small-gold-wood': 'FRAME-SM-GLD-WD',
-      'small-silver-wood': 'FRAME-SM-SLV-WD',
+      // Small frames - Canvas prints (10" x 10")
+      'small-black-wood': 'GLOBAL-CAN-10x10',
+      'small-white-wood': 'GLOBAL-CAN-10x10',
+      'small-natural-wood': 'GLOBAL-CAN-10x10',
+      'small-gold-wood': 'GLOBAL-CAN-10x10',
+      'small-silver-wood': 'GLOBAL-CAN-10x10',
       
-      // Medium frames (12" x 16")
-      'medium-black-wood': 'FRAME-MD-BLK-WD',
-      'medium-white-wood': 'FRAME-MD-WHT-WD',
-      'medium-natural-wood': 'FRAME-MD-NAT-WD',
-      'medium-gold-wood': 'FRAME-MD-GLD-WD',
-      'medium-silver-wood': 'FRAME-MD-SLV-WD',
+      // Medium frames - Canvas prints (16" x 20")
+      'medium-black-wood': 'GLOBAL-CFPM-16X20',
+      'medium-white-wood': 'GLOBAL-CFPM-16X20',
+      'medium-natural-wood': 'GLOBAL-CFPM-16X20',
+      'medium-gold-wood': 'GLOBAL-CFPM-16X20',
+      'medium-silver-wood': 'GLOBAL-CFPM-16X20',
       
-      // Large frames (16" x 20")
-      'large-black-wood': 'FRAME-LG-BLK-WD',
-      'large-white-wood': 'FRAME-LG-WHT-WD',
-      'large-natural-wood': 'FRAME-LG-NAT-WD',
-      'large-gold-wood': 'FRAME-LG-GLD-WD',
-      'large-silver-wood': 'FRAME-LG-SLV-WD',
+      // Large frames - Framed art prints (16" x 24")
+      'large-black-wood': 'GLOBAL-FAP-16X24',
+      'large-white-wood': 'GLOBAL-FAP-16X24',
+      'large-natural-wood': 'GLOBAL-FAP-16X24',
+      'large-gold-wood': 'GLOBAL-FAP-16X24',
+      'large-silver-wood': 'GLOBAL-FAP-16X24',
       
-      // Extra large frames (20" x 24")
-      'extra_large-black-wood': 'FRAME-XL-BLK-WD',
-      'extra_large-white-wood': 'FRAME-XL-WHT-WD',
-      'extra_large-natural-wood': 'FRAME-XL-NAT-WD',
-      'extra_large-gold-wood': 'FRAME-XL-GLD-WD',
-      'extra_large-silver-wood': 'FRAME-XL-SLV-WD',
+      // Extra large frames - Frame canvas (30" x 40")
+      'extra_large-black-wood': 'GLOBAL-FRA-CAN-30X40',
+      'extra_large-white-wood': 'GLOBAL-FRA-CAN-30X40',
+      'extra_large-natural-wood': 'GLOBAL-FRA-CAN-30X40',
+      'extra_large-gold-wood': 'GLOBAL-FRA-CAN-30X40',
+      'extra_large-silver-wood': 'GLOBAL-FRA-CAN-30X40',
     };
 
     const key = `${frameSize}-${frameStyle}-${frameMaterial}`;
-    return productMap[key] || 'FRAME-MD-BLK-WD'; // Default fallback
+    return productMap[key] || 'GLOBAL-CFPM-16X20'; // Default to medium canvas print
   }
 
-  // Convert our order format to Prodigi format
+  // Convert our order format to Prodigi format (updated to match Postman collection)
   convertToProdigiOrder(
     orderData: {
       orderReference: string;
@@ -233,26 +229,54 @@ export class ProdigiClient {
   ): ProdigiOrder {
     return {
       merchantReference: orderData.orderReference,
-      items: orderData.items.map(item => ({
-        sku: this.getProductSku(item.frameSize, item.frameStyle, item.frameMaterial),
-        quantity: item.quantity,
-        imageUrl: item.imageUrl,
-      })),
-      shippingAddress: {
-        recipientName: `${orderData.shippingAddress.firstName || orderData.shippingAddress.first_name} ${orderData.shippingAddress.lastName || orderData.shippingAddress.last_name}`,
-        addressLine1: orderData.shippingAddress.address1 || orderData.shippingAddress.line1,
-        addressLine2: orderData.shippingAddress.address2 || orderData.shippingAddress.line2,
-        city: orderData.shippingAddress.city,
-        stateOrCounty: orderData.shippingAddress.state,
-        postalCode: orderData.shippingAddress.zip || orderData.shippingAddress.postal_code,
-        countryCode: orderData.shippingAddress.country,
-        phoneNumber: orderData.customerPhone,
-        email: orderData.customerEmail,
+      shippingMethod: 'Standard',
+      recipient: {
+        name: `${orderData.shippingAddress.firstName || orderData.shippingAddress.first_name} ${orderData.shippingAddress.lastName || orderData.shippingAddress.last_name}`,
+        address: {
+          line1: orderData.shippingAddress.address1 || orderData.shippingAddress.line1,
+          line2: orderData.shippingAddress.address2 || orderData.shippingAddress.line2,
+          postalOrZipCode: orderData.shippingAddress.zip || orderData.shippingAddress.postal_code,
+          countryCode: orderData.shippingAddress.country,
+          townOrCity: orderData.shippingAddress.city,
+          stateOrCounty: orderData.shippingAddress.state,
+        },
       },
-      currency: 'USD',
-      customerEmail: orderData.customerEmail,
-      customerPhone: orderData.customerPhone,
+      items: orderData.items.map(item => ({
+        merchantReference: `item-${item.productSku}`,
+        sku: this.getProductSku(item.frameSize, item.frameStyle, item.frameMaterial),
+        copies: item.quantity,
+        sizing: 'fillPrintArea',
+        attributes: this.getProductAttributes(item.frameStyle, item.frameMaterial),
+        assets: [{
+          printArea: 'default',
+          url: item.imageUrl,
+        }],
+      })),
+      metadata: {
+        customerEmail: orderData.customerEmail,
+        customerPhone: orderData.customerPhone,
+      },
     };
+  }
+
+  // Get product attributes based on frame style and material
+  private getProductAttributes(frameStyle: string, frameMaterial: string): Record<string, string> {
+    const attributes: Record<string, string> = {};
+    
+    // Add color attribute for canvas prints (GLOBAL-CFPM-16X20 requires it)
+    if (frameStyle === 'black') {
+      attributes.color = 'black';
+    } else if (frameStyle === 'white') {
+      attributes.color = 'white';
+    } else if (frameStyle === 'natural') {
+      attributes.color = 'natural';
+    } else if (frameStyle === 'gold') {
+      attributes.color = 'gold';
+    } else if (frameStyle === 'silver') {
+      attributes.color = 'silver';
+    }
+    
+    return attributes;
   }
 
   // Get order status with proper mapping
@@ -287,7 +311,7 @@ export class ProdigiClient {
   }
 
   async calculateShippingCost(
-    items: { sku: string; quantity: number }[],
+    items: { sku: string; quantity: number; attributes?: Record<string, string> }[],
     shippingAddress: {
       countryCode: string;
       stateOrCounty?: string;
@@ -300,22 +324,47 @@ export class ProdigiClient {
     serviceName: string;
   }> {
     try {
+      // Use the correct quotes endpoint structure from Postman collection
       const response = await this.request<{
-        cost: number;
-        currency: string;
-        estimatedDays: number;
-        serviceName: string;
-      }>('/shipping/calculate', {
+        outcome: string;
+        quotes: Array<{
+          shipmentMethod: string;
+          costSummary: {
+            items: { amount: string; currency: string };
+            shipping: { amount: string; currency: string };
+          };
+        }>;
+      }>('/quotes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: items,
-          destination: shippingAddress
+          shippingMethod: 'Standard',
+          destinationCountryCode: shippingAddress.countryCode,
+          items: items.map(item => ({
+            sku: item.sku,
+            copies: item.quantity,
+            attributes: item.attributes || {},
+            assets: [{
+              printArea: 'default'
+            }]
+          }))
         })
       });
-      return response;
+      
+      // Return the first quote in the old format for backward compatibility
+      if (response.quotes && response.quotes.length > 0) {
+        const firstQuote = response.quotes[0];
+        return {
+          cost: parseFloat(firstQuote.costSummary.shipping.amount),
+          currency: firstQuote.costSummary.shipping.currency,
+          estimatedDays: 7, // Default since API doesn't provide this
+          serviceName: firstQuote.shipmentMethod
+        };
+      }
+      
+      throw new Error('No shipping quotes returned');
     } catch (error) {
       console.error('Error calculating shipping cost:', error);
       // Fallback to default shipping cost if API fails

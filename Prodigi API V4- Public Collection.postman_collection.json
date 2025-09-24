@@ -1,0 +1,784 @@
+{
+	"info": {
+		"_postman_id": "53b93998-c2d3-43c6-80dc-d0bb4afcbe0c",
+		"name": "Prodigi API V4: Public Collection",
+		"description": "### A COLLECTION OF PRODIGI API VERSION 4 CALLS FOR ILLUSTRATIVE PURPOSES FOR CLIENTS.\n\nNew clients must create an account to obtain API credentials. Go [here](https://dashboard.prodigi.com/register) to sign up.\n\n**NOTE**: This collection uses an environment setup to make use of the Prodigi sandbox. The following variables are empty and need to be supplied:\n\n**{{X-API-KEY}}** – Your REST API Key supplied by the Prodigi Dashboard\n\n### URLs\n\nAll requests should be made over HTTPS. Connections cannot be made via HTTP. Please note that support for SSL 3.0 has been disabled and we recommend using TLS 1.0 or better.\n\nTesting and development should be done against the sandbox API. This is an environment where you can create, and submit orders without incurring any costs.\n\n#### Sandbox API URL\n\n[https://api.sandbox.prodigi.com](https://api.sandbox.prodigi.com)\n\n#### Live API URL\n\n[https://api.prodigi.com](https://api.prodigi.com)\n\n### Format\n\n#### Request format\n\nRequests should be made using either JSON.\n\nThe Content-type header should be set accordingly to either Content-type: application/json.\n\n#### Response format\n\nAll responses are formatted as application/json.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "13050136"
+	},
+	"item": [
+		{
+			"name": "Order Operations",
+			"item": [
+				{
+					"name": "Create Order - OMS",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "00000000-0000-0000-0000-000000000000",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"merchantReference\": \"ORDER-SAMPLE\",\r\n    \"shippingMethod\": \"Standard\",\r\n    \"recipient\": {\r\n        \"address\": {\r\n            \"line1\": \"Address 1\",\r\n            \"line2\": \"Address 2\",\r\n            \"postalOrZipCode\": \"W1A 1AA\",\r\n            \"countryCode\": \"GB\",\r\n            \"townOrCity\": \"London\",\r\n            \"stateOrCounty\": null\r\n        },\r\n        \"name\": \"Recipient Name\"\r\n        \r\n    },\r\n    \"items\": [\r\n        {\r\n            \"merchantReference\": \"A4 Hardback\",\r\n            \"sku\": \"BOOK-A4-P-HARD-M\",\r\n            \"copies\": 1,\r\n            \"sizing\": \"fillPrintArea\",\r\n            \"assets\": [\r\n                {\r\n                    \"printArea\": \"Default\",\r\n                    \"url\": \"https://www.image.url/direct-link.jpeg\"\r\n                }\r\n            ]\r\n        }\r\n    ],\r\n    \"metadata\": {}\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://api.prodigi.com/v4.0/Orders/",
+							"protocol": "https",
+							"host": [
+								"api",
+								"prodigi",
+								"com"
+							],
+							"path": [
+								"v4.0",
+								"Orders",
+								""
+							]
+						},
+						"description": "POSTing to this endpoint will submit and create your order for you."
+					},
+					"response": [
+						{
+							"name": "Create Order",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"merchantReference\": \"MyMerchantReference1\",\r\n    \"shippingMethod\": \"Overnight\",\r\n    \"recipient\": {\r\n        \"address\": {\r\n            \"line1\": \"14 test place\",\r\n            \"line2\": \"test\",\r\n            \"postalOrZipCode\": \"12345\",\r\n            \"countryCode\": \"US\",\r\n            \"townOrCity\": \"somewhere\",\r\n            \"stateOrCounty\": null\r\n        },\r\n        \"name\": \"Mr test\"\r\n        \r\n    },\r\n    \"items\": [\r\n        {\r\n            \"merchantReference\": \"item #1\",\r\n            \"sku\": \"GLOBAL-CFPM-16X20\",\r\n            \"copies\": 1,\r\n            \"sizing\": \"fillPrintArea\",\r\n            \"attributes\": {\r\n                \"color\": \"black\"\r\n            },\r\n            \"assets\": [\r\n                {\r\n                    \"printArea\": \"Default\",\r\n                    \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_landscape.jpg\",\r\n                    \"md5Hash\": \"dcb2b27755a6f2ceb09089856508f31b\"\r\n                }\r\n            ]\r\n        }\r\n    ],\r\n    \"metadata\": {\r\n        \"mycustomkey\":\"some-guid\",\r\n        \"someCustomerPreference\": {\r\n            \"preference1\": \"something\",\r\n            \"preference2\": \"red\"\r\n        },\r\n        \"sourceId\": 12345\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"Orders",
+										""
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"outcome\": \"Created\",\n    \"order\": {\n        \"id\": \"ord_978731\",\n        \"created\": \"2021-04-30T13:51:56.383Z\",\n        \"lastUpdated\": \"2021-04-30T13:51:58.6752414Z\",\n        \"callbackUrl\": null,\n        \"merchantReference\": \"MyMerchantReference1\",\n        \"shippingMethod\": \"Overnight\",\n        \"idempotencyKey\": null,\n        \"status\": {\n            \"stage\": \"InProgress\",\n            \"issues\": [],\n            \"details\": {\n                \"downloadAssets\": \"NotStarted\",\n                \"printReadyAssetsPrepared\": \"NotStarted\",\n                \"allocateProductionLocation\": \"NotStarted\",\n                \"inProduction\": \"NotStarted\",\n                \"shipping\": \"NotStarted\"\n            }\n        },\n        \"charges\": [],\n        \"shipments\": [],\n        \"recipient\": {\n            \"name\": \"Mr test\",\n            \"email\": null,\n            \"phoneNumber\": null,\n            \"address\": {\n                \"line1\": \"14 test place\",\n                \"line2\": \"test\",\n                \"postalOrZipCode\": \"12345\",\n                \"countryCode\": \"US\",\n                \"townOrCity\": \"somewhere\",\n                \"stateOrCounty\": null\n            }\n        },\n        \"items\": [\n            {\n                \"id\": \"ori_1201772\",\n                \"status\": \"NotYetDownloaded\",\n                \"merchantReference\": \"item #1\",\n                \"sku\": \"GLOBAL-CFPM-16X20\",\n                \"copies\": 1,\n                \"sizing\": \"fillPrintArea\",\n                \"attributes\": {\n                    \"color\": \"black\"\n                },\n                \"assets\": [\n                    {\n                        \"id\": \"ast_113803\",\n                        \"printArea\": \"default\",\n                        \"md5Hash\": \"dcb2b27755a6f2ceb09089856508f31b\",\n                        \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_landscape.jpg\",\n                        \"status\": \"InProgress\"\n                    }\n                ],\n                \"recipientCost\": null\n            }\n        ],\n        \"packingSlip\": null,\n        \"metadata\": {\n            \"mycustomkey\": \"some-guid\",\n            \"someCustomerPreference\": {\n                \"preference1\": \"something\",\n                \"preference2\": \"red\"\n            },\n            \"sourceId\": 12345\n        }\n    },\n    \"traceParent\": \"00-b1348945374a2f41906061932009bd78-a1bef1f50da9dd4e-00\"\n}"
+						}
+					]
+				},
+				{
+					"name": "GET Orders",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{X-API-Key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/?Top=5",
+							"host": [
+								"{{WEB_API_ROOT_URL}}"
+							],
+							"path": [
+								"v4.0",
+								"Orders",
+								""
+							],
+							"query": [
+								{
+									"key": "Top",
+									"value": "5"
+								}
+							]
+						},
+						"description": "This endpoint returns a list of Orders based on the filtering options given- which are all optional. See [here](https://www.prodigi.com/print-api/docs/reference/#get-orders) for the filtering options available.\n\nIn this example, top is used."
+					},
+					"response": [
+						{
+							"name": "GET Orders",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/?Top=5",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"Orders",
+										""
+									],
+									"query": [
+										{
+											"key": "Top",
+											"value": "5"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"outcome\": \"Ok\",\n    \"hasMore\": true,\n    \"nextUrl\": \"https://api.sandbox.prodigi.com/v4.0/Orders?Top=5&Skip=5\",\n    \"orders\": [\n        {\n            \"id\": \"ord_946316\",\n            \"created\": \"2021-03-22T11:55:00.867Z\",\n            \"lastUpdated\": \"2021-04-21T14:30:05.54Z\",\n            \"callbackUrl\": \"https://60552839ac4b2e86f6d35b9e230a4913.m.pipedream.net/\",\n            \"merchantReference\": \"Complete Creation Test Order\",\n            \"shippingMethod\": \"Budget\",\n            \"idempotencyKey\": null,\n            \"status\": {\n                \"stage\": \"Complete\",\n                \"issues\": [],\n                \"details\": {\n                    \"downloadAssets\": \"Complete\",\n                    \"printReadyAssetsPrepared\": \"Complete\",\n                    \"allocateProductionLocation\": \"Complete\",\n                    \"inProduction\": \"Complete\",\n                    \"shipping\": \"Complete\"\n                }\n            },\n            \"charges\": [\n                {\n                    \"id\": \"chg_419981\",\n                    \"prodigiInvoiceNumber\": \"6455\",\n                    \"totalCost\": {\n                        \"amount\": \"14.60\",\n                        \"currency\": \"GBP\"\n                    },\n                    \"items\": [\n                        {\n                            \"id\": \"chi_793873\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"4.30\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_793874\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"10.30\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_793875\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"0.00\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        }\n                    ]\n                }\n            ],\n            \"shipments\": [\n                {\n                    \"id\": \"shp_593141\",\n                    \"dispatchDate\": \"2021-03-22T12:11:32.923Z\",\n                    \"carrier\": {\n                        \"name\": \"B2C\",\n                        \"service\": \"B2C Standard\"\n                    },\n                    \"fulfillmentLocation\": {\n                        \"countryCode\": \"NL\",\n                        \"labCode\": \"nl1\"\n                    },\n                    \"tracking\": {\n                        \"number\": \"PH000000000GB\",\n                        \"url\": \"https://www.royalmail.com/portal/rm/track?trackNumber=PH000000000GB\"\n                    },\n                    \"items\": [\n                        {\n                            \"itemId\": \"ori_1166926\"\n                        }\n                    ],\n                    \"status\": \"Shipped\"\n                }\n            ],\n            \"recipient\": {\n                \"name\": \"Mr Automated Test\",\n                \"email\": \"bugdefenceunit@gmail.com\",\n                \"phoneNumber\": \"123456789\",\n                \"address\": {\n                    \"line1\": \"7357 Test Stree\",\n                    \"line2\": \"Test House\",\n                    \"postalOrZipCode\": \"TE57IN\",\n                    \"countryCode\": \"GB\",\n                    \"townOrCity\": \"Testville\",\n                    \"stateOrCounty\": \"Testshire\"\n                }\n            },\n            \"items\": [\n                {\n                    \"id\": \"ori_1166926\",\n                    \"status\": \"Ok\",\n                    \"merchantReference\": \"18-783-905\",\n                    \"sku\": \"PHBK_14_SQ_HPC\",\n                    \"copies\": 1,\n                    \"sizing\": \"fitPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_409429\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": \"04826a28e7e19e71251b2517a049c2ef\",\n                            \"url\": \"https://pwintytest.blob.core.windows.net/integration-test-content/photobook_14cm_square_hardphotocover.pdf\",\n                            \"status\": \"Complete\"\n                        }\n                    ],\n                    \"recipientCost\": {\n                        \"amount\": \"1713.99\",\n                        \"currency\": \"GBP\"\n                    }\n                }\n            ],\n            \"packingSlip\": {\n                \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_test.jpg\",\n                \"status\": \"Success\"\n            },\n            \"metadata\": {\n                \"meta_string\": \"Test Metadata String 123@&*^\",\n                \"meta_int\": 123,\n                \"meta_float\": 123.5,\n                \"meta_array\": [\n                    \"hell@\",\n                    1234\n                ],\n                \"meta_object\": {\n                    \"obj1\": \"Hello@*&^\",\n                    \"obj2\": 1234\n                }\n            }\n        },\n        {\n            \"id\": \"ord_942702\",\n            \"created\": \"2021-03-03T01:19:42.847Z\",\n            \"lastUpdated\": \"2021-04-02T14:30:01.397Z\",\n            \"callbackUrl\": null,\n            \"merchantReference\": null,\n            \"shippingMethod\": \"Budget\",\n            \"idempotencyKey\": null,\n            \"status\": {\n                \"stage\": \"InProgress\",\n                \"issues\": [\n                    {\n                        \"objectId\": \"ori_1163448\",\n                        \"errorCode\": \"order.items.assets.FailedToDownloaded\",\n                        \"description\": \"File not downloaded for item 'ori_1163448' asset 'default' at location 'https://your-image-url/image.png'\",\n                        \"authorisationDetails\": null\n                    }\n                ],\n                \"details\": {\n                    \"downloadAssets\": \"Error\",\n                    \"printReadyAssetsPrepared\": \"NotStarted\",\n                    \"allocateProductionLocation\": \"Complete\",\n                    \"inProduction\": \"NotStarted\",\n                    \"shipping\": \"NotStarted\"\n                }\n            },\n            \"charges\": [],\n            \"shipments\": [\n                {\n                    \"id\": \"shp_592169\",\n                    \"dispatchDate\": null,\n                    \"carrier\": {\n                        \"name\": \"USPS\",\n                        \"service\": \"USPS First Class Post\"\n                    },\n                    \"fulfillmentLocation\": {\n                        \"countryCode\": \"US\",\n                        \"labCode\": \"us2\"\n                    },\n                    \"tracking\": null,\n                    \"items\": [\n                        {\n                            \"itemId\": \"ori_1163448\"\n                        }\n                    ],\n                    \"status\": \"Processing\"\n                }\n            ],\n            \"recipient\": {\n                \"name\": \"John Testman\",\n                \"email\": \"jtestman@prodigi.com\",\n                \"phoneNumber\": null,\n                \"address\": {\n                    \"line1\": \"14 test place\",\n                    \"line2\": \"test\",\n                    \"postalOrZipCode\": \"12345\",\n                    \"countryCode\": \"US\",\n                    \"townOrCity\": \"somewhere\",\n                    \"stateOrCounty\": \"somewhereelse\"\n                }\n            },\n            \"items\": [\n                {\n                    \"id\": \"ori_1163448\",\n                    \"status\": \"Invalid\",\n                    \"merchantReference\": null,\n                    \"sku\": \"GLOBAL-FAP-16X24\",\n                    \"copies\": 1,\n                    \"sizing\": \"fillPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_189\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": null,\n                            \"url\": \"https://your-image-url/image.png\",\n                            \"status\": \"Error\"\n                        }\n                    ],\n                    \"recipientCost\": null\n                }\n            ],\n            \"packingSlip\": null,\n            \"metadata\": null\n        },\n        {\n            \"id\": \"ord_942701\",\n            \"created\": \"2021-03-03T01:01:47.183Z\",\n            \"lastUpdated\": \"2021-04-02T14:30:01.747Z\",\n            \"callbackUrl\": null,\n            \"merchantReference\": \"Prodigi CLI Order Placer\",\n            \"shippingMethod\": \"Express\",\n            \"idempotencyKey\": null,\n            \"status\": {\n                \"stage\": \"Complete\",\n                \"issues\": [],\n                \"details\": {\n                    \"downloadAssets\": \"Complete\",\n                    \"printReadyAssetsPrepared\": \"Complete\",\n                    \"allocateProductionLocation\": \"Complete\",\n                    \"inProduction\": \"Complete\",\n                    \"shipping\": \"Complete\"\n                }\n            },\n            \"charges\": [\n                {\n                    \"id\": \"chg_419349\",\n                    \"prodigiInvoiceNumber\": \"6455\",\n                    \"totalCost\": {\n                        \"amount\": \"113.95\",\n                        \"currency\": \"GBP\"\n                    },\n                    \"items\": [\n                        {\n                            \"id\": \"chi_792410\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"13.95\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_792411\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"20.00\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_792412\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"20.00\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_792413\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"20.00\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_792414\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"20.00\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_792415\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"20.00\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        }\n                    ]\n                }\n            ],\n            \"shipments\": [\n                {\n                    \"id\": \"shp_592168\",\n                    \"dispatchDate\": \"2021-03-03T01:12:17.507Z\",\n                    \"carrier\": {\n                        \"name\": \"DHL Express\",\n                        \"service\": \"DHL Express Worldwide\"\n                    },\n                    \"fulfillmentLocation\": {\n                        \"countryCode\": \"GB\",\n                        \"labCode\": \"prodigi_gb2\"\n                    },\n                    \"tracking\": {\n                        \"number\": \"PH000000000GB\",\n                        \"url\": \"https://www.royalmail.com/portal/rm/track?trackNumber=PH000000000GB\"\n                    },\n                    \"items\": [\n                        {\n                            \"itemId\": \"ori_1163443\"\n                        },\n                        {\n                            \"itemId\": \"ori_1163444\"\n                        },\n                        {\n                            \"itemId\": \"ori_1163445\"\n                        },\n                        {\n                            \"itemId\": \"ori_1163446\"\n                        },\n                        {\n                            \"itemId\": \"ori_1163447\"\n                        }\n                    ],\n                    \"status\": \"Shipped\"\n                }\n            ],\n            \"recipient\": {\n                \"name\": \"Prodigi Test Order DO NOT PRINT\",\n                \"email\": \"Durward39@gmail.com\",\n                \"phoneNumber\": \"416.467.4081 x78722\",\n                \"address\": {\n                    \"line1\": \"307\",\n                    \"line2\": \"Violet Lock\",\n                    \"postalOrZipCode\": \"95585-7608\",\n                    \"countryCode\": \"US\",\n                    \"townOrCity\": \"Port Krystelmouth\",\n                    \"stateOrCounty\": \"Mississippi\"\n                }\n            },\n            \"items\": [\n                {\n                    \"id\": \"ori_1163443\",\n                    \"status\": \"Ok\",\n                    \"merchantReference\": null,\n                    \"sku\": \"ART-FAP-SAP-28X40\",\n                    \"copies\": 1,\n                    \"sizing\": \"fitPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_408763\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": \"89844e8bde0787cf0c79f63c46f56901\",\n                            \"url\": \"https://source.unsplash.com/3391x3781\",\n                            \"status\": \"Complete\"\n                        }\n                    ],\n                    \"recipientCost\": null\n                },\n                {\n                    \"id\": \"ori_1163444\",\n                    \"status\": \"Ok\",\n                    \"merchantReference\": null,\n                    \"sku\": \"ART-FAP-SAP-28X40\",\n                    \"copies\": 1,\n                    \"sizing\": \"fillPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_408763\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": \"c661e5bd9ab8caf2ab471260c2de271c\",\n                            \"url\": \"https://source.unsplash.com/2074x2869\",\n                            \"status\": \"Complete\"\n                        }\n                    ],\n                    \"recipientCost\": null\n                },\n                {\n                    \"id\": \"ori_1163445\",\n                    \"status\": \"Ok\",\n                    \"merchantReference\": null,\n                    \"sku\": \"ART-FAP-SAP-28X40\",\n                    \"copies\": 1,\n                    \"sizing\": \"fitPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_408763\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": \"6154ca860f0f23d00efe04f271d48383\",\n                            \"url\": \"https://source.unsplash.com/2109x3623\",\n                            \"status\": \"Complete\"\n                        }\n                    ],\n                    \"recipientCost\": null\n                },\n                {\n                    \"id\": \"ori_1163446\",\n                    \"status\": \"Ok\",\n                    \"merchantReference\": null,\n                    \"sku\": \"ART-FAP-SAP-28X40\",\n                    \"copies\": 1,\n                    \"sizing\": \"fitPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_408763\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": \"5552d94c3651a5f90745e8a16cd6d192\",\n                            \"url\": \"https://source.unsplash.com/2867x2393\",\n                            \"status\": \"Complete\"\n                        }\n                    ],\n                    \"recipientCost\": null\n                },\n                {\n                    \"id\": \"ori_1163447\",\n                    \"status\": \"Ok\",\n                    \"merchantReference\": null,\n                    \"sku\": \"ART-FAP-SAP-28X40\",\n                    \"copies\": 1,\n                    \"sizing\": \"stretchToPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_408763\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": \"0892f02997d0dafd946a0c71f97ab7f5\",\n                            \"url\": \"https://source.unsplash.com/2059x2560\",\n                            \"status\": \"Complete\"\n                        }\n                    ],\n                    \"recipientCost\": null\n                }\n            ],\n            \"packingSlip\": null,\n            \"metadata\": {}\n        },\n        {\n            \"id\": \"ord_925384\",\n            \"created\": \"2020-12-29T14:10:40.647Z\",\n            \"lastUpdated\": \"2021-01-28T14:30:02.073Z\",\n            \"callbackUrl\": null,\n            \"merchantReference\": \"ljb-test-order\",\n            \"shippingMethod\": \"Standard\",\n            \"idempotencyKey\": null,\n            \"status\": {\n                \"stage\": \"InProgress\",\n                \"issues\": [],\n                \"details\": {\n                    \"downloadAssets\": \"Complete\",\n                    \"printReadyAssetsPrepared\": \"Complete\",\n                    \"allocateProductionLocation\": \"Complete\",\n                    \"inProduction\": \"NotStarted\",\n                    \"shipping\": \"NotStarted\"\n                }\n            },\n            \"charges\": [\n                {\n                    \"id\": \"chg_416292\",\n                    \"prodigiInvoiceNumber\": \"6340\",\n                    \"totalCost\": {\n                        \"amount\": \"18.00\",\n                        \"currency\": \"GBP\"\n                    },\n                    \"items\": [\n                        {\n                            \"id\": \"chi_785586\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"3.00\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_785587\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"7.50\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_785588\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"7.50\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        }\n                    ]\n                }\n            ],\n            \"shipments\": [\n                {\n                    \"id\": \"shp_587572\",\n                    \"dispatchDate\": null,\n                    \"carrier\": {\n                        \"name\": \"USPS\",\n                        \"service\": \"USPS Priority Mail\"\n                    },\n                    \"fulfillmentLocation\": {\n                        \"countryCode\": \"US\",\n                        \"labCode\": \"us7\"\n                    },\n                    \"tracking\": null,\n                    \"items\": [\n                        {\n                            \"itemId\": \"ori_1144225\"\n                        },\n                        {\n                            \"itemId\": \"ori_1144226\"\n                        }\n                    ],\n                    \"status\": \"Processing\"\n                }\n            ],\n            \"recipient\": {\n                \"name\": \"Prodigi Test Order DO NOT PRINT[assettolab][tolab]\",\n                \"email\": \"luke.barker@prodigi.com\",\n                \"phoneNumber\": null,\n                \"address\": {\n                    \"line1\": \"9201\",\n                    \"line2\": \"International Blvd\",\n                    \"postalOrZipCode\": \"94603\",\n                    \"countryCode\": \"US\",\n                    \"townOrCity\": \"Oakland\",\n                    \"stateOrCounty\": \"California\"\n                }\n            },\n            \"items\": [\n                {\n                    \"id\": \"ori_1144225\",\n                    \"status\": \"Ok\",\n                    \"merchantReference\": null,\n                    \"sku\": \"GLOBAL-TECH-IP12-CS-M\",\n                    \"copies\": 1,\n                    \"sizing\": \"fillPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_407030\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": \"c1ad3c032137d1364942e4daf6b1f7d8\",\n                            \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_test_TrueLandscape.jpg\",\n                            \"status\": \"Complete\"\n                        }\n                    ],\n                    \"recipientCost\": null\n                },\n                {\n                    \"id\": \"ori_1144226\",\n                    \"status\": \"Ok\",\n                    \"merchantReference\": null,\n                    \"sku\": \"GLOBAL-TECH-IP12-CS-G\",\n                    \"copies\": 1,\n                    \"sizing\": \"fillPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_407039\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": \"c1ad3c032137d1364942e4daf6b1f7d8\",\n                            \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_test_TrueLandscape.jpg\",\n                            \"status\": \"Complete\"\n                        }\n                    ],\n                    \"recipientCost\": null\n                }\n            ],\n            \"packingSlip\": null,\n            \"metadata\": null\n        },\n        {\n            \"id\": \"ord_923474\",\n            \"created\": \"2020-12-14T14:03:52.55Z\",\n            \"lastUpdated\": \"2021-01-13T14:30:53.287Z\",\n            \"callbackUrl\": null,\n            \"merchantReference\": \"ljb-test-order\",\n            \"shippingMethod\": \"Standard\",\n            \"idempotencyKey\": null,\n            \"status\": {\n                \"stage\": \"Complete\",\n                \"issues\": [],\n                \"details\": {\n                    \"downloadAssets\": \"Complete\",\n                    \"printReadyAssetsPrepared\": \"Complete\",\n                    \"allocateProductionLocation\": \"Complete\",\n                    \"inProduction\": \"Complete\",\n                    \"shipping\": \"Complete\"\n                }\n            },\n            \"charges\": [\n                {\n                    \"id\": \"chg_415987\",\n                    \"prodigiInvoiceNumber\": \"6340\",\n                    \"totalCost\": {\n                        \"amount\": \"18.00\",\n                        \"currency\": \"GBP\"\n                    },\n                    \"items\": [\n                        {\n                            \"id\": \"chi_784941\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"3.00\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_784942\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"7.50\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        },\n                        {\n                            \"id\": \"chi_784943\",\n                            \"itemId\": null,\n                            \"cost\": {\n                                \"amount\": \"7.50\",\n                                \"currency\": \"GBP\"\n                            },\n                            \"shipmentId\": null\n                        }\n                    ]\n                }\n            ],\n            \"shipments\": [\n                {\n                    \"id\": \"shp_587137\",\n                    \"dispatchDate\": \"2020-12-18T09:37:22.343Z\",\n                    \"carrier\": {\n                        \"name\": \"USPS\",\n                        \"service\": \"USPS Priority Mail\"\n                    },\n                    \"fulfillmentLocation\": {\n                        \"countryCode\": \"US\",\n                        \"labCode\": \"us7\"\n                    },\n                    \"tracking\": {\n                        \"number\": \"1257TEST874983\",\n                        \"url\": \"https://tools.usps.com/go/TrackConfirmAction?qtc_tLabels1=1257TEST874983\"\n                    },\n                    \"items\": [\n                        {\n                            \"itemId\": \"ori_1142184\"\n                        },\n                        {\n                            \"itemId\": \"ori_1142185\"\n                        }\n                    ],\n                    \"status\": \"Shipped\"\n                }\n            ],\n            \"recipient\": {\n                \"name\": \"Prodigi Test Order DO NOT PRINT[assettolab][tolab]\",\n                \"email\": \"luke.barker@prodigi.com\",\n                \"phoneNumber\": null,\n                \"address\": {\n                    \"line1\": \"9201\",\n                    \"line2\": \"International Blvd\",\n                    \"postalOrZipCode\": \"94603\",\n                    \"countryCode\": \"US\",\n                    \"townOrCity\": \"Oakland\",\n                    \"stateOrCounty\": \"California\"\n                }\n            },\n            \"items\": [\n                {\n                    \"id\": \"ori_1142184\",\n                    \"status\": \"Ok\",\n                    \"merchantReference\": null,\n                    \"sku\": \"GLOBAL-TECH-IP12-CS-M\",\n                    \"copies\": 1,\n                    \"sizing\": \"fillPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_407030\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": \"c1ad3c032137d1364942e4daf6b1f7d8\",\n                            \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_test_TrueLandscape.jpg\",\n                            \"status\": \"Complete\"\n                        }\n                    ],\n                    \"recipientCost\": null\n                },\n                {\n                    \"id\": \"ori_1142185\",\n                    \"status\": \"Ok\",\n                    \"merchantReference\": null,\n                    \"sku\": \"GLOBAL-TECH-IP12-CS-G\",\n                    \"copies\": 1,\n                    \"sizing\": \"fillPrintArea\",\n                    \"attributes\": {},\n                    \"assets\": [\n                        {\n                            \"id\": \"ast_407039\",\n                            \"printArea\": \"default\",\n                            \"md5Hash\": \"c1ad3c032137d1364942e4daf6b1f7d8\",\n                            \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_test_TrueLandscape.jpg\",\n                            \"status\": \"Complete\"\n                        }\n                    ],\n                    \"recipientCost\": null\n                }\n            ],\n            \"packingSlip\": null,\n            \"metadata\": null\n        }\n    ],\n    \"traceParent\": \"00-4b01680a4f365f44900f980a5c0cadb6-5c6ebf432c42064e-00\"\n}"
+						}
+					]
+				},
+				{
+					"name": "GET Order by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{X-API-Key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_123456",
+							"host": [
+								"{{WEB_API_ROOT_URL}}"
+							],
+							"path": [
+								"v4.0",
+								"Orders",
+								"ord_123456"
+							]
+						},
+						"description": "This returns an order for a given Prodigi order ID"
+					},
+					"response": [
+						{
+							"name": "GET Order by ID",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_123456",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"Orders",
+										"ord_123456"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"outcome\": \"Ok\",\n    \"order\": {\n        \"id\": \"ord_123456\",\n        \"created\": \"2020-12-14T14:03:52.55Z\",\n        \"lastUpdated\": \"2021-01-13T14:30:53.287Z\",\n        \"callbackUrl\": null,\n        \"merchantReference\": \"ljb-test-order\",\n        \"shippingMethod\": \"Standard\",\n        \"idempotencyKey\": null,\n        \"status\": {\n            \"stage\": \"Complete\",\n            \"issues\": [],\n            \"details\": {\n                \"downloadAssets\": \"Complete\",\n                \"printReadyAssetsPrepared\": \"Complete\",\n                \"allocateProductionLocation\": \"Complete\",\n                \"inProduction\": \"Complete\",\n                \"shipping\": \"Complete\"\n            }\n        },\n        \"charges\": [\n            {\n                \"id\": \"chg_415987\",\n                \"prodigiInvoiceNumber\": \"6340\",\n                \"totalCost\": {\n                    \"amount\": \"18.00\",\n                    \"currency\": \"GBP\"\n                },\n                \"items\": [\n                    {\n                        \"id\": \"chi_784941\",\n                        \"itemId\": null,\n                        \"cost\": {\n                            \"amount\": \"3.00\",\n                            \"currency\": \"GBP\"\n                        },\n                        \"shipmentId\": \"shp_587137\"\n                    },\n                    {\n                        \"id\": \"chi_784942\",\n                        \"itemId\": \"ori_1142184\",\n                        \"cost\": {\n                            \"amount\": \"7.50\",\n                            \"currency\": \"GBP\"\n                        },\n                        \"shipmentId\": null\n                    },\n                    {\n                        \"id\": \"chi_784943\",\n                        \"itemId\": \"ori_1142185\",\n                        \"cost\": {\n                            \"amount\": \"7.50\",\n                            \"currency\": \"GBP\"\n                        },\n                        \"shipmentId\": null\n                    }\n                ]\n            }\n        ],\n        \"shipments\": [\n            {\n                \"id\": \"shp_587137\",\n                \"dispatchDate\": \"2020-12-18T09:37:22.343Z\",\n                \"carrier\": {\n                    \"name\": \"USPS\",\n                    \"service\": \"USPS Priority Mail\"\n                },\n                \"fulfillmentLocation\": {\n                    \"countryCode\": \"US\",\n                    \"labCode\": \"us7\"\n                },\n                \"tracking\": {\n                    \"number\": \"1257TEST874983\",\n                    \"url\": \"https://tools.usps.com/go/TrackConfirmAction?qtc_tLabels1=1257TEST874983\"\n                },\n                \"items\": [\n                    {\n                        \"itemId\": \"ori_1142184\"\n                    },\n                    {\n                        \"itemId\": \"ori_1142185\"\n                    }\n                ],\n                \"status\": \"Shipped\"\n            }\n        ],\n        \"recipient\": {\n            \"name\": \"Prodigi Test Order DO NOT PRINT[assettolab][tolab]\",\n            \"email\": \"luke.barker@prodigi.com\",\n            \"phoneNumber\": null,\n            \"address\": {\n                \"line1\": \"9201\",\n                \"line2\": \"International Blvd\",\n                \"postalOrZipCode\": \"94603\",\n                \"countryCode\": \"US\",\n                \"townOrCity\": \"Oakland\",\n                \"stateOrCounty\": \"California\"\n            }\n        },\n        \"items\": [\n            {\n                \"id\": \"ori_1142184\",\n                \"status\": \"Ok\",\n                \"merchantReference\": null,\n                \"sku\": \"GLOBAL-TECH-IP12-CS-M\",\n                \"copies\": 1,\n                \"sizing\": \"fillPrintArea\",\n                \"attributes\": {},\n                \"assets\": [\n                    {\n                        \"id\": \"ast_407030\",\n                        \"printArea\": \"default\",\n                        \"md5Hash\": \"c1ad3c032137d1364942e4daf6b1f7d8\",\n                        \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_test_TrueLandscape.jpg\",\n                        \"status\": \"Complete\"\n                    }\n                ],\n                \"recipientCost\": null\n            },\n            {\n                \"id\": \"ori_1142185\",\n                \"status\": \"Ok\",\n                \"merchantReference\": null,\n                \"sku\": \"GLOBAL-TECH-IP12-CS-G\",\n                \"copies\": 1,\n                \"sizing\": \"fillPrintArea\",\n                \"attributes\": {},\n                \"assets\": [\n                    {\n                        \"id\": \"ast_407039\",\n                        \"printArea\": \"default\",\n                        \"md5Hash\": \"c1ad3c032137d1364942e4daf6b1f7d8\",\n                        \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_test_TrueLandscape.jpg\",\n                        \"status\": \"Complete\"\n                    }\n                ],\n                \"recipientCost\": null\n            }\n        ],\n        \"packingSlip\": null,\n        \"metadata\": null\n    },\n    \"traceParent\": \"00-9ac89259ebf45d4182d0980db115b711-bf60f7e7edc4184b-00\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Order Actions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{X-API-Key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_123456/actions",
+							"host": [
+								"{{WEB_API_ROOT_URL}}"
+							],
+							"path": [
+								"v4.0",
+								"Orders",
+								"ord_123456",
+								"actions"
+							]
+						},
+						"description": "This endpoint will return the actions available to take against a particular order: updating metadata, recipient and/or shipping method, and cancelling the order."
+					},
+					"response": [
+						{
+							"name": "Get Order Actions",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_123456/actions",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"Orders",
+										"ord_123456",
+										"actions"
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"outcome\": \"Ok\",\n    \"cancel\": {\n        \"isAvailable\": \"No\"\n    },\n    \"changeRecipientDetails\": {\n        \"isAvailable\": \"No\"\n    },\n    \"changeShippingMethod\": {\n        \"isAvailable\": \"No\"\n    },\n    \"changeMetaData\": {\n        \"isAvailable\": \"Yes\"\n    },\n    \"traceParent\": \"00-05d476e9722e7244ae71669070e17181-0b7932a6a7ed9f41-00\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Metadata on Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-API-key",
+								"value": "{{X-API-Key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \r\n    \"metadata\" : { \r\n        \"internalRef\" : \"abdef\", \r\n        \"templateSize\" : 1, \r\n        \"feedback\" : { \r\n            \"message\": \"some message\", \r\n            \"stars\": 5 \r\n        } \r\n    } \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_123456/actions/updateMetadata",
+							"host": [
+								"{{WEB_API_ROOT_URL}}"
+							],
+							"path": [
+								"v4.0",
+								"Orders",
+								"ord_123456",
+								"actions",
+								"updateMetadata"
+							]
+						},
+						"description": "Allows you to replace the existing metadata for a given order.\nPlease see [here](https://www.prodigi.com/print-api/docs/reference/#update-metadata) for further information about metadata."
+					},
+					"response": [
+						{
+							"name": "Update Metadata on Order",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{ \r\n    \"metadata\" : { \r\n        \"internalRef\" : \"abdef\", \r\n        \"templateSize\" : 1, \r\n        \"feedback\" : { \r\n            \"message\": \"some message\", \r\n            \"stars\": 5 \r\n        } \r\n    } \r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_123456/actions/updateMetadata",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"Orders",
+										"ord_123456",
+										"actions",
+										"updateMetadata"
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"outcome\": \"Updated\",\n    \"order\": {\n        \"id\": \"ord_123456\",\n        \"created\": \"2021-04-30T13:51:56.383Z\",\n        \"lastUpdated\": \"2021-05-04T09:12:56.8322875Z\",\n        \"callbackUrl\": null,\n        \"merchantReference\": \"MyMerchantReference1\",\n        \"shippingMethod\": \"Overnight\",\n        \"idempotencyKey\": null,\n        \"status\": {\n            \"stage\": \"Complete\",\n            \"issues\": [],\n            \"details\": {\n                \"downloadAssets\": \"Complete\",\n                \"printReadyAssetsPrepared\": \"Complete\",\n                \"allocateProductionLocation\": \"Complete\",\n                \"inProduction\": \"Complete\",\n                \"shipping\": \"Complete\"\n            }\n        },\n        \"charges\": [\n            {\n                \"id\": \"chg_425177\",\n                \"prodigiInvoiceNumber\": \"6497\",\n                \"totalCost\": {\n                    \"amount\": \"64.53\",\n                    \"currency\": \"GBP\"\n                },\n                \"items\": [\n                    {\n                        \"id\": \"chi_804745\",\n                        \"itemId\": null,\n                        \"cost\": {\n                            \"amount\": \"37.28\",\n                            \"currency\": \"GBP\"\n                        },\n                        \"shipmentId\": \"shp_598928\"\n                    },\n                    {\n                        \"id\": \"chi_804746\",\n                        \"itemId\": \"ori_1201772\",\n                        \"cost\": {\n                            \"amount\": \"27.25\",\n                            \"currency\": \"GBP\"\n                        },\n                        \"shipmentId\": null\n                    }\n                ]\n            }\n        ],\n        \"shipments\": [\n            {\n                \"id\": \"shp_598928\",\n                \"dispatchDate\": \"2021-04-30T14:08:12.11Z\",\n                \"carrier\": {\n                    \"name\": \"UPS\",\n                    \"service\": \"UPS 1-day Shipping\"\n                },\n                \"fulfillmentLocation\": {\n                    \"countryCode\": \"US\",\n                    \"labCode\": \"us1\"\n                },\n                \"tracking\": {\n                    \"number\": \"PH000000000GB\",\n                    \"url\": \"https://www.royalmail.com/portal/rm/track?trackNumber=PH000000000GB\"\n                },\n                \"items\": [\n                    {\n                        \"itemId\": \"ori_1201772\"\n                    }\n                ],\n                \"status\": \"Shipped\"\n            }\n        ],\n        \"recipient\": {\n            \"name\": \"Mr test\",\n            \"email\": null,\n            \"phoneNumber\": null,\n            \"address\": {\n                \"line1\": \"14 test place\",\n                \"line2\": \"test\",\n                \"postalOrZipCode\": \"12345\",\n                \"countryCode\": \"US\",\n                \"townOrCity\": \"somewhere\",\n                \"stateOrCounty\": null\n            }\n        },\n        \"items\": [\n            {\n                \"id\": \"ori_1201772\",\n                \"status\": \"Ok\",\n                \"merchantReference\": \"item #1\",\n                \"sku\": \"GLOBAL-CFPM-16X20\",\n                \"copies\": 1,\n                \"sizing\": \"fillPrintArea\",\n                \"attributes\": {\n                    \"color\": \"black\"\n                },\n                \"assets\": [\n                    {\n                        \"id\": \"ast_113803\",\n                        \"printArea\": \"default\",\n                        \"md5Hash\": \"dcb2b27755a6f2ceb09089856508f31b\",\n                        \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_landscape.jpg\",\n                        \"status\": \"Complete\"\n                    }\n                ],\n                \"recipientCost\": null\n            }\n        ],\n        \"packingSlip\": null,\n        \"metadata\": {\n            \"internalRef\": \"abdef\",\n            \"templateSize\": 1,\n            \"feedback\": {\n                \"message\": \"some message\",\n                \"stars\": 5\n            }\n        }\n    },\n    \"traceParent\": \"00-696f24b50877d149a3f5ae667a492af9-4fede449ec886544-00\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Recipient on Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{X-API-Key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \r\n        \"name\": \"Mr. Jeff Testing\", \r\n        \"email\": \"jeff.testing@test.co.uk\", \r\n        \"phoneNumber\": \"123456780\", \r\n        \"address\" : { \r\n                      \"line1\": \"14 test place\", \r\n                      \"line2\": \"test\", \r\n                      \"postalOrZipCode\": \"12345\", \r\n                      \"countryCode\": \"US\", \r\n                      \"townOrCity\": \"MyTown\", \r\n                      \"stateOrCounty\": null \r\n                    } \r\n      }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_123456/actions/updateRecipient",
+							"host": [
+								"{{WEB_API_ROOT_URL}}"
+							],
+							"path": [
+								"v4.0",
+								"Orders",
+								"ord_123456",
+								"actions",
+								"updateRecipient"
+							]
+						},
+						"description": "Allows you to change the recipient details for a given order"
+					},
+					"response": [
+						{
+							"name": "Update Recipient on Order",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{ \r\n        \"name\": \"Mr. Jeff Testing\", \r\n        \"email\": \"jeff.testing@test.co.uk\", \r\n        \"phoneNumber\": \"123456780\", \r\n        \"address\" : { \r\n                      \"line1\": \"14 test place\", \r\n                      \"line2\": \"test\", \r\n                      \"postalOrZipCode\": \"12345\", \r\n                      \"countryCode\": \"US\", \r\n                      \"townOrCity\": \"MyTown\", \r\n                      \"stateOrCounty\": null \r\n                    } \r\n      }",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_123456/actions/updateRecipient",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"Orders",
+										"ord_123456",
+										"actions",
+										"updateRecipient"
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\r\n    \"outcome\": \"Updated\",\r\n    \"shipmentUpdateResults\": [],\r\n    \"order\": {\r\n        \"id\": \"ord_840799\",\r\n        \"recipient\": {\r\n            \"name\": \"Mr. Jeff Testing\",\r\n            \"email\": \"jeff.testing@test.co.uk\",\r\n            \"phoneNumber\": \"123456780\",\r\n            \"address\": {\r\n                \"line1\": \"14 test place\",\r\n                \"line2\": \"test\",\r\n                \"postalOrZipCode\": \"12345\",\r\n                \"countryCode\": \"US\",\r\n                \"townOrCity\": \"MyTown\",\r\n                \"stateOrCounty\": null\r\n            }\r\n        },\r\n        // rest of the order\r\n    },\r\n    \"traceParent\": \"00-e3466ad67db82340aa97a337e5c9ea91-edb742f49fc22c46-00\"\r\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Shipping Method on Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{X-API-Key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"shippingMethod\": \"Budget\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_978731/actions/updateShippingMethod",
+							"host": [
+								"{{WEB_API_ROOT_URL}}"
+							],
+							"path": [
+								"v4.0",
+								"Orders",
+								"ord_978731",
+								"actions",
+								"updateShippingMethod"
+							]
+						},
+						"description": "Allows you to change the shipping method for a given order"
+					},
+					"response": [
+						{
+							"name": "Update Shipping Method on Order",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{ \"shippingMethod\": \"Budget\" }",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_978731/actions/updateShipping",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"Orders",
+										"ord_978731",
+										"actions",
+										"updateShipping"
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\r\n    \"outcome\": \"Updated\",\r\n    \"shippingUpdateResults\": [],\r\n    \"order\": {\r\n        \"id\": \"ord_840799\",\r\n        \"created\": \"2021-03-11T15:06:40.697Z\",\r\n        \"lastUpdated\": \"2021-03-11T15:06:46.2816154Z\",\r\n        \"callbackUrl\": null,\r\n        \"merchantReference\": \"MyMerchantReference1\",\r\n        \"shippingMethod\": \"Express\",\r\n        \"idempotencyKey\": null,\r\n        \"status\": {\r\n            \"stage\": \"InProgress\",\r\n            \"issues\": [],\r\n            \"details\": {\r\n                \"downloadAssets\": \"NotStarted\",\r\n                \"printReadyAssetsPrepared\": \"NotStarted\",\r\n                \"allocateProductionLocation\": \"NotStarted\",\r\n                \"inProduction\": \"NotStarted\",\r\n                \"shipping\": \"NotStarted\"\r\n            }\r\n        },\r\n        \"charges\": [],\r\n        \"shipments\": [],\r\n        \"recipient\": {\r\n            \"name\": \"Mr Test[tolab]\",\r\n            \"email\": null,\r\n            \"phoneNumber\": null,\r\n            \"address\": {\r\n                \"line1\": \"14 test place\",\r\n                \"line2\": \"test\",\r\n                \"postalOrZipCode\": \"12345\",\r\n                \"countryCode\": \"US\",\r\n                \"townOrCity\": \"somewhere\",\r\n                \"stateOrCounty\": null\r\n            }\r\n        },\r\n        \"items\": [\r\n            {\r\n                \"id\": \"ori_926889\",\r\n                \"status\": \"NotYetDownloaded\",\r\n                \"merchantReference\": \"item #1\",\r\n                \"sku\": \"GLOBAL-CFPM-16X20\",\r\n                \"copies\": 1,\r\n                \"sizing\": \"fillPrintArea\",\r\n                \"attributes\": {\r\n                    \"color\": \"black\"\r\n                },\r\n                \"assets\": [\r\n                    {\r\n                        \"id\": \"ast_114059\",\r\n                        \"printArea\": \"default\",\r\n                        \"md5Hash\": \"dcb2b27755a6f2ceb09089856508f31b\",\r\n                        \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_landscape.jpg\",\r\n                        \"status\": \"InProgress\"\r\n                    }\r\n                ],\r\n                \"recipientCost\": {\r\n                    \"amount\": \"10.74\",\r\n                    \"currency\": \"GBP\"\r\n                }\r\n            }\r\n        ],\r\n        \"packingSlip\": null,\r\n        \"metadata\": {\r\n            \"mycustomkey\": \"some-guid\",\r\n            \"someCustomerPreference\": {\r\n                \"preference1\": \"something\",\r\n                \"preference2\": \"red\"\r\n            },\r\n            \"sourceId\": 12345\r\n        }\r\n    },\r\n    \"traceParent\": \"00-a80b88df69bd0e45a923cc4d9f858978-5eaad925e38cd348-00\"\r\n}"
+						}
+					]
+				},
+				{
+					"name": "Cancel an Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{X-API-Key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_123456/actions/cancel",
+							"host": [
+								"{{WEB_API_ROOT_URL}}"
+							],
+							"path": [
+								"v4.0",
+								"Orders",
+								"ord_123456",
+								"actions",
+								"cancel"
+							]
+						},
+						"description": "Attempts to cancel the entire order by sending a POST request for a specific prodigi_order_id."
+					},
+					"response": [
+						{
+							"name": "Cancel an Order",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/ord_123456/actions/cancel",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"Orders",
+										"ord_123456",
+										"actions",
+										"cancel"
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\r\n    \"outcome\": \"Cancelled\",\r\n    \"order\": {\r\n        \"id\": \"ord_840797\",\r\n        \"created\": \"2021-03-11T14:40:05.12Z\",\r\n        \"lastUpdated\": \"2021-03-11T15:04:08.0923435Z\",\r\n        \"callbackUrl\": null,\r\n        \"merchantReference\": \"MyMerchantReference1\",\r\n        \"shippingMethod\": \"Overnight\",\r\n        \"idempotencyKey\": null,\r\n        \"status\": {\r\n            \"stage\": \"Cancelled\",\r\n            \"issues\": [],\r\n            \"details\": {\r\n                \"downloadAssets\": \"NotStarted\",\r\n                \"printReadyAssetsPrepared\": \"NotStarted\",\r\n                \"allocateProductionLocation\": \"NotStarted\",\r\n                \"inProduction\": \"NotStarted\",\r\n                \"shipping\": \"NotStarted\"\r\n            }\r\n        },\r\n        \"charges\": [],\r\n        \"shipments\": [],\r\n        \"recipient\": {\r\n            \"name\": \"Mr Test\",\r\n            \"email\": null,\r\n            \"phoneNumber\": null,\r\n            \"address\": {\r\n                \"line1\": \"14 test place\",\r\n                \"line2\": \"test\",\r\n                \"postalOrZipCode\": \"12345\",\r\n                \"countryCode\": \"US\",\r\n                \"townOrCity\": \"somewhere\",\r\n                \"stateOrCounty\": null\r\n            }\r\n        },\r\n        \"items\": [\r\n            {\r\n                \"id\": \"ori_926887\",\r\n                \"status\": \"NotYetDownloaded\",\r\n                \"merchantReference\": \"item #1\",\r\n                \"sku\": \"GLOBAL-CFPM-16X20\",\r\n                \"copies\": 1,\r\n                \"sizing\": \"fillPrintArea\",\r\n                \"attributes\": {\r\n                    \"color\": \"black\"\r\n                },\r\n                \"assets\": [\r\n                    {\r\n                        \"id\": \"ast_114059\",\r\n                        \"printArea\": \"default\",\r\n                        \"md5Hash\": \"dcb2b27755a6f2ceb09089856508f31b\",\r\n                        \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_landscape.jpg\",\r\n                        \"status\": \"InProgress\"\r\n                    }\r\n                ],\r\n                \"recipientCost\": {\r\n                    \"amount\": \"10.74\",\r\n                    \"currency\": \"GBP\"\r\n                }\r\n            }\r\n        ],\r\n        \"packingSlip\": null,\r\n        \"metadata\": {\r\n            \"mycustomkey\": \"some-guid\",\r\n            \"someCustomerPreference\": {\r\n                \"preference1\": \"something\",\r\n                \"preference2\": \"red\"\r\n            },\r\n            \"sourceId\": 12345\r\n        }\r\n    },\r\n    \"traceParent\": \"00-fd6711a9793bd648b0f83300e73dcd10-0eefc6d035357d42-00\"\r\n}"
+						}
+					]
+				}
+			],
+			"description": "Use these operations to create, retrieve and update orders.\n\n#### Submitting for production\n\nTo submit an order for processing, it is done through a single API request by making a POST call to /v4.0/Orders. Once the order has been created and is in our system, the fulfilment process starts immediately."
+		},
+		{
+			"name": "Quotes",
+			"item": [
+				{
+					"name": "Create Quote",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{X-API-Key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"shippingMethod\": \"Standard\",\r\n  \"destinationCountryCode\": \"GB\",  \r\n  \"items\": [\r\n        {\r\n            \"sku\": \"GLOBAL-FRA-CAN-30x40\",\r\n            \"copies\": 2,\r\n            \"attributes\": { \"wrap\":\"black\" },\r\n            \"assets\" : [\r\n                { \"printArea\" : \"default\" }\r\n            ]\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{WEB_API_ROOT_URL}}/v4.0/quotes",
+							"host": [
+								"{{WEB_API_ROOT_URL}}"
+							],
+							"path": [
+								"v4.0",
+								"quotes"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Create Quote",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"shippingMethod\": \"Standard\",\r\n    \"destinationCountryCode\": \"CA\",\r\n    \"items\": [\r\n        {\r\n            \"sku\": \"global-cfp-a2\",\r\n            \"copies\": 2,\r\n            \"attributes\": {\r\n                \"color\": \"natural\"\r\n            },\r\n            \"assets\": [\r\n                {\r\n                    \"printArea\": \"default\"\r\n                }\r\n            ]\r\n        }\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/quotes",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"quotes"
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\r\n    \"outcome\": \"Created\",\r\n    \"quotes\": [\r\n        {\r\n            \"shipmentMethod\": \"Budget\",\r\n            \"costSummary\": {\r\n                \"items\": {\r\n                    \"amount\": \"148.00\",\r\n                    \"currency\": \"GBP\"\r\n                },\r\n                \"shipping\": {\r\n                    \"amount\": \"9.95\",\r\n                    \"currency\": \"GBP\"\r\n                }\r\n            },\r\n            \"shipments\": [\r\n                {\r\n                    \"carrier\": {\r\n                        \"name\": \"FedEx\",\r\n                        \"service\": \"FedEx Next Day\"\r\n                    },\r\n                    \"fulfillmentLocation\": {\r\n                        \"countryCode\": \"GB\",\r\n                        \"labCode\": \"prodigi_gb2\"\r\n                    },\r\n                    \"cost\": {\r\n                        \"amount\": \"9.95\",\r\n                        \"currency\": \"GBP\"\r\n                    },\r\n                    \"items\": [\r\n                        \"qit_de311d1aa0f2489c99b7867ca47b6544\"\r\n                    ]\r\n                }\r\n            ],\r\n            \"items\": [\r\n                {\r\n                    \"id\": \"qit_de311d1aa0f2489c99b7867ca47b6544\",\r\n                    \"sku\": \"GLOBAL-FRA-CAN-30X40\",\r\n                    \"copies\": 2,\r\n                    \"unitCost\": {\r\n                        \"amount\": \"74.00\",\r\n                        \"currency\": \"GBP\"\r\n                    },\r\n                    \"attributes\": {\r\n                        \"wrap\": \"black\"\r\n                    },\r\n                    \"assets\": [\r\n                        {\r\n                            \"printArea\": \"default\"\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        },\r\n        {\r\n            \"shipmentMethod\": \"Standard\",\r\n            \"costSummary\": {\r\n                \"items\": {\r\n                    \"amount\": \"148.00\",\r\n                    \"currency\": \"GBP\"\r\n                },\r\n                \"shipping\": {\r\n                    \"amount\": \"9.95\",\r\n                    \"currency\": \"GBP\"\r\n                }\r\n            },\r\n            \"shipments\": [\r\n                {\r\n                    \"carrier\": {\r\n                        \"name\": \"FedEx\",\r\n                        \"service\": \"FedEx Next Day\"\r\n                    },\r\n                    \"fulfillmentLocation\": {\r\n                        \"countryCode\": \"GB\",\r\n                        \"labCode\": \"prodigi_gb2\"\r\n                    },\r\n                    \"cost\": {\r\n                        \"amount\": \"9.95\",\r\n                        \"currency\": \"GBP\"\r\n                    },\r\n                    \"items\": [\r\n                        \"qit_e7bf1e41699945eca42bdf10e3fb65bb\"\r\n                    ]\r\n                }\r\n            ],\r\n            \"items\": [\r\n                {\r\n                    \"id\": \"qit_e7bf1e41699945eca42bdf10e3fb65bb\",\r\n                    \"sku\": \"GLOBAL-FRA-CAN-30X40\",\r\n                    \"copies\": 2,\r\n                    \"unitCost\": {\r\n                        \"amount\": \"74.00\",\r\n                        \"currency\": \"GBP\"\r\n                    },\r\n                    \"attributes\": {\r\n                        \"wrap\": \"black\"\r\n                    },\r\n                    \"assets\": [\r\n                        {\r\n                            \"printArea\": \"default\"\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        },\r\n        {\r\n            \"shipmentMethod\": \"Express\",\r\n            \"costSummary\": {\r\n                \"items\": {\r\n                    \"amount\": \"148.00\",\r\n                    \"currency\": \"GBP\"\r\n                },\r\n                \"shipping\": {\r\n                    \"amount\": \"9.95\",\r\n                    \"currency\": \"GBP\"\r\n                }\r\n            },\r\n            \"shipments\": [\r\n                {\r\n                    \"carrier\": {\r\n                        \"name\": \"FedEx\",\r\n                        \"service\": \"FedEx Next Day\"\r\n                    },\r\n                    \"fulfillmentLocation\": {\r\n                        \"countryCode\": \"GB\",\r\n                        \"labCode\": \"prodigi_gb2\"\r\n                    },\r\n                    \"cost\": {\r\n                        \"amount\": \"9.95\",\r\n                        \"currency\": \"GBP\"\r\n                    },\r\n                    \"items\": [\r\n                        \"qit_eae0ebd66d50476e9bd4852d3bc6fbc5\"\r\n                    ]\r\n                }\r\n            ],\r\n            \"items\": [\r\n                {\r\n                    \"id\": \"qit_eae0ebd66d50476e9bd4852d3bc6fbc5\",\r\n                    \"sku\": \"GLOBAL-FRA-CAN-30X40\",\r\n                    \"copies\": 2,\r\n                    \"unitCost\": {\r\n                        \"amount\": \"74.00\",\r\n                        \"currency\": \"GBP\"\r\n                    },\r\n                    \"attributes\": {\r\n                        \"wrap\": \"black\"\r\n                    },\r\n                    \"assets\": [\r\n                        {\r\n                            \"printArea\": \"default\"\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        },\r\n        {\r\n            \"shipmentMethod\": \"Overnight\",\r\n            \"costSummary\": {\r\n                \"items\": {\r\n                    \"amount\": \"148.00\",\r\n                    \"currency\": \"GBP\"\r\n                },\r\n                \"shipping\": {\r\n                    \"amount\": \"9.95\",\r\n                    \"currency\": \"GBP\"\r\n                }\r\n            },\r\n            \"shipments\": [\r\n                {\r\n                    \"carrier\": {\r\n                        \"name\": \"FedEx\",\r\n                        \"service\": \"FedEx Next Day\"\r\n                    },\r\n                    \"fulfillmentLocation\": {\r\n                        \"countryCode\": \"GB\",\r\n                        \"labCode\": \"prodigi_gb2\"\r\n                    },\r\n                    \"cost\": {\r\n                        \"amount\": \"9.95\",\r\n                        \"currency\": \"GBP\"\r\n                    },\r\n                    \"items\": [\r\n                        \"qit_728426718ccb4ab78ca4b26e1a3de28e\"\r\n                    ]\r\n                }\r\n            ],\r\n            \"items\": [\r\n                {\r\n                    \"id\": \"qit_728426718ccb4ab78ca4b26e1a3de28e\",\r\n                    \"sku\": \"GLOBAL-FRA-CAN-30X40\",\r\n                    \"copies\": 2,\r\n                    \"unitCost\": {\r\n                        \"amount\": \"74.00\",\r\n                        \"currency\": \"GBP\"\r\n                    },\r\n                    \"attributes\": {\r\n                        \"wrap\": \"black\"\r\n                    },\r\n                    \"assets\": [\r\n                        {\r\n                            \"printArea\": \"default\"\r\n                        }\r\n                    ]\r\n                }\r\n            ]\r\n        }\r\n    ],\r\n    \"traceParent\": \"00-55821d3eabb1f848be4dbcc19c693e7c-86a2a2e8c5d1b54b-00\"\r\n}"
+						}
+					]
+				}
+			],
+			"description": "This endpoint allows you to get pricing and shipping information about a given set of products. To read more about our quoting endpoint, please see [here](https://www.prodigi.com/print-api/docs/reference/#quotes)\n \n**NOTE**: This does not create the order"
+		},
+		{
+			"name": "Product Details",
+			"item": [
+				{
+					"name": "Get Product Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{X-API-Key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{WEB_API_ROOT_URL}}/v4.0/products/GLOBAL-CAN-10x10 ",
+							"host": [
+								"{{WEB_API_ROOT_URL}}"
+							],
+							"path": [
+								"v4.0",
+								"products",
+								"GLOBAL-CAN-10x10 "
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Get Product Details",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/products/GLOBAL-CAN-10x10 ",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"products",
+										"GLOBAL-CAN-10x10 "
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\r\n    \"outcome\": \"Ok\",\r\n    \"product\": {\r\n        \"sku\": \"GLOBAL-CAN-10x10 \",\r\n        \"description\": \"Standard canvas on quality stretcher bar, 25x25cm / 10x10\\\"\",\r\n        \"productDimensions\": {\r\n            \"width\": 10.0000,\r\n            \"height\": 10.0000,\r\n            \"units\": \"in\"\r\n        },\r\n        \"attributes\": {\r\n            \"wrap\": [\r\n                \"Black\",\r\n                \"ImageWrap\",\r\n                \"MirrorWrap\",\r\n                \"White\"\r\n            ]\r\n        },\r\n        \"printAreas\": {\r\n            \"default\": {\r\n                \"required\": true\r\n            }\r\n        },\r\n        \"variants\": [\r\n            {\r\n                \"attributes\": {\r\n                    \"wrap\": \"Black\"\r\n                },\r\n                \"shipsTo\": [\r\n                    \"IM\",\r\n                    \"LU\",\r\n                    \"ID\",\r\n                    \"CI\",\r\n                    \"GR\",\r\n                    \"FK\",\r\n                    \"AL\",\r\n                    \"LA\",\r\n                    \"KY\",\r\n                    \"BW\",\r\n                    \"PK\",\r\n                    \"DZ\",\r\n                    \"HN\",\r\n                    \"MV\",\r\n                    \"VU\",\r\n                    \"MY\",\r\n                    \"BZ\",\r\n                    \"JO\",\r\n                    \"AO\",\r\n                    \"PG\",\r\n                    \"WF\",\r\n                    \"MC\",\r\n                    \"ET\",\r\n                    \"GL\",\r\n                    \"VA\",\r\n                    \"LI\",\r\n                    \"AR\",\r\n                    \"SA\",\r\n                    \"UZ\",\r\n                    \"HK\",\r\n                    \"MF\",\r\n                    \"PW\",\r\n                    \"ZM\",\r\n                    \"RU\",\r\n                    \"BG\",\r\n                    \"UG\",\r\n                    \"BN\",\r\n                    \"BT\",\r\n                    \"NL\",\r\n                    \"GG\",\r\n                    \"LC\",\r\n                    \"KE\",\r\n                    \"IQ\",\r\n                    \"TM\",\r\n                    \"TD\",\r\n                    \"SV\",\r\n                    \"VE\",\r\n                    \"SC\",\r\n                    \"DK\",\r\n                    \"VC\",\r\n                    \"SE\",\r\n                    \"RE\",\r\n                    \"CA\",\r\n                    \"KH\",\r\n                    \"NR\",\r\n                    \"XK\",\r\n                    \"AG\",\r\n                    \"ZA\",\r\n                    \"MH\",\r\n                    \"CD\",\r\n                    \"FJ\",\r\n                    \"CM\",\r\n                    \"FO\",\r\n                    \"LY\",\r\n                    \"LV\",\r\n                    \"AN\",\r\n                    \"UY\",\r\n                    \"TH\",\r\n                    \"BS\",\r\n                    \"GT\",\r\n                    \"DJ\",\r\n                    \"CX\",\r\n                    \"VN\",\r\n                    \"AD\",\r\n                    \"BJ\",\r\n                    \"NZ\",\r\n                    \"SB\",\r\n                    \"KN\",\r\n                    \"SN\",\r\n                    \"US\",\r\n                    \"ER\",\r\n                    \"MG\",\r\n                    \"CF\",\r\n                    \"MN\",\r\n                    \"PY\",\r\n                    \"NE\",\r\n                    \"GD\",\r\n                    \"GM\",\r\n                    \"LB\",\r\n                    \"TC\",\r\n                    \"ES\",\r\n                    \"BY\",\r\n                    \"AW\",\r\n                    \"HR\",\r\n                    \"SK\",\r\n                    \"FR\",\r\n                    \"AS\",\r\n                    \"MK\",\r\n                    \"BL\",\r\n                    \"NO\",\r\n                    \"HT\",\r\n                    \"GW\",\r\n                    \"EG\",\r\n                    \"NI\",\r\n                    \"AZ\",\r\n                    \"PR\",\r\n                    \"CH\",\r\n                    \"PT\",\r\n                    \"BR\",\r\n                    \"MU\",\r\n                    \"IE\",\r\n                    \"AT\",\r\n                    \"GQ\",\r\n                    \"NA\",\r\n                    \"PL\",\r\n                    \"GI\",\r\n                    \"TL\",\r\n                    \"MQ\",\r\n                    \"KR\",\r\n                    \"AU\",\r\n                    \"NF\",\r\n                    \"RO\",\r\n                    \"SR\",\r\n                    \"CG\",\r\n                    \"FI\",\r\n                    \"GU\",\r\n                    \"BM\",\r\n                    \"MX\",\r\n                    \"YT\",\r\n                    \"TZ\",\r\n                    \"DM\",\r\n                    \"QA\",\r\n                    \"GA\",\r\n                    \"BD\",\r\n                    \"ZW\",\r\n                    \"AI\",\r\n                    \"TG\",\r\n                    \"LK\",\r\n                    \"PE\",\r\n                    \"IN\",\r\n                    \"IT\",\r\n                    \"MS\",\r\n                    \"CZ\",\r\n                    \"NC\",\r\n                    \"LR\",\r\n                    \"SL\",\r\n                    \"TW\",\r\n                    \"RS\",\r\n                    \"CK\",\r\n                    \"TJ\",\r\n                    \"KG\",\r\n                    \"PM\",\r\n                    \"SX\",\r\n                    \"VG\",\r\n                    \"BA\",\r\n                    \"GE\",\r\n                    \"GY\",\r\n                    \"CN\",\r\n                    \"MR\",\r\n                    \"JM\",\r\n                    \"AM\",\r\n                    \"TO\",\r\n                    \"SG\",\r\n                    \"GH\",\r\n                    \"HU\",\r\n                    \"WS\",\r\n                    \"MP\",\r\n                    \"BI\",\r\n                    \"FM\",\r\n                    \"JE\",\r\n                    \"AE\",\r\n                    \"PA\",\r\n                    \"TN\",\r\n                    \"CO\",\r\n                    \"ML\",\r\n                    \"GB\",\r\n                    \"MZ\",\r\n                    \"IL\",\r\n                    \"GN\",\r\n                    \"BF\",\r\n                    \"GP\",\r\n                    \"CV\",\r\n                    \"CY\",\r\n                    \"BO\",\r\n                    \"UA\",\r\n                    \"DO\",\r\n                    \"ST\",\r\n                    \"NG\",\r\n                    \"ME\",\r\n                    \"MT\",\r\n                    \"KM\",\r\n                    \"TV\",\r\n                    \"PF\",\r\n                    \"SM\",\r\n                    \"NP\",\r\n                    \"RW\",\r\n                    \"MW\",\r\n                    \"JP\",\r\n                    \"MM\",\r\n                    \"MD\",\r\n                    \"LT\",\r\n                    \"IS\",\r\n                    \"MO\",\r\n                    \"CR\",\r\n                    \"VI\",\r\n                    \"OM\",\r\n                    \"BH\",\r\n                    \"SI\",\r\n                    \"AF\",\r\n                    \"LS\",\r\n                    \"GF\",\r\n                    \"KW\",\r\n                    \"EE\",\r\n                    \"TR\",\r\n                    \"TT\",\r\n                    \"EC\",\r\n                    \"CL\",\r\n                    \"PH\",\r\n                    \"MA\",\r\n                    \"DE\",\r\n                    \"KZ\",\r\n                    \"BB\",\r\n                    \"KI\",\r\n                    \"SZ\",\r\n                    \"NU\",\r\n                    \"BE\",\r\n                    \"SD\",\r\n                    \"SO\",\r\n                    \"SY\",\r\n                    \"YE\",\r\n                    \"IR\",\r\n                    \"SH\",\r\n                    \"PS\",\r\n                    \"PN\",\r\n                    \"KP\",\r\n                    \"CU\"\r\n                ],\r\n                \"printAreaSizes\": {\r\n                    \"default\": {\r\n                        \"horizontalResolution\": 1522,\r\n                        \"verticalResolution\": 1522\r\n                    }\r\n                }\r\n            },\r\n            {\r\n                \"attributes\": {\r\n                    \"wrap\": \"ImageWrap\"\r\n                },\r\n                \"shipsTo\": [\r\n                    \"IM\",\r\n                    \"LU\",\r\n                    \"ID\",\r\n                    \"CI\",\r\n                    \"GR\",\r\n                    \"FK\",\r\n                    \"AL\",\r\n                    \"LA\",\r\n                    \"KY\",\r\n                    \"BW\",\r\n                    \"PK\",\r\n                    \"DZ\",\r\n                    \"HN\",\r\n                    \"MV\",\r\n                    \"VU\",\r\n                    \"MY\",\r\n                    \"BZ\",\r\n                    \"JO\",\r\n                    \"AO\",\r\n                    \"PG\",\r\n                    \"WF\",\r\n                    \"MC\",\r\n                    \"ET\",\r\n                    \"GL\",\r\n                    \"VA\",\r\n                    \"LI\",\r\n                    \"AR\",\r\n                    \"SA\",\r\n                    \"UZ\",\r\n                    \"HK\",\r\n                    \"MF\",\r\n                    \"PW\",\r\n                    \"ZM\",\r\n                    \"RU\",\r\n                    \"BG\",\r\n                    \"UG\",\r\n                    \"BN\",\r\n                    \"BT\",\r\n                    \"NL\",\r\n                    \"GG\",\r\n                    \"LC\",\r\n                    \"KE\",\r\n                    \"IQ\",\r\n                    \"TM\",\r\n                    \"TD\",\r\n                    \"SV\",\r\n                    \"VE\",\r\n                    \"SC\",\r\n                    \"DK\",\r\n                    \"VC\",\r\n                    \"SE\",\r\n                    \"RE\",\r\n                    \"CA\",\r\n                    \"KH\",\r\n                    \"NR\",\r\n                    \"XK\",\r\n                    \"AG\",\r\n                    \"ZA\",\r\n                    \"MH\",\r\n                    \"CD\",\r\n                    \"FJ\",\r\n                    \"CM\",\r\n                    \"FO\",\r\n                    \"LY\",\r\n                    \"LV\",\r\n                    \"AN\",\r\n                    \"UY\",\r\n                    \"TH\",\r\n                    \"BS\",\r\n                    \"GT\",\r\n                    \"DJ\",\r\n                    \"CX\",\r\n                    \"VN\",\r\n                    \"AD\",\r\n                    \"BJ\",\r\n                    \"NZ\",\r\n                    \"SB\",\r\n                    \"KN\",\r\n                    \"SN\",\r\n                    \"US\",\r\n                    \"ER\",\r\n                    \"MG\",\r\n                    \"CF\",\r\n                    \"MN\",\r\n                    \"PY\",\r\n                    \"NE\",\r\n                    \"GD\",\r\n                    \"GM\",\r\n                    \"LB\",\r\n                    \"TC\",\r\n                    \"ES\",\r\n                    \"BY\",\r\n                    \"AW\",\r\n                    \"HR\",\r\n                    \"SK\",\r\n                    \"FR\",\r\n                    \"AS\",\r\n                    \"MK\",\r\n                    \"BL\",\r\n                    \"NO\",\r\n                    \"HT\",\r\n                    \"GW\",\r\n                    \"EG\",\r\n                    \"NI\",\r\n                    \"AZ\",\r\n                    \"PR\",\r\n                    \"CH\",\r\n                    \"PT\",\r\n                    \"BR\",\r\n                    \"MU\",\r\n                    \"IE\",\r\n                    \"AT\",\r\n                    \"GQ\",\r\n                    \"NA\",\r\n                    \"PL\",\r\n                    \"GI\",\r\n                    \"TL\",\r\n                    \"MQ\",\r\n                    \"KR\",\r\n                    \"AU\",\r\n                    \"NF\",\r\n                    \"RO\",\r\n                    \"SR\",\r\n                    \"CG\",\r\n                    \"FI\",\r\n                    \"GU\",\r\n                    \"BM\",\r\n                    \"MX\",\r\n                    \"YT\",\r\n                    \"TZ\",\r\n                    \"DM\",\r\n                    \"QA\",\r\n                    \"GA\",\r\n                    \"BD\",\r\n                    \"ZW\",\r\n                    \"AI\",\r\n                    \"TG\",\r\n                    \"LK\",\r\n                    \"PE\",\r\n                    \"IN\",\r\n                    \"IT\",\r\n                    \"MS\",\r\n                    \"CZ\",\r\n                    \"NC\",\r\n                    \"LR\",\r\n                    \"SL\",\r\n                    \"TW\",\r\n                    \"RS\",\r\n                    \"CK\",\r\n                    \"TJ\",\r\n                    \"KG\",\r\n                    \"PM\",\r\n                    \"SX\",\r\n                    \"VG\",\r\n                    \"BA\",\r\n                    \"GE\",\r\n                    \"GY\",\r\n                    \"CN\",\r\n                    \"MR\",\r\n                    \"JM\",\r\n                    \"AM\",\r\n                    \"TO\",\r\n                    \"SG\",\r\n                    \"GH\",\r\n                    \"HU\",\r\n                    \"WS\",\r\n                    \"MP\",\r\n                    \"BI\",\r\n                    \"FM\",\r\n                    \"JE\",\r\n                    \"AE\",\r\n                    \"PA\",\r\n                    \"TN\",\r\n                    \"CO\",\r\n                    \"ML\",\r\n                    \"GB\",\r\n                    \"MZ\",\r\n                    \"IL\",\r\n                    \"GN\",\r\n                    \"BF\",\r\n                    \"GP\",\r\n                    \"CV\",\r\n                    \"CY\",\r\n                    \"BO\",\r\n                    \"UA\",\r\n                    \"DO\",\r\n                    \"ST\",\r\n                    \"NG\",\r\n                    \"ME\",\r\n                    \"MT\",\r\n                    \"KM\",\r\n                    \"TV\",\r\n                    \"PF\",\r\n                    \"SM\",\r\n                    \"NP\",\r\n                    \"RW\",\r\n                    \"MW\",\r\n                    \"JP\",\r\n                    \"MM\",\r\n                    \"MD\",\r\n                    \"LT\",\r\n                    \"IS\",\r\n                    \"MO\",\r\n                    \"CR\",\r\n                    \"VI\",\r\n                    \"OM\",\r\n                    \"BH\",\r\n                    \"SI\",\r\n                    \"AF\",\r\n                    \"LS\",\r\n                    \"GF\",\r\n                    \"KW\",\r\n                    \"EE\",\r\n                    \"TR\",\r\n                    \"TT\",\r\n                    \"EC\",\r\n                    \"CL\",\r\n                    \"PH\",\r\n                    \"MA\",\r\n                    \"DE\",\r\n                    \"KZ\",\r\n                    \"BB\",\r\n                    \"KI\",\r\n                    \"SZ\",\r\n                    \"NU\",\r\n                    \"BE\",\r\n                    \"SD\",\r\n                    \"SO\",\r\n                    \"SY\",\r\n                    \"YE\",\r\n                    \"IR\",\r\n                    \"SH\",\r\n                    \"PS\",\r\n                    \"PN\",\r\n                    \"KP\",\r\n                    \"CU\"\r\n                ],\r\n                \"printAreaSizes\": {\r\n                    \"default\": {\r\n                        \"horizontalResolution\": 2137,\r\n                        \"verticalResolution\": 2137\r\n                    }\r\n                }\r\n            },\r\n            {\r\n                \"attributes\": {\r\n                    \"wrap\": \"MirrorWrap\"\r\n                },\r\n                \"shipsTo\": [\r\n                    \"IM\",\r\n                    \"LU\",\r\n                    \"ID\",\r\n                    \"CI\",\r\n                    \"GR\",\r\n                    \"FK\",\r\n                    \"AL\",\r\n                    \"LA\",\r\n                    \"KY\",\r\n                    \"BW\",\r\n                    \"PK\",\r\n                    \"DZ\",\r\n                    \"HN\",\r\n                    \"MV\",\r\n                    \"VU\",\r\n                    \"MY\",\r\n                    \"BZ\",\r\n                    \"JO\",\r\n                    \"AO\",\r\n                    \"PG\",\r\n                    \"WF\",\r\n                    \"MC\",\r\n                    \"ET\",\r\n                    \"GL\",\r\n                    \"VA\",\r\n                    \"LI\",\r\n                    \"AR\",\r\n                    \"SA\",\r\n                    \"UZ\",\r\n                    \"HK\",\r\n                    \"MF\",\r\n                    \"PW\",\r\n                    \"ZM\",\r\n                    \"RU\",\r\n                    \"BG\",\r\n                    \"UG\",\r\n                    \"BN\",\r\n                    \"BT\",\r\n                    \"NL\",\r\n                    \"GG\",\r\n                    \"LC\",\r\n                    \"KE\",\r\n                    \"IQ\",\r\n                    \"TM\",\r\n                    \"TD\",\r\n                    \"SV\",\r\n                    \"VE\",\r\n                    \"SC\",\r\n                    \"DK\",\r\n                    \"VC\",\r\n                    \"SE\",\r\n                    \"RE\",\r\n                    \"CA\",\r\n                    \"KH\",\r\n                    \"NR\",\r\n                    \"XK\",\r\n                    \"AG\",\r\n                    \"ZA\",\r\n                    \"MH\",\r\n                    \"CD\",\r\n                    \"FJ\",\r\n                    \"CM\",\r\n                    \"FO\",\r\n                    \"LY\",\r\n                    \"LV\",\r\n                    \"AN\",\r\n                    \"UY\",\r\n                    \"TH\",\r\n                    \"BS\",\r\n                    \"GT\",\r\n                    \"DJ\",\r\n                    \"CX\",\r\n                    \"VN\",\r\n                    \"AD\",\r\n                    \"BJ\",\r\n                    \"NZ\",\r\n                    \"SB\",\r\n                    \"KN\",\r\n                    \"SN\",\r\n                    \"US\",\r\n                    \"ER\",\r\n                    \"MG\",\r\n                    \"CF\",\r\n                    \"MN\",\r\n                    \"PY\",\r\n                    \"NE\",\r\n                    \"GD\",\r\n                    \"GM\",\r\n                    \"LB\",\r\n                    \"TC\",\r\n                    \"ES\",\r\n                    \"BY\",\r\n                    \"AW\",\r\n                    \"HR\",\r\n                    \"SK\",\r\n                    \"FR\",\r\n                    \"AS\",\r\n                    \"MK\",\r\n                    \"BL\",\r\n                    \"NO\",\r\n                    \"HT\",\r\n                    \"GW\",\r\n                    \"EG\",\r\n                    \"NI\",\r\n                    \"AZ\",\r\n                    \"PR\",\r\n                    \"CH\",\r\n                    \"PT\",\r\n                    \"BR\",\r\n                    \"MU\",\r\n                    \"IE\",\r\n                    \"AT\",\r\n                    \"GQ\",\r\n                    \"NA\",\r\n                    \"PL\",\r\n                    \"GI\",\r\n                    \"TL\",\r\n                    \"MQ\",\r\n                    \"KR\",\r\n                    \"AU\",\r\n                    \"NF\",\r\n                    \"RO\",\r\n                    \"SR\",\r\n                    \"CG\",\r\n                    \"FI\",\r\n                    \"GU\",\r\n                    \"BM\",\r\n                    \"MX\",\r\n                    \"YT\",\r\n                    \"TZ\",\r\n                    \"DM\",\r\n                    \"QA\",\r\n                    \"GA\",\r\n                    \"BD\",\r\n                    \"ZW\",\r\n                    \"AI\",\r\n                    \"TG\",\r\n                    \"LK\",\r\n                    \"PE\",\r\n                    \"IN\",\r\n                    \"IT\",\r\n                    \"MS\",\r\n                    \"CZ\",\r\n                    \"NC\",\r\n                    \"LR\",\r\n                    \"SL\",\r\n                    \"TW\",\r\n                    \"RS\",\r\n                    \"CK\",\r\n                    \"TJ\",\r\n                    \"KG\",\r\n                    \"PM\",\r\n                    \"SX\",\r\n                    \"VG\",\r\n                    \"BA\",\r\n                    \"GE\",\r\n                    \"GY\",\r\n                    \"CN\",\r\n                    \"MR\",\r\n                    \"JM\",\r\n                    \"AM\",\r\n                    \"TO\",\r\n                    \"SG\",\r\n                    \"GH\",\r\n                    \"HU\",\r\n                    \"WS\",\r\n                    \"MP\",\r\n                    \"BI\",\r\n                    \"FM\",\r\n                    \"JE\",\r\n                    \"AE\",\r\n                    \"PA\",\r\n                    \"TN\",\r\n                    \"CO\",\r\n                    \"ML\",\r\n                    \"GB\",\r\n                    \"MZ\",\r\n                    \"IL\",\r\n                    \"GN\",\r\n                    \"BF\",\r\n                    \"GP\",\r\n                    \"CV\",\r\n                    \"CY\",\r\n                    \"BO\",\r\n                    \"UA\",\r\n                    \"DO\",\r\n                    \"ST\",\r\n                    \"NG\",\r\n                    \"ME\",\r\n                    \"MT\",\r\n                    \"KM\",\r\n                    \"TV\",\r\n                    \"PF\",\r\n                    \"SM\",\r\n                    \"NP\",\r\n                    \"RW\",\r\n                    \"MW\",\r\n                    \"JP\",\r\n                    \"MM\",\r\n                    \"MD\",\r\n                    \"LT\",\r\n                    \"IS\",\r\n                    \"MO\",\r\n                    \"CR\",\r\n                    \"VI\",\r\n                    \"OM\",\r\n                    \"BH\",\r\n                    \"SI\",\r\n                    \"AF\",\r\n                    \"LS\",\r\n                    \"GF\",\r\n                    \"KW\",\r\n                    \"EE\",\r\n                    \"TR\",\r\n                    \"TT\",\r\n                    \"EC\",\r\n                    \"CL\",\r\n                    \"PH\",\r\n                    \"MA\",\r\n                    \"DE\",\r\n                    \"KZ\",\r\n                    \"BB\",\r\n                    \"KI\",\r\n                    \"SZ\",\r\n                    \"NU\",\r\n                    \"BE\",\r\n                    \"SD\",\r\n                    \"SO\",\r\n                    \"SY\",\r\n                    \"YE\",\r\n                    \"IR\",\r\n                    \"SH\",\r\n                    \"PS\",\r\n                    \"PN\",\r\n                    \"KP\",\r\n                    \"CU\"\r\n                ],\r\n                \"printAreaSizes\": {\r\n                    \"default\": {\r\n                        \"horizontalResolution\": 1522,\r\n                        \"verticalResolution\": 1522\r\n                    }\r\n                }\r\n            },\r\n            {\r\n                \"attributes\": {\r\n                    \"wrap\": \"White\"\r\n                },\r\n                \"shipsTo\": [\r\n                    \"IM\",\r\n                    \"LU\",\r\n                    \"ID\",\r\n                    \"CI\",\r\n                    \"GR\",\r\n                    \"FK\",\r\n                    \"AL\",\r\n                    \"LA\",\r\n                    \"KY\",\r\n                    \"BW\",\r\n                    \"PK\",\r\n                    \"DZ\",\r\n                    \"HN\",\r\n                    \"MV\",\r\n                    \"VU\",\r\n                    \"MY\",\r\n                    \"BZ\",\r\n                    \"JO\",\r\n                    \"AO\",\r\n                    \"PG\",\r\n                    \"WF\",\r\n                    \"MC\",\r\n                    \"ET\",\r\n                    \"GL\",\r\n                    \"VA\",\r\n                    \"LI\",\r\n                    \"AR\",\r\n                    \"SA\",\r\n                    \"UZ\",\r\n                    \"HK\",\r\n                    \"MF\",\r\n                    \"PW\",\r\n                    \"ZM\",\r\n                    \"RU\",\r\n                    \"BG\",\r\n                    \"UG\",\r\n                    \"BN\",\r\n                    \"BT\",\r\n                    \"NL\",\r\n                    \"GG\",\r\n                    \"LC\",\r\n                    \"KE\",\r\n                    \"IQ\",\r\n                    \"TM\",\r\n                    \"TD\",\r\n                    \"SV\",\r\n                    \"VE\",\r\n                    \"SC\",\r\n                    \"DK\",\r\n                    \"VC\",\r\n                    \"SE\",\r\n                    \"RE\",\r\n                    \"CA\",\r\n                    \"KH\",\r\n                    \"NR\",\r\n                    \"XK\",\r\n                    \"AG\",\r\n                    \"ZA\",\r\n                    \"MH\",\r\n                    \"CD\",\r\n                    \"FJ\",\r\n                    \"CM\",\r\n                    \"FO\",\r\n                    \"LY\",\r\n                    \"LV\",\r\n                    \"AN\",\r\n                    \"UY\",\r\n                    \"TH\",\r\n                    \"BS\",\r\n                    \"GT\",\r\n                    \"DJ\",\r\n                    \"CX\",\r\n                    \"VN\",\r\n                    \"AD\",\r\n                    \"BJ\",\r\n                    \"NZ\",\r\n                    \"SB\",\r\n                    \"KN\",\r\n                    \"SN\",\r\n                    \"US\",\r\n                    \"ER\",\r\n                    \"MG\",\r\n                    \"CF\",\r\n                    \"MN\",\r\n                    \"PY\",\r\n                    \"NE\",\r\n                    \"GD\",\r\n                    \"GM\",\r\n                    \"LB\",\r\n                    \"TC\",\r\n                    \"ES\",\r\n                    \"BY\",\r\n                    \"AW\",\r\n                    \"HR\",\r\n                    \"SK\",\r\n                    \"FR\",\r\n                    \"AS\",\r\n                    \"MK\",\r\n                    \"BL\",\r\n                    \"NO\",\r\n                    \"HT\",\r\n                    \"GW\",\r\n                    \"EG\",\r\n                    \"NI\",\r\n                    \"AZ\",\r\n                    \"PR\",\r\n                    \"CH\",\r\n                    \"PT\",\r\n                    \"BR\",\r\n                    \"MU\",\r\n                    \"IE\",\r\n                    \"AT\",\r\n                    \"GQ\",\r\n                    \"NA\",\r\n                    \"PL\",\r\n                    \"GI\",\r\n                    \"TL\",\r\n                    \"MQ\",\r\n                    \"KR\",\r\n                    \"AU\",\r\n                    \"NF\",\r\n                    \"RO\",\r\n                    \"SR\",\r\n                    \"CG\",\r\n                    \"FI\",\r\n                    \"GU\",\r\n                    \"BM\",\r\n                    \"MX\",\r\n                    \"YT\",\r\n                    \"TZ\",\r\n                    \"DM\",\r\n                    \"QA\",\r\n                    \"GA\",\r\n                    \"BD\",\r\n                    \"ZW\",\r\n                    \"AI\",\r\n                    \"TG\",\r\n                    \"LK\",\r\n                    \"PE\",\r\n                    \"IN\",\r\n                    \"IT\",\r\n                    \"MS\",\r\n                    \"CZ\",\r\n                    \"NC\",\r\n                    \"LR\",\r\n                    \"SL\",\r\n                    \"TW\",\r\n                    \"RS\",\r\n                    \"CK\",\r\n                    \"TJ\",\r\n                    \"KG\",\r\n                    \"PM\",\r\n                    \"SX\",\r\n                    \"VG\",\r\n                    \"BA\",\r\n                    \"GE\",\r\n                    \"GY\",\r\n                    \"CN\",\r\n                    \"MR\",\r\n                    \"JM\",\r\n                    \"AM\",\r\n                    \"TO\",\r\n                    \"SG\",\r\n                    \"GH\",\r\n                    \"HU\",\r\n                    \"WS\",\r\n                    \"MP\",\r\n                    \"BI\",\r\n                    \"FM\",\r\n                    \"JE\",\r\n                    \"AE\",\r\n                    \"PA\",\r\n                    \"TN\",\r\n                    \"CO\",\r\n                    \"ML\",\r\n                    \"GB\",\r\n                    \"MZ\",\r\n                    \"IL\",\r\n                    \"GN\",\r\n                    \"BF\",\r\n                    \"GP\",\r\n                    \"CV\",\r\n                    \"CY\",\r\n                    \"BO\",\r\n                    \"UA\",\r\n                    \"DO\",\r\n                    \"ST\",\r\n                    \"NG\",\r\n                    \"ME\",\r\n                    \"MT\",\r\n                    \"KM\",\r\n                    \"TV\",\r\n                    \"PF\",\r\n                    \"SM\",\r\n                    \"NP\",\r\n                    \"RW\",\r\n                    \"MW\",\r\n                    \"JP\",\r\n                    \"MM\",\r\n                    \"MD\",\r\n                    \"LT\",\r\n                    \"IS\",\r\n                    \"MO\",\r\n                    \"CR\",\r\n                    \"VI\",\r\n                    \"OM\",\r\n                    \"BH\",\r\n                    \"SI\",\r\n                    \"AF\",\r\n                    \"LS\",\r\n                    \"GF\",\r\n                    \"KW\",\r\n                    \"EE\",\r\n                    \"TR\",\r\n                    \"TT\",\r\n                    \"EC\",\r\n                    \"CL\",\r\n                    \"PH\",\r\n                    \"MA\",\r\n                    \"DE\",\r\n                    \"KZ\",\r\n                    \"BB\",\r\n                    \"KI\",\r\n                    \"SZ\",\r\n                    \"NU\",\r\n                    \"BE\",\r\n                    \"SD\",\r\n                    \"SO\",\r\n                    \"SY\",\r\n                    \"YE\",\r\n                    \"IR\",\r\n                    \"SH\",\r\n                    \"PS\",\r\n                    \"PN\",\r\n                    \"KP\",\r\n                    \"CU\"\r\n                ],\r\n                \"printAreaSizes\": {\r\n                    \"default\": {\r\n                        \"horizontalResolution\": 1522,\r\n                        \"verticalResolution\": 1522\r\n                    }\r\n                }\r\n            }\r\n        ]\r\n    },\r\n    \"traceParent\": \"00-f2d3350a3036fa4fb7c5f6a9169cc98c-80c47e0bb2c25440-00\"\r\n}"
+						}
+					]
+				}
+			],
+			"description": "This endpoint returns all available data for a SKU such as price, attributes, variants, and its required assets and dimensions. Please see [here](https://www.prodigi.com/print-api/docs/reference/#product-details) for further information about this endpoint."
+		},
+		{
+			"name": "Photobooks",
+			"item": [
+				{
+					"name": "Create Photobook Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{X-API-Key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"merchantReference\": \"MyMerchantReference1\",\r\n    \"shippingMethod\": \"Overnight\",\r\n    \"recipient\": {\r\n        \"address\": {\r\n            \"line1\": \"14 test place\",\r\n            \"line2\": \"test\",\r\n            \"postalOrZipCode\": \"12345\",\r\n            \"countryCode\": \"US\",\r\n            \"townOrCity\": \"somewhere\",\r\n            \"stateOrCounty\": null\r\n        },\r\n        \"name\": \"Mr test\"\r\n        \r\n    },\r\n    \"items\": [\r\n        {\r\n            \"merchantReference\": \"item #1\",\r\n            \"sku\": \"GLOBAL-CFPM-16X20\",\r\n            \"copies\": 1,\r\n            \"sizing\": \"fillPrintArea\",\r\n            \"attributes\": {\r\n                \"color\": \"black\"\r\n            },\r\n            \"assets\": [\r\n                {\r\n                    \"printArea\": \"Default\",\r\n                    \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_landscape.jpg\",\r\n                    \"md5Hash\": \"dcb2b27755a6f2ceb09089856508f31b\"\r\n                }\r\n            ]\r\n        }\r\n    ],\r\n    \"metadata\": {\r\n        \"mycustomkey\":\"some-guid\",\r\n        \"someCustomerPreference\": {\r\n            \"preference1\": \"something\",\r\n            \"preference2\": \"red\"\r\n        },\r\n        \"sourceId\": 12345\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/",
+							"host": [
+								"{{WEB_API_ROOT_URL}}"
+							],
+							"path": [
+								"v4.0",
+								"Orders",
+								""
+							]
+						},
+						"description": "POSTing to this endpoint will submit and create your order for you."
+					},
+					"response": [
+						{
+							"name": "Create Order",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{X-API-Key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"merchantReference\": \"MyMerchantReference1\",\r\n    \"shippingMethod\": \"Overnight\",\r\n    \"recipient\": {\r\n        \"address\": {\r\n            \"line1\": \"14 test place\",\r\n            \"line2\": \"test\",\r\n            \"postalOrZipCode\": \"12345\",\r\n            \"countryCode\": \"US\",\r\n            \"townOrCity\": \"somewhere\",\r\n            \"stateOrCounty\": null\r\n        },\r\n        \"name\": \"Mr test\"\r\n        \r\n    },\r\n    \"items\": [\r\n        {\r\n            \"merchantReference\": \"item #1\",\r\n            \"sku\": \"GLOBAL-CFPM-16X20\",\r\n            \"copies\": 1,\r\n            \"sizing\": \"fillPrintArea\",\r\n            \"attributes\": {\r\n                \"color\": \"black\"\r\n            },\r\n            \"assets\": [\r\n                {\r\n                    \"printArea\": \"Default\",\r\n                    \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_landscape.jpg\",\r\n                    \"md5Hash\": \"dcb2b27755a6f2ceb09089856508f31b\"\r\n                }\r\n            ]\r\n        }\r\n    ],\r\n    \"metadata\": {\r\n        \"mycustomkey\":\"some-guid\",\r\n        \"someCustomerPreference\": {\r\n            \"preference1\": \"something\",\r\n            \"preference2\": \"red\"\r\n        },\r\n        \"sourceId\": 12345\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{WEB_API_ROOT_URL}}/v4.0/Orders/",
+									"host": [
+										"{{WEB_API_ROOT_URL}}"
+									],
+									"path": [
+										"v4.0",
+										"Orders",
+										""
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\n    \"outcome\": \"Created\",\n    \"order\": {\n        \"id\": \"ord_978731\",\n        \"created\": \"2021-04-30T13:51:56.383Z\",\n        \"lastUpdated\": \"2021-04-30T13:51:58.6752414Z\",\n        \"callbackUrl\": null,\n        \"merchantReference\": \"MyMerchantReference1\",\n        \"shippingMethod\": \"Overnight\",\n        \"idempotencyKey\": null,\n        \"status\": {\n            \"stage\": \"InProgress\",\n            \"issues\": [],\n            \"details\": {\n                \"downloadAssets\": \"NotStarted\",\n                \"printReadyAssetsPrepared\": \"NotStarted\",\n                \"allocateProductionLocation\": \"NotStarted\",\n                \"inProduction\": \"NotStarted\",\n                \"shipping\": \"NotStarted\"\n            }\n        },\n        \"charges\": [],\n        \"shipments\": [],\n        \"recipient\": {\n            \"name\": \"Mr test\",\n            \"email\": null,\n            \"phoneNumber\": null,\n            \"address\": {\n                \"line1\": \"14 test place\",\n                \"line2\": \"test\",\n                \"postalOrZipCode\": \"12345\",\n                \"countryCode\": \"US\",\n                \"townOrCity\": \"somewhere\",\n                \"stateOrCounty\": null\n            }\n        },\n        \"items\": [\n            {\n                \"id\": \"ori_1201772\",\n                \"status\": \"NotYetDownloaded\",\n                \"merchantReference\": \"item #1\",\n                \"sku\": \"GLOBAL-CFPM-16X20\",\n                \"copies\": 1,\n                \"sizing\": \"fillPrintArea\",\n                \"attributes\": {\n                    \"color\": \"black\"\n                },\n                \"assets\": [\n                    {\n                        \"id\": \"ast_113803\",\n                        \"printArea\": \"default\",\n                        \"md5Hash\": \"dcb2b27755a6f2ceb09089856508f31b\",\n                        \"url\": \"https://pwintytest.blob.core.windows.net/sample-media/QA/prodigi_landscape.jpg\",\n                        \"status\": \"InProgress\"\n                    }\n                ],\n                \"recipientCost\": null\n            }\n        ],\n        \"packingSlip\": null,\n        \"metadata\": {\n            \"mycustomkey\": \"some-guid\",\n            \"someCustomerPreference\": {\n                \"preference1\": \"something\",\n                \"preference2\": \"red\"\n            },\n            \"sourceId\": 12345\n        }\n    },\n    \"traceParent\": \"00-b1348945374a2f41906061932009bd78-a1bef1f50da9dd4e-00\"\n}"
+						}
+					]
+				}
+			],
+			"description": "This folder includes a sample order that you can use to get started with ordering a photobook with Prodigi.\n\nTo place an order, simply change the address for your own and provide a publicly accessible link to a PDF file containing the book contents.\n\nThe example photobook SKU used here is for an 21cm square hardback book. The complete range of books available - and the appropriate SKU to use for each - can be found [here](https://www.prodigi.com/download/private/prodigi-photo-book-pricing.pdf)."
+		}
+	]
+}

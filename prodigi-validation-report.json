@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-09-24T04:07:50.626Z",
+  "environment": "production",
+  "apiKey": "configured",
+  "summary": {
+    "totalFrameOptions": 9,
+    "validatedProducts": 0,
+    "missingProducts": 0
+  },
+  "results": [],
+  "recommendations": []
+}
