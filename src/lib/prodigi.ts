@@ -52,7 +52,7 @@ interface ProdigiOrder {
     };
   };
   items: ProdigiOrderItem[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface ProdigiOrderResponse {
@@ -222,7 +222,21 @@ export class ProdigiClient {
         frameStyle: string;
         frameMaterial: string;
       }>;
-      shippingAddress: any;
+      shippingAddress: {
+        firstName?: string;
+        first_name?: string;
+        lastName?: string;
+        last_name?: string;
+        address1?: string;
+        line1?: string;
+        address2?: string;
+        line2?: string;
+        city: string;
+        state?: string;
+        zip?: string;
+        postal_code?: string;
+        country: string;
+      };
       customerEmail: string;
       customerPhone?: string;
     }
@@ -231,11 +245,11 @@ export class ProdigiClient {
       merchantReference: orderData.orderReference,
       shippingMethod: 'Standard',
       recipient: {
-        name: `${orderData.shippingAddress.firstName || orderData.shippingAddress.first_name} ${orderData.shippingAddress.lastName || orderData.shippingAddress.last_name}`,
+        name: `${orderData.shippingAddress.firstName || orderData.shippingAddress.first_name || ''} ${orderData.shippingAddress.lastName || orderData.shippingAddress.last_name || ''}`.trim(),
         address: {
-          line1: orderData.shippingAddress.address1 || orderData.shippingAddress.line1,
+          line1: orderData.shippingAddress.address1 || orderData.shippingAddress.line1 || '',
           line2: orderData.shippingAddress.address2 || orderData.shippingAddress.line2,
-          postalOrZipCode: orderData.shippingAddress.zip || orderData.shippingAddress.postal_code,
+          postalOrZipCode: orderData.shippingAddress.zip || orderData.shippingAddress.postal_code || '',
           countryCode: orderData.shippingAddress.country,
           townOrCity: orderData.shippingAddress.city,
           stateOrCounty: orderData.shippingAddress.state,
@@ -260,7 +274,7 @@ export class ProdigiClient {
   }
 
   // Get product attributes based on frame style and material
-  private getProductAttributes(frameStyle: string, frameMaterial: string): Record<string, string> {
+  private getProductAttributes(frameStyle: string, _frameMaterial: string): Record<string, string> {
     const attributes: Record<string, string> = {};
     
     // Add color attribute for canvas prints (GLOBAL-CFPM-16X20 requires it)

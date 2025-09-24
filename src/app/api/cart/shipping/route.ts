@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { prodigiClient } from '@/lib/prodigi';
 import { z } from 'zod';
 import type { ShippingItem } from '@/lib/shipping';
 
@@ -61,7 +60,7 @@ export async function POST(request: NextRequest) {
     // Use enhanced shipping service
     const { defaultShippingService } = await import('@/lib/shipping');
     
-    const shippingItems: ShippingItem[] = cartItems.map((item: any) => ({
+    const shippingItems: ShippingItem[] = cartItems.map((item: { products: { sku: string }; quantity: number }) => ({
       sku: item.products.sku,
       quantity: item.quantity,
     }));

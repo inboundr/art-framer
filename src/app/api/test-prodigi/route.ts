@@ -95,8 +95,8 @@ export async function GET(request: NextRequest) {
           output: {
             merchantReference: prodigiOrder.merchantReference,
             itemsCount: prodigiOrder.items.length,
-            customerEmail: prodigiOrder.customerEmail,
-            shippingAddress: prodigiOrder.shippingAddress.recipientName
+            customerEmail: prodigiOrder.metadata?.customerEmail || 'N/A',
+            shippingAddress: prodigiOrder.recipient.name
           }
         },
         apiConnectivity: apiTest
