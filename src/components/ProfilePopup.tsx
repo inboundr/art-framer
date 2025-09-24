@@ -127,7 +127,13 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
         <button className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
           View profile
         </button>
-        <button className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+        <button 
+          onClick={() => {
+            router.push('/faq');
+            onClose();
+          }}
+          className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+        >
           Help & documentation
         </button>
         <button className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
