@@ -6,6 +6,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { GenerationProvider } from "@/contexts/GenerationContext";
 
 const manrope = Manrope({ subsets: ["latin"] });
 
@@ -37,11 +38,13 @@ export default function RootLayout({
       <body className={manrope.className} suppressHydrationWarning={true}>
         <AuthProvider>
           <CartProvider>
-            <TooltipProvider>
-              {children}
-              <Toaster />
-              <Sonner />
-            </TooltipProvider>
+            <GenerationProvider>
+              <TooltipProvider>
+                {children}
+                <Toaster />
+                <Sonner />
+              </TooltipProvider>
+            </GenerationProvider>
           </CartProvider>
         </AuthProvider>
       </body>

@@ -7,6 +7,7 @@ import { CreationsModal } from './CreationsModal';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { saveGeneratedImageToSupabase } from '@/lib/utils/saveGeneratedImage';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGeneration } from '@/contexts/GenerationContext';
 
 interface GenerationPanelProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export function GenerationPanel({
   referenceImages = []
 }: GenerationPanelProps) {
   const { user } = useAuth();
+  const { setActiveGenerations, setIsGenerating } = useGeneration();
   const [isExpanded, setIsExpanded] = useState(true);
   const [localPromptText, setLocalPromptText] = useState(promptText);
   const [generationStatus, setGenerationStatus] = useState('Waiting in the slow queue...');
@@ -179,8 +181,23 @@ export function GenerationPanel({
     if (!isOpen) {
       generationInitiatedRef.current = false;
       setHasStartedGeneration(false);
+      // Reset global generation state when panel closes
+      setActiveGenerations(0);
+      setIsGenerating(false);
     }
-  }, [promptText, isOpen]);
+  }, [promptText, isOpen, setActiveGenerations, setIsGenerating]);
+
+  // Update global generation state when local generation state changes
+  useEffect(() => {
+    setIsGenerating(isGenerating);
+    if (isGenerating) {
+      // Set the number of images being generated
+      setActiveGenerations(numberOfImages);
+    } else if (!isGenerating && hasStartedGeneration) {
+      // Keep the count until the panel is closed or a new generation starts
+      // This ensures the badge shows the count of the last generation
+    }
+  }, [isGenerating, numberOfImages, hasStartedGeneration, setIsGenerating, setActiveGenerations]);
 
   // Detect mobile screen size
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGeneration } from '@/contexts/GenerationContext';
 import { SidebarAvatar } from './SidebarAvatar';
 import { ProfilePopup } from './ProfilePopup';
 import { CartButton } from './CartButton';
@@ -115,6 +116,7 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
   const router = useRouter();
   const pathname = usePathname();
   const { user, profile, signOut } = useAuth();
+  const { activeGenerations } = useGeneration();
   const [profilePopupOpen, setProfilePopupOpen] = useState(false);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -198,7 +200,7 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               }
               label="Creations"
               active={pathname === '/creations'}
-              badge={4}
+              badge={activeGenerations > 0 ? activeGenerations : undefined}
               onClick={() => handleNavClick('/creations')}
             />
 
@@ -360,7 +362,7 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
                 </svg>
               }
               label="Creations"
-              badge={4}
+              badge={activeGenerations > 0 ? activeGenerations : undefined}
               active={pathname === '/creations'}
               onClick={() => handleNavClick('/creations')}
             />
