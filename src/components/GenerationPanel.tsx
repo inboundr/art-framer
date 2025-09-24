@@ -468,7 +468,7 @@ export function GenerationPanel({
                   <textarea
                     value={localPromptText}
                     onChange={(e) => setLocalPromptText(e.target.value)}
-                    placeholder="Describe what you want to see"
+                    placeholder="Describe what you want to see and order it framed to your house"
                     className="text-gray-text text-sm md:text-base font-normal leading-5 md:leading-6 tracking-[-0.12px] md:tracking-[-0.16px] bg-transparent border-none outline-none resize-none w-full min-h-6 md:min-h-8 placeholder:text-gray-text"
                     rows={1}
                     onKeyPress={(e) => {

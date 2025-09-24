@@ -346,7 +346,7 @@ export function CreationsModal({
                   className="flex h-9 px-3 items-center justify-center rounded-lg bg-primary hover:bg-primary/90 transition-colors ml-auto"
                 >
                   <Package className="w-4 h-4 mr-1" />
-                  <span className="text-white text-sm font-semibold">Buy as Frame</span>
+                  <span className="text-white text-sm font-semibold">Order Framed Print</span>
                 </Button>
               </div>
               

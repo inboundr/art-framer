@@ -290,7 +290,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
         <div className="flex flex-col items-center gap-4 w-full max-w-4xl mx-auto">
           {/* Title */}
           <h1 className="text-gray-light text-xl md:text-2xl font-semibold text-center">
-            What will you create?
+            What will you create and order framed?
           </h1>
 
           {/* Input Field */}
@@ -298,7 +298,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
             <textarea
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
-              placeholder="Describe what you want to see"
+              placeholder="Describe what you want to see and order it framed to your house"
               className="flex-1 bg-transparent text-gray-light placeholder:text-gray-text text-sm md:text-base outline-none border-none resize-none min-h-[80px] leading-relaxed"
               onKeyPress={(e) => {
                 if (e.key === 'Enter' && e.ctrlKey) {

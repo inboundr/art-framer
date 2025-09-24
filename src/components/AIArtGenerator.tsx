@@ -55,13 +55,13 @@ export function AIArtGenerator() {
         <div className="space-y-6">
           <div>
             <label htmlFor="prompt" className="block text-sm font-medium text-gray-light mb-2">
-              Describe your artwork
+              Describe the artwork you want to order framed
             </label>
             <textarea
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="A serene mountain landscape at sunset with golden clouds..."
+              placeholder="A serene mountain landscape at sunset with golden clouds - order it framed to your house"
               className="w-full h-32 p-4 border border-gray-border rounded-lg resize-none focus:ring-2 focus:ring-pink-primary focus:border-transparent bg-dark-secondary text-gray-light placeholder-gray-muted"
               maxLength={500}
             />

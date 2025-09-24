@@ -61,7 +61,7 @@ export function WelcomeModal({ isOpen, onClose, onStartCreating }: WelcomeModalP
             Welcome to Art Framer!
           </DialogTitle>
           <p className="text-lg text-muted-foreground mt-2">
-            Get to know your free plan:
+            Create AI art and order it framed to your house. Get to know your free plan:
           </p>
         </DialogHeader>
         
