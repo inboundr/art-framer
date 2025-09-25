@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update main order status based on Prodigi status
-    let orderStatusUpdate: any = {
+      const orderStatusUpdate: any = {
       updated_at: new Date().toISOString(),
     };
 

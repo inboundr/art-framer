@@ -19,7 +19,7 @@ export default function ShopPage() {
     setActiveTab('checkout');
   };
 
-  const handleCheckoutSuccess = (orderId: string) => {
+  const handleCheckoutSuccess = () => {
     setShowCheckout(false);
     setActiveTab('orders');
     // You could show a success message or redirect to order details

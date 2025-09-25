@@ -12,7 +12,7 @@ interface StyleOption {
 interface StyleDropdownProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (option: any) => void;
+  onSelect: (option: { value: string; label: string }) => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
 }
 
@@ -61,16 +61,17 @@ export function StyleDropdown({
 
   const handleStyleSelect = (styleId: string) => {
     setSelectedStyle(styleId);
-    onSelect({ type: 'style', value: styleId });
+    const style = predefinedStyles.find(s => s.id === styleId);
+    onSelect({ value: styleId, label: style?.name || styleId });
   };
 
   const handleReferenceSelect = () => {
-    onSelect({ type: 'reference', value: 'reference' });
+    onSelect({ value: 'reference', label: 'Reference Style' });
   };
 
   const handleStyleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setStyleCode(e.target.value);
-    onSelect({ type: 'styleCode', value: e.target.value });
+    onSelect({ value: e.target.value, label: 'Custom Style Code' });
   };
 
   const getIcon = (iconName: string) => {

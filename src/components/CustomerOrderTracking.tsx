@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,6 @@ import {
   ExternalLink,
   RefreshCw,
   Bell,
-  BellOff
 } from 'lucide-react';
 
 interface Order {
@@ -96,16 +95,7 @@ export function CustomerOrderTracking({ orderId, showAllOrders = false }: Custom
     },
   };
 
-  useEffect(() => {
-    if (showAllOrders) {
-      fetchAllOrders();
-    } else if (orderId) {
-      fetchOrderDetails(orderId);
-    }
-    fetchNotifications();
-  }, [orderId, showAllOrders]);
-
-  const fetchAllOrders = async () => {
+  const fetchAllOrders = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/orders/management', {
@@ -128,9 +118,9 @@ export function CustomerOrderTracking({ orderId, showAllOrders = false }: Custom
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchOrderDetails = async (id: string) => {
+  const fetchOrderDetails = useCallback(async (id: string) => {
     try {
       setLoading(true);
       const response = await fetch(`/api/orders/${id}/status`, {
@@ -153,7 +143,16 @@ export function CustomerOrderTracking({ orderId, showAllOrders = false }: Custom
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (showAllOrders) {
+      fetchAllOrders();
+    } else if (orderId) {
+      fetchOrderDetails(orderId);
+    }
+    fetchNotifications();
+  }, [orderId, showAllOrders, fetchAllOrders, fetchOrderDetails]);
 
   const fetchNotifications = async () => {
     try {
@@ -173,6 +172,7 @@ export function CustomerOrderTracking({ orderId, showAllOrders = false }: Custom
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const markNotificationsAsRead = async (notificationIds: string[]) => {
     try {
       const response = await fetch('/api/notifications', {

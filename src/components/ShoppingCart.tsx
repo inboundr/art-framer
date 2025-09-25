@@ -163,7 +163,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                       {getFrameStyleLabel(item.products.frame_style)} {getFrameMaterialLabel(item.products.frame_material)}
                     </p>
                     <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                      "{item.products.images.prompt}"
+                          &ldquo;{item.products.images.prompt}&rdquo;
                     </p>
                     
                     {/* Quantity Controls */}

@@ -69,7 +69,7 @@ export function SignupForm({ onSwitchToLogin, onSignupStart }: SignupFormProps) 
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-green-600">Check Your Email</CardTitle>
           <CardDescription>
-            We've sent you a confirmation link to verify your account.
+            We&apos;ve sent you a confirmation link to verify your account.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center">

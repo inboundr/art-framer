@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -96,11 +96,7 @@ export function AdminOrderDashboard() {
     refunded: AlertCircle,
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, [filters, pagination.offset]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -137,7 +133,11 @@ export function AdminOrderDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pagination.offset]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const fetchOrderDetails = async (orderId: string) => {
     try {
@@ -177,7 +177,7 @@ export function AdminOrderDashboard() {
         throw new Error('Failed to refresh Prodigi status');
       }
 
-      const data = await response.json();
+      await response.json();
       toast({
         title: 'Success',
         description: 'Prodigi status refreshed successfully',

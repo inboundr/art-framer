@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -62,11 +62,7 @@ export function ProductCatalog({
   const { user } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchProducts();
-  }, [imageId, filters, limit]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -90,7 +86,11 @@ export function ProductCatalog({
     } finally {
       setLoading(false);
     }
-  };
+  }, [imageId, filters, limit]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const addToCart = async (productId: string) => {
     if (!user) {
@@ -377,7 +377,7 @@ export function ProductCatalog({
 
             <CardContent className="pb-2">
               <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                "{product.images.prompt}"
+                &ldquo;{product.images.prompt}&rdquo;
               </p>
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold text-primary">

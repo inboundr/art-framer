@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// Tabs components removed as they're not currently used
 import { Input } from '@/components/ui/input';
 import { 
   Package, 
@@ -15,7 +15,6 @@ import {
   Eye,
   Search,
   Filter,
-  Calendar,
   MapPin,
   CreditCard,
   RefreshCw
@@ -24,7 +23,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/AppLayout';
 import { FramePreview } from '@/components/FramePreview';
-import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 
 interface OrderItem {
   id: string;
@@ -89,13 +87,7 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      fetchOrders();
-    }
-  }, [user]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/orders');
@@ -116,7 +108,13 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchOrders();
+    }
+  }, [user, fetchOrders]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -231,7 +229,7 @@ export default function OrdersPage() {
                     {item.products.frame_size} Frame
                   </h4>
                   <p className="text-xs text-muted-foreground line-clamp-1">
-                    "{item.products.images.prompt}"
+                    &ldquo;{item.products.images.prompt}&rdquo;
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Qty: {item.quantity} × {formatPrice(item.unit_price)}
@@ -313,7 +311,7 @@ export default function OrdersPage() {
                           {item.products.frame_size} Frame
                         </h4>
                         <p className="text-sm text-muted-foreground mb-2">
-                          "{item.products.images.prompt}"
+                          &ldquo;{item.products.images.prompt}&rdquo;
                         </p>
                         <div className="text-sm space-y-1">
                           <div>Quantity: {item.quantity}</div>

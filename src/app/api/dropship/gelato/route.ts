@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if dropship order already exists
-    const { data: existingDropship, error: dropshipError } = await supabase
+    const { data: existingDropship } = await supabase
       .from('dropship_orders')
       .select('id, status')
       .eq('order_id', validatedData.orderId)

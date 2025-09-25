@@ -80,7 +80,17 @@ export async function GET(request: NextRequest) {
     // Calculate totals using robust pricing calculator
     const { defaultPricingCalculator } = await import('@/lib/pricing');
     
-    const pricingItems: PricingItem[] = cartItems.map((item: any) => ({
+    const pricingItems: PricingItem[] = cartItems.map((item: {
+      id: string;
+      quantity: number;
+      products: {
+        sku: string;
+        price: number;
+        name?: string;
+        frame_size: string;
+        frame_style: string;
+      };
+    }) => ({
       id: item.id,
       sku: item.products.sku,
       price: item.products.price,
@@ -100,7 +110,7 @@ export async function GET(request: NextRequest) {
         taxAmount,
         shippingAmount,
         total,
-        itemCount: cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0)
+        itemCount: cartItems.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0)
       }
     });
   } catch (error) {

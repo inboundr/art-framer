@@ -94,7 +94,7 @@ function DynamicErrorFallback({ error, onRetry }: DynamicErrorFallbackProps) {
             Dynamic Feature Unavailable
           </h3>
           <p className="text-sm text-muted-foreground mb-4">
-            The enhanced interface couldn't load. The basic version is still available.
+            The enhanced interface couldn&apos;t load. The basic version is still available.
           </p>
           {process.env.NODE_ENV === 'development' && error && (
             <details className="text-xs text-muted-foreground bg-muted p-3 rounded mt-2">

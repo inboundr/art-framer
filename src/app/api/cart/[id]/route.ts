@@ -42,7 +42,7 @@ export async function PUT(
     }
 
     // Update cart item
-    const updateData: any = { 
+    const updateData = { 
       quantity: validatedData.quantity,
       updated_at: new Date().toISOString()
     };

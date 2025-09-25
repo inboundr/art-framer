@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -98,11 +98,7 @@ export function OrderManagement({ userId }: OrderManagementProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchOrders();
-  }, [statusFilter]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -124,7 +120,11 @@ export function OrderManagement({ userId }: OrderManagementProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, toast]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -471,7 +471,7 @@ export function OrderManagement({ userId }: OrderManagementProps) {
                               {getFrameStyleLabel(item.products.frame_style)} {getFrameMaterialLabel(item.products.frame_material)}
                             </p>
                             <p className="text-sm text-gray-500 line-clamp-2">
-                              "{item.products.images.prompt}"
+                              &ldquo;{item.products.images.prompt}&rdquo;
                             </p>
                             <div className="flex items-center justify-between mt-2">
                               <span className="text-sm">Qty: {item.quantity}</span>

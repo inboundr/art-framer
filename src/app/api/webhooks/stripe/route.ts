@@ -284,6 +284,8 @@ async function handlePaymentIntentFailed(
   }
 }
 
+// Unused function - can be removed or implemented later
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
   try {
     console.log('🚀 Triggering Prodigi order creation for order:', orderId);
@@ -316,7 +318,7 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
     }
 
     // Check if Prodigi order already exists
-    const { data: existingDropship, error: dropshipError } = await supabase
+    const { data: existingDropship } = await supabase
       .from('dropship_orders')
       .select('id, status, provider_order_id')
       .eq('order_id', orderId)

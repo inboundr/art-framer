@@ -346,7 +346,7 @@ export function FrameSelector({
               {getStyleLabel(selectedStyle)} {getMaterialLabel(selectedMaterial)}
             </p>
             <p className="text-sm text-gray-500">
-              {currentFrame?.dimensions.width}" × {currentFrame?.dimensions.height}" × {currentFrame?.dimensions.depth}"
+              {currentFrame?.dimensions.width}&quot; × {currentFrame?.dimensions.height}&quot; × {currentFrame?.dimensions.depth}&quot;
             </p>
             <div className="flex items-center justify-center gap-2 mt-3">
               {currentFrame?.popular && (
@@ -390,7 +390,7 @@ export function FrameSelector({
                     >
                       <div className="text-sm font-medium mb-1">{getSizeLabel(size)}</div>
                       <div className="text-xs text-gray-500">
-                        {FRAME_OPTIONS.find(f => f.size === size && f.style === 'black' && f.material === 'wood')?.dimensions.width}" × {FRAME_OPTIONS.find(f => f.size === size && f.style === 'black' && f.material === 'wood')?.dimensions.height}"
+                        {FRAME_OPTIONS.find(f => f.size === size && f.style === 'black' && f.material === 'wood')?.dimensions.width}&quot; × {FRAME_OPTIONS.find(f => f.size === size && f.style === 'black' && f.material === 'wood')?.dimensions.height}&quot;
                       </div>
                     </Label>
                   </div>
@@ -491,7 +491,7 @@ export function FrameSelector({
                       {formatPrice(currentFrame.price)}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {currentFrame.dimensions.width}" × {currentFrame.dimensions.height}" × {currentFrame.dimensions.depth}"
+                      {currentFrame.dimensions.width}&quot; × {currentFrame.dimensions.height}&quot; × {currentFrame.dimensions.depth}&quot;
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -479,7 +479,7 @@ export function FramePreview({
               <div className="space-y-2">
                 <h4 className="font-semibold">Artwork</h4>
                 <div className="space-y-1 text-muted-foreground">
-                  <div className="line-clamp-2">"{imagePrompt}"</div>
+                  <div className="line-clamp-2">&ldquo;{imagePrompt}&rdquo;</div>
                 </div>
               </div>
             </div>

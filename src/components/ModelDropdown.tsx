@@ -19,7 +19,7 @@ interface RenderSpeedOption {
 interface ModelDropdownProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (option: any) => void;
+  onSelect: (option: { value: string; label: string }) => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
 }
 
@@ -82,17 +82,19 @@ export function ModelDropdown({
 
   const handleImageSelect = (imageCount: string) => {
     setSelectedImages(imageCount);
-    onSelect({ type: 'images', value: imageCount });
+    onSelect({ value: imageCount, label: `${imageCount} Images` });
   };
 
   const handleModelSelect = (modelId: string) => {
     setSelectedModel(modelId);
-    onSelect({ type: 'model', value: modelId });
+    const model = modelOptions.find(m => m.id === modelId);
+    onSelect({ value: modelId, label: model?.name || modelId });
   };
 
   const handleSpeedSelect = (speedId: string) => {
     setSelectedSpeed(speedId);
-    onSelect({ type: 'speed', value: speedId });
+    const speed = renderSpeedOptions.find(s => s.id === speedId);
+    onSelect({ value: speedId, label: speed?.name || speedId });
   };
 
   return (

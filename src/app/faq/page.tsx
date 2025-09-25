@@ -13,7 +13,6 @@ import {
   MessageCircle, 
   Mail, 
   Phone,
-  Clock,
   Shield,
   Truck,
   CreditCard,

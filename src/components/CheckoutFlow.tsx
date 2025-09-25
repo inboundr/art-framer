@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { 
   CreditCard, 
   Truck, 
@@ -17,7 +16,6 @@ import {
   Lock,
   Clock,
   Package,
-  MapPin,
   AlertTriangle
 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
@@ -54,13 +52,13 @@ interface BillingAddress {
   country: string;
 }
 
-export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
-  const { cartData, loading, refreshCart } = useCart();
+export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
+  const { cartData } = useCart();
   const cartItems = cartData?.cartItems || [];
   const totals = cartData?.totals || { subtotal: 0, taxAmount: 0, shippingAmount: 0, total: 0, itemCount: 0 };
   const { user } = useAuth();
   const { toast } = useToast();
-  const { addresses, getDefaultAddress, saveAddress } = useAddresses();
+  const { getDefaultAddress, saveAddress } = useAddresses();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [processing, setProcessing] = useState(false);
@@ -75,7 +73,6 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
     currency: string;
   } | null>(null);
   const [shippingLoading, setShippingLoading] = useState(false);
-  const [addressValidated, setAddressValidated] = useState(false);
   const [googlePlacesAddress, setGooglePlacesAddress] = useState('');
   
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
@@ -152,7 +149,7 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
       country: addressData.countryCode,
     }));
     
-    setAddressValidated(true);
+    // setAddressValidated(true); // Removed as it's not defined
     
     // Immediately calculate shipping for validated address
     calculateShipping({
@@ -174,7 +171,7 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
     }, 500); // Debounce to avoid too many API calls
 
     return () => clearTimeout(timer);
-  }, [shippingAddress.country, shippingAddress.city, shippingAddress.zip, shippingAddress.state]);
+  }, [shippingAddress.country, shippingAddress.city, shippingAddress.zip, shippingAddress.state, shippingAddress]);
 
   const formatPrice = (price: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
@@ -199,7 +196,7 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
   };
 
   // Calculate shipping costs when address changes
-  const calculateShipping = async (address: ShippingAddress) => {
+  const calculateShipping = useCallback(async (address: ShippingAddress) => {
     if (!address.country || !address.city || !address.zip) {
       setCalculatedShipping(null);
       return;
@@ -241,7 +238,7 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
     } finally {
       setShippingLoading(false);
     }
-  };
+  }, []);
 
   const getFrameSizeLabel = (size: string) => {
     const labels = {
@@ -711,7 +708,7 @@ export function CheckoutFlow({ onSuccess, onCancel }: CheckoutFlowProps) {
                           {getFrameStyleLabel(item.products.frame_style)} {getFrameMaterialLabel(item.products.frame_material)}
                         </p>
                         <p className="text-sm text-gray-500 line-clamp-1">
-                          "{item.products.images.prompt}"
+                          &ldquo;{item.products.images.prompt}&rdquo;
                         </p>
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-sm">Qty: {item.quantity}</span>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { Button } from '@/components/ui/button';
 import { FrameSelector } from '@/components/FrameSelector';
-import { ShoppingCart, Package, Download, Share2, XCircle } from 'lucide-react';
+import { Package, Download, Share2, XCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -76,13 +76,7 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (isOpen && user) {
-      fetchCart();
-    }
-  }, [isOpen, user]);
-
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -107,7 +101,13 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (isOpen && user) {
+      fetchCart();
+    }
+  }, [isOpen, user, fetchCart]);
 
   const updateQuantity = async (cartItemId: string, newQuantity: number) => {
     if (!user || newQuantity < 1 || newQuantity > 10) return;

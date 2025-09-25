@@ -86,7 +86,7 @@ export function useImageGeneration(options: UseImageGenerationOptions = {}) {
     setTimeout(() => {
       clearInterval(pollInterval);
     }, 300000);
-  }, [options]);
+  }, [options, generateImage]);
 
   const cancelGeneration = useCallback(async (generationId: string) => {
     try {

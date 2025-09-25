@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import { CheckCircle, Package, Truck, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +36,7 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
                   <strong>Order ID:</strong> {sessionId}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  You'll receive a confirmation email shortly with tracking information.
+                  You&apos;ll receive a confirmation email shortly with tracking information.
                 </p>
               </div>
             )}
@@ -56,7 +55,7 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
                   <div>
                     <p className="font-medium text-gray-900">Order Processing</p>
                     <p className="text-sm text-gray-600">
-                      We're preparing your framed art for production. This usually takes 1-2 business days.
+                      We&apos;re preparing your framed art for production. This usually takes 1-2 business days.
                     </p>
                   </div>
                 </div>
@@ -92,7 +91,7 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
                   <div>
                     <p className="font-medium text-gray-900">Delivery</p>
                     <p className="text-sm text-gray-600">
-                      You'll receive tracking information and your art will arrive in 5-7 business days.
+                      You&apos;ll receive tracking information and your art will arrive in 5-7 business days.
                     </p>
                   </div>
                 </div>
@@ -106,7 +105,7 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
               </h4>
               <p className="text-sm text-blue-800">
                 If you have any questions about your order, please contact our support team. 
-                We're here to help ensure you receive your beautiful framed art in perfect condition.
+                We&apos;re here to help ensure you receive your beautiful framed art in perfect condition.
               </p>
             </div>
 

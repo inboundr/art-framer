@@ -209,7 +209,7 @@ export default function PrivacyPage() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <Info className="h-5 w-5 text-blue-600" />
-              <h3 className="font-semibold text-blue-800">What We Don't Collect</h3>
+              <h3 className="font-semibold text-blue-800">What We Don&apos;t Collect</h3>
             </div>
             <p className="text-blue-700">
               We do not collect sensitive personal information such as social security numbers, 
@@ -781,7 +781,7 @@ export default function PrivacyPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    Update the "Last Updated" date at the top of this policy
+                    Update the &ldquo;Last Updated&rdquo; date at the top of this policy
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />

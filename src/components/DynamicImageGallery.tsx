@@ -30,7 +30,6 @@ interface ImageCardProps {
 
 function DynamicImageCard({ 
   image, 
-  index, 
   onLike, 
   onUnlike, 
   isLiked, 
@@ -38,7 +37,7 @@ function DynamicImageCard({
   animationDelay 
 }: ImageCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const { theme, isDark, getAdaptiveColor } = useDynamicTheme();
+  // const { theme, isDark, getAdaptiveColor } = useDynamicTheme(); // Unused for now
   const { animatePreset, createTransition } = useDynamicAnimations();
   const { isMobile, getSpacing } = useDynamicLayout();
   
@@ -88,10 +87,10 @@ function DynamicImageCard({
       { property: 'box-shadow', duration: 200, easing: 'ease-out' },
       { property: 'border-color', duration: 150, easing: 'ease-out' },
     ]),
-    borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border,
-    color: theme.colors.cardForeground,
+    borderRadius: '8px',
+    backgroundColor: 'hsl(var(--card))',
+    borderColor: 'hsl(var(--border))',
+    color: 'hsl(var(--card-foreground))',
     padding: getSpacing(12),
     margin: getSpacing(8),
     opacity: hasAnimated ? 1 : 0,
@@ -99,7 +98,7 @@ function DynamicImageCard({
   };
 
   const imageStyles: React.CSSProperties = {
-    borderRadius: theme.borderRadius.md,
+    borderRadius: '6px',
     transition: createTransition({ property: 'transform', duration: 300 }),
   };
 
@@ -129,7 +128,7 @@ function DynamicImageCard({
         <div 
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           style={{
-            background: `linear-gradient(135deg, ${theme.colors.primary}20, ${theme.colors.accent}40)`,
+            background: `linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--accent) / 0.4))`,
             backdropFilter: 'blur(2px)',
           }}
         >
@@ -142,8 +141,8 @@ function DynamicImageCard({
               }}
               className="p-2 rounded-full transition-all duration-200 hover:scale-110"
               style={{
-                backgroundColor: isLiked ? theme.colors.primary : theme.colors.background,
-                color: isLiked ? theme.colors.primaryForeground : theme.colors.foreground,
+                backgroundColor: isLiked ? 'hsl(var(--primary))' : 'hsl(var(--background))',
+                color: isLiked ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
                 opacity: isInteracting ? 0.5 : 1,
               }}
               disabled={isInteracting}
@@ -168,8 +167,8 @@ function DynamicImageCard({
         <p 
           className="text-sm line-clamp-2"
           style={{ 
-            color: theme.colors.mutedForeground,
-            fontSize: theme.typography.fontSize.sm,
+            color: 'hsl(var(--muted-foreground))',
+            fontSize: '0.875rem',
           }}
         >
           {image.prompt}
@@ -179,13 +178,13 @@ function DynamicImageCard({
         <div className="flex items-center justify-between mt-2">
           <span 
             className="text-xs"
-            style={{ color: theme.colors.mutedForeground }}
+            style={{ color: 'hsl(var(--muted-foreground))' }}
           >
             {image.aspect_ratio || '1:1'}
           </span>
           <span 
             className="text-xs"
-            style={{ color: theme.colors.mutedForeground }}
+            style={{ color: 'hsl(var(--muted-foreground))' }}
           >
             {image.model || 'V_3'}
           </span>
