@@ -20,6 +20,8 @@
     "validate-prodigi": "node scripts/validate-prodigi.js",
     "validate-prodigi:prod": "PRODIGI_ENVIRONMENT=production node scripts/validate-prodigi.js",
     "test-prodigi:prod": "node scripts/test-prodigi-production.js",
+    "test-webhook": "node scripts/test-prodigi-webhook.js",
+    "test-webhook:prod": "WEBHOOK_URL=https://your-domain.com/api/webhooks/prodigi node scripts/test-prodigi-webhook.js",
     "prebuild": "echo 'Skipping env validation for testing'",
     "supabase:start": "docker-compose up -d",
     "supabase:stop": "docker-compose down",

@@ -2,36 +2,84 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
-// Prodigi webhook payload schema
-const ProdigiWebhookSchema = z.object({
-  id: z.string(),
+// CloudEvents schema for Prodigi webhooks
+const CloudEventSchema = z.object({
+  specversion: z.string(),
   type: z.string(),
+  source: z.string(),
+  id: z.string(),
+  time: z.string(),
+  datacontenttype: z.string(),
   data: z.object({
     id: z.string(),
-    status: z.string(),
-    trackingNumber: z.string().optional(),
-    trackingUrl: z.string().optional(),
-    estimatedDeliveryDate: z.string().optional(),
+    created: z.string(),
+    status: z.object({
+      stage: z.string(),
+      issues: z.array(z.any()).optional(),
+      details: z.object({
+        downloadAssets: z.string().optional(),
+        printReadyAssetsPrepared: z.string().optional(),
+        allocateProductionLocation: z.string().optional(),
+        inProduction: z.string().optional(),
+        shipping: z.string().optional(),
+      }).optional(),
+    }),
+    shipments: z.array(z.object({
+      id: z.string(),
+      status: z.string(),
+      carrier: z.object({
+        name: z.string(),
+        service: z.string(),
+      }).optional(),
+      tracking: z.object({
+        url: z.string().optional(),
+        number: z.string().optional(),
+      }).optional(),
+      dispatchDate: z.string().optional(),
+    })).optional(),
     merchantReference: z.string().optional(),
   }),
-  created: z.string(),
+  subject: z.string(),
 });
+
+// Validate CloudEvent source
+function validateCloudEventSource(source: string): boolean {
+  const allowedSources = [
+    'http://api.prodigi.com/v4.0/Orders/',
+    'https://api.prodigi.com/v4.0/Orders/',
+    'http://api.sandbox.prodigi.com/v4.0/Orders/',
+    'https://api.sandbox.prodigi.com/v4.0/Orders/',
+  ];
+  
+  return allowedSources.includes(source);
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
-    const signature = request.headers.get('x-prodigi-signature');
-
-    // Verify webhook signature (you should implement proper signature verification)
-    if (!signature) {
-      console.warn('Prodigi webhook received without signature');
-      // In production, you might want to reject unsigned webhooks
+    const webhookData = JSON.parse(body);
+    
+    // Validate CloudEvent format
+    const cloudEvent = CloudEventSchema.parse(webhookData);
+    
+    // Validate source (security check)
+    if (!validateCloudEventSource(cloudEvent.source)) {
+      console.error('Invalid CloudEvent source:', cloudEvent.source);
+      return NextResponse.json({ error: 'Invalid source' }, { status: 401 });
+    }
+    
+    // Validate content type
+    if (cloudEvent.datacontenttype !== 'application/json') {
+      console.error('Invalid content type:', cloudEvent.datacontenttype);
+      return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
     }
 
-    const webhookData = JSON.parse(body);
-    const validatedData = ProdigiWebhookSchema.parse(webhookData);
-
-    console.log('Received Prodigi webhook:', validatedData.type, validatedData.data.id);
+    console.log('Received Prodigi CloudEvent:', {
+      type: cloudEvent.type,
+      id: cloudEvent.id,
+      orderId: cloudEvent.data.id,
+      stage: cloudEvent.data.status.stage,
+    });
 
     const supabase = await createClient();
 
@@ -47,39 +95,54 @@ export async function POST(request: NextRequest) {
           status
         )
       `)
-      .eq('provider_order_id', validatedData.data.id)
+      .eq('provider_order_id', cloudEvent.data.id)
       .eq('provider', 'prodigi')
       .single();
 
     if (dropshipError || !dropshipOrder) {
-      console.error('Dropship order not found for Prodigi order:', validatedData.data.id);
+      console.error('Dropship order not found for Prodigi order:', cloudEvent.data.id);
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
     const orderId = (dropshipOrder as any).order_id;
     const oldStatus = (dropshipOrder as any).status;
-    const newStatus = validatedData.data.status.toLowerCase();
+    
+    // Map Prodigi stage to our status
+    let newStatus: string;
+    switch (cloudEvent.data.status.stage) {
+      case 'InProgress':
+        newStatus = 'processing';
+        break;
+      case 'Complete':
+        newStatus = 'delivered';
+        break;
+      case 'Cancelled':
+        newStatus = 'cancelled';
+        break;
+      default:
+        newStatus = oldStatus;
+    }
 
     // Update dropship order
     const updateData: any = {
       status: newStatus,
       updated_at: new Date().toISOString(),
+      provider_response: cloudEvent,
     };
 
-    if (validatedData.data.trackingNumber) {
-      updateData.tracking_number = validatedData.data.trackingNumber;
+    // Handle shipments if available
+    if (cloudEvent.data.shipments && cloudEvent.data.shipments.length > 0) {
+      const shipment = cloudEvent.data.shipments[0]; // Take first shipment
+      if (shipment.tracking?.number) {
+        updateData.tracking_number = shipment.tracking.number;
+      }
+      if (shipment.tracking?.url) {
+        updateData.tracking_url = shipment.tracking.url;
+      }
+      if (shipment.dispatchDate) {
+        updateData.estimated_delivery = new Date(shipment.dispatchDate);
+      }
     }
-
-    if (validatedData.data.trackingUrl) {
-      updateData.tracking_url = validatedData.data.trackingUrl;
-    }
-
-    if (validatedData.data.estimatedDeliveryDate) {
-      updateData.estimated_delivery = new Date(validatedData.data.estimatedDeliveryDate);
-    }
-
-    // Store the full webhook response
-    updateData.provider_response = validatedData;
 
     const { error: updateError } = await (supabase as any)
       .from('dropship_orders')
@@ -91,23 +154,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
     }
 
-    // Update main order status based on Prodigi status
-      const orderStatusUpdate: any = {
+    // Update main order status
+    const orderStatusUpdate: any = {
       updated_at: new Date().toISOString(),
     };
 
     switch (newStatus) {
-      case 'inprogress':
+      case 'processing':
         orderStatusUpdate.status = 'processing';
-        break;
-      case 'shipped':
-        orderStatusUpdate.status = 'shipped';
-        if (validatedData.data.trackingNumber) {
-          orderStatusUpdate.tracking_number = validatedData.data.trackingNumber;
-        }
-        if (validatedData.data.trackingUrl) {
-          orderStatusUpdate.tracking_url = validatedData.data.trackingUrl;
-        }
         break;
       case 'delivered':
         orderStatusUpdate.status = 'delivered';
@@ -115,13 +169,6 @@ export async function POST(request: NextRequest) {
       case 'cancelled':
         orderStatusUpdate.status = 'cancelled';
         break;
-      case 'failed':
-        orderStatusUpdate.status = 'cancelled';
-        break;
-    }
-
-    if (validatedData.data.estimatedDeliveryDate) {
-      orderStatusUpdate.estimated_delivery_date = new Date(validatedData.data.estimatedDeliveryDate);
     }
 
     // Update main order
@@ -141,46 +188,36 @@ export async function POST(request: NextRequest) {
         order_id: orderId,
         action: 'prodigi_webhook_update',
         details: {
-          webhook_type: validatedData.type,
-          prodigi_order_id: validatedData.data.id,
+          cloud_event_type: cloudEvent.type,
+          cloud_event_id: cloudEvent.id,
+          prodigi_order_id: cloudEvent.data.id,
           old_status: oldStatus,
           new_status: newStatus,
-          tracking_number: validatedData.data.trackingNumber,
-          tracking_url: validatedData.data.trackingUrl,
-          estimated_delivery: validatedData.data.estimatedDeliveryDate,
+          stage: cloudEvent.data.status.stage,
+          shipments: cloudEvent.data.shipments,
         },
       });
 
-    // Create customer notification
+    // Create customer notification based on stage
     const notificationTypes = {
-      'inprogress': {
+      'InProgress': {
         type: 'order_processing',
         title: 'Order Processing Started',
         message: 'Your order is now being processed and will be ready for shipping soon.',
       },
-      'shipped': {
-        type: 'order_shipped',
-        title: 'Order Shipped!',
-        message: `Your order has been shipped! Track your package using tracking number: ${validatedData.data.trackingNumber || 'Check your order details'}`,
-      },
-      'delivered': {
+      'Complete': {
         type: 'order_delivered',
         title: 'Order Delivered!',
         message: 'Your order has been delivered successfully. Thank you for your purchase!',
       },
-      'cancelled': {
+      'Cancelled': {
         type: 'order_cancelled',
         title: 'Order Cancelled',
         message: 'Your order has been cancelled. If you have any questions, please contact support.',
       },
-      'failed': {
-        type: 'order_failed',
-        title: 'Order Failed',
-        message: 'There was an issue processing your order. Our team will contact you shortly.',
-      },
     };
 
-    const notification = notificationTypes[newStatus as keyof typeof notificationTypes];
+    const notification = notificationTypes[cloudEvent.data.status.stage as keyof typeof notificationTypes];
     if (notification) {
       await (supabase as any).rpc('create_order_notification', {
         p_order_id: orderId,
@@ -188,56 +225,56 @@ export async function POST(request: NextRequest) {
         p_title: notification.title,
         p_message: notification.message,
         p_metadata: {
-          prodigi_order_id: validatedData.data.id,
-          tracking_number: validatedData.data.trackingNumber,
-          tracking_url: validatedData.data.trackingUrl,
-          estimated_delivery: validatedData.data.estimatedDeliveryDate,
-          webhook_type: validatedData.type,
+          prodigi_order_id: cloudEvent.data.id,
+          cloud_event_id: cloudEvent.id,
+          stage: cloudEvent.data.status.stage,
+          shipments: cloudEvent.data.shipments,
         },
       });
     }
 
-    console.log(`✅ Prodigi webhook processed successfully: ${oldStatus} → ${newStatus}`);
+    console.log(`✅ Prodigi CloudEvent processed successfully: ${oldStatus} → ${newStatus}`);
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Webhook processed successfully',
+      message: 'CloudEvent processed successfully',
       orderId,
       statusChange: `${oldStatus} → ${newStatus}`,
+      cloudEventId: cloudEvent.id,
     });
 
   } catch (error) {
-    console.error('Error processing Prodigi webhook:', error);
+    console.error('Error processing Prodigi CloudEvent:', error);
     
     if (error instanceof z.ZodError) {
-      console.error('Webhook validation error:', error.issues);
+      console.error('CloudEvent validation error:', error.issues);
       return NextResponse.json(
-        { error: 'Invalid webhook payload', details: error.issues },
+        { error: 'Invalid CloudEvent payload', details: error.issues },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Webhook processing failed' },
+      { error: 'CloudEvent processing failed' },
       { status: 500 }
     );
   }
 }
 
-// Handle GET requests for webhook verification (if Prodigi requires it)
+// Handle GET requests for webhook verification
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const challenge = searchParams.get('challenge');
     
     if (challenge) {
-      // Echo back the challenge for webhook verification
       return NextResponse.json({ challenge });
     }
 
     return NextResponse.json({ 
       message: 'Prodigi webhook endpoint is active',
       timestamp: new Date().toISOString(),
+      format: 'CloudEvents',
     });
 
   } catch (error) {
