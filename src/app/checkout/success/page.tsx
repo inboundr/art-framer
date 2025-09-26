@@ -1,17 +1,100 @@
+'use client';
+
 import { CheckCircle, Package, Truck, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useAuthPersistence } from '@/hooks/useAuthPersistence';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-interface CheckoutSuccessPageProps {
-  searchParams: Promise<{
-    session_id?: string;
-  }>;
-}
+export default function CheckoutSuccessPage() {
+  const { isInitialized, isAuthenticated, user, session, error, restoreSession } = useAuthPersistence();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session_id');
+  const [authChecked, setAuthChecked] = useState(false);
 
-export default async function CheckoutSuccessPage({ searchParams }: CheckoutSuccessPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const sessionId = resolvedSearchParams.session_id;
+  // Enhanced authentication handling for post-redirect scenarios
+  useEffect(() => {
+    const handleAuthRestoration = async () => {
+      // Wait for auth persistence to initialize
+      if (!isInitialized) return;
+      
+      // If user is not authenticated, try to restore session
+      if (!isAuthenticated && isInitialized) {
+        console.log('🔐 No user found after redirect, attempting session restoration...');
+        
+        // Try to restore session with multiple attempts
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        const attemptRestore = async () => {
+          attempts++;
+          console.log(`🔄 Restoration attempt ${attempts}/${maxAttempts}`);
+          
+          await restoreSession();
+          
+          // If still not authenticated and we have attempts left, try again
+          if (!isAuthenticated && attempts < maxAttempts) {
+            setTimeout(attemptRestore, 1000 * attempts); // Exponential backoff
+          } else {
+            setAuthChecked(true);
+          }
+        };
+        
+        attemptRestore();
+      } else {
+        setAuthChecked(true);
+      }
+    };
+
+    handleAuthRestoration();
+  }, [isInitialized, isAuthenticated, restoreSession]);
+
+  // Show loading state while checking authentication
+  if (!isInitialized || !authChecked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full">
+          <Card className="shadow-xl">
+            <CardContent className="p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Verifying your order...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // If no user after auth check, redirect to login
+  if (!isAuthenticated && authChecked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full">
+          <Card className="shadow-xl">
+            <CardContent className="p-8 text-center">
+              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="h-8 w-8 text-red-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Session Expired</h2>
+              <p className="text-gray-600 mb-6">
+                Your session has expired. Please log in again to view your order details.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button asChild className="flex-1">
+                  <Link href="/login">Log In</Link>
+                </Button>
+                <Button asChild variant="outline" className="flex-1">
+                  <Link href="/">Back to Home</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">

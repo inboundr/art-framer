@@ -50,16 +50,43 @@ export async function middleware(request: NextRequest) {
 
     if (error) {
       console.error('Middleware auth error:', error)
-      // Don't block the request, let client handle it
+      
+      // Enhanced error handling: try to refresh session
+      try {
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+        if (!refreshError && refreshData.session) {
+          console.log('🔄 Session refreshed in middleware')
+          // Update cookies with refreshed session
+          supabaseResponse.cookies.set('sb-access-token', refreshData.session.access_token, {
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+            path: '/',
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: false
+          })
+          supabaseResponse.cookies.set('sb-refresh-token', refreshData.session.refresh_token, {
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+            path: '/',
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: false
+          })
+        }
+      } catch (refreshError) {
+        console.error('Failed to refresh session in middleware:', refreshError)
+      }
     }
 
     // Add user info to response headers for debugging (optional)
     if (user) {
       supabaseResponse.headers.set('x-user-id', user.id)
+      supabaseResponse.headers.set('x-auth-status', 'authenticated')
+    } else {
+      supabaseResponse.headers.set('x-auth-status', 'unauthenticated')
     }
   } catch (error) {
     console.error('Middleware error:', error)
-    // Don't block the request
+    supabaseResponse.headers.set('x-auth-status', 'error')
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're

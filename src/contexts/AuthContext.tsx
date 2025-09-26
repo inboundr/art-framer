@@ -30,25 +30,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Get initial session with better error handling
+    // Enhanced session initialization with post-redirect handling
     const initializeAuth = async () => {
       try {
+        console.log('🔐 Initializing authentication...');
+        
+        // First attempt: get existing session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error getting initial session:', error);
-          // Try to recover from session error
-          await supabase.auth.refreshSession();
-          const { data: { session: recoveredSession } } = await supabase.auth.getSession();
           
-          if (mounted) {
-            setSession(recoveredSession);
-            setUser(recoveredSession?.user ?? null);
-            if (recoveredSession?.user) {
-              await fetchProfile(recoveredSession.user.id);
+          // Enhanced recovery: try multiple approaches
+          console.log('🔄 Attempting session recovery...');
+          
+          // Method 1: Refresh session
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError) {
+            console.log('🔄 Refresh failed, trying localStorage recovery...');
+            
+            // Method 2: Check localStorage directly
+            const storedSession = localStorage.getItem('supabase.auth.token');
+            if (storedSession) {
+              try {
+                const parsedSession = JSON.parse(storedSession);
+                if (parsedSession && parsedSession.access_token) {
+                  console.log('🔄 Found stored session, attempting restoration...');
+                  
+                  // Method 3: Set session manually and verify
+                  const { data: { user: restoredUser }, error: userError } = await supabase.auth.getUser(parsedSession.access_token);
+                  
+                  if (!userError && restoredUser) {
+                    console.log('✅ Session restored from localStorage');
+                    if (mounted) {
+                      setSession(parsedSession);
+                      setUser(restoredUser);
+                      await fetchProfile(restoredUser.id);
+                    }
+                  }
+                }
+              } catch (parseError) {
+                console.error('Error parsing stored session:', parseError);
+              }
+            }
+          } else if (refreshData.session) {
+            console.log('✅ Session refreshed successfully');
+            if (mounted) {
+              setSession(refreshData.session);
+              setUser(refreshData.session?.user ?? null);
+              if (refreshData.session?.user) {
+                await fetchProfile(refreshData.session.user.id);
+              }
             }
           }
-        } else {
+        } else if (session) {
+          console.log('✅ Existing session found');
           if (mounted) {
             setSession(session);
             setUser(session?.user ?? null);
@@ -56,6 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await fetchProfile(session.user.id);
             }
           }
+        } else {
+          console.log('ℹ️ No existing session found');
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
