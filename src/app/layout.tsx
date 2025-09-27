@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { GenerationProvider } from "@/contexts/GenerationContext";
+import { AuthDebugPanel } from "@/components/AuthDebugPanel";
 
 const manrope = Manrope({ subsets: ["latin"] });
 
@@ -43,6 +44,7 @@ export default function RootLayout({
                 {children}
                 <Toaster />
                 <Sonner />
+                <AuthDebugPanel />
               </TooltipProvider>
             </GenerationProvider>
           </CartProvider>

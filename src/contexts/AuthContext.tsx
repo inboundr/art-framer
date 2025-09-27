@@ -29,11 +29,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let retryCount = 0;
+    const maxRetries = 3;
 
-    // Enhanced session initialization with post-redirect handling
+    // Enhanced session initialization with multiple retry attempts
     const initializeAuth = async () => {
       try {
         console.log('🔐 Initializing authentication...');
+        
+        // Wait a bit for localStorage to be available
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // First attempt: get existing session
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -68,10 +73,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                       setUser(restoredUser);
                       await fetchProfile(restoredUser.id);
                     }
+                  } else {
+                    // If user verification fails, try to refresh the token
+                    console.log('🔄 User verification failed, trying token refresh...');
+                    const { data: refreshResult, error: refreshError2 } = await supabase.auth.refreshSession();
+                    if (!refreshError2 && refreshResult.session) {
+                      console.log('✅ Session refreshed after user verification failed');
+                      if (mounted) {
+                        setSession(refreshResult.session);
+                        setUser(refreshResult.session.user);
+                        if (refreshResult.session.user) {
+                          await fetchProfile(refreshResult.session.user.id);
+                        }
+                      }
+                    }
                   }
                 }
               } catch (parseError) {
                 console.error('Error parsing stored session:', parseError);
+                // Clear invalid session
+                localStorage.removeItem('supabase.auth.token');
+              }
+            } else {
+              console.log('🔄 No stored session found, checking cookies...');
+              
+              // Method 4: Check if we have cookies but no localStorage
+              const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+                const [key, value] = cookie.trim().split('=');
+                acc[key] = value;
+                return acc;
+              }, {} as Record<string, string>);
+              
+              if (cookies['sb-access-token'] || cookies['sb-refresh-token']) {
+                console.log('🔄 Found cookies, attempting session recovery...');
+                // Force a session refresh
+                const { data: forceRefresh, error: forceRefreshError } = await supabase.auth.refreshSession();
+                if (!forceRefreshError && forceRefresh.session) {
+                  console.log('✅ Session recovered from cookies');
+                  if (mounted) {
+                    setSession(forceRefresh.session);
+                    setUser(forceRefresh.session.user);
+                    if (forceRefresh.session.user) {
+                      await fetchProfile(forceRefresh.session.user.id);
+                    }
+                  }
+                }
               }
             }
           } else if (refreshData.session) {
@@ -98,6 +144,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        
+        // Retry logic for critical errors
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`🔄 Retrying authentication initialization (${retryCount}/${maxRetries})...`);
+          setTimeout(() => {
+            if (mounted) {
+              initializeAuth();
+            }
+          }, 1000 * retryCount);
+          return;
+        }
       } finally {
         if (mounted) {
           setLoading(false);

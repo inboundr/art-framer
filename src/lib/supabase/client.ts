@@ -8,33 +8,64 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    // Enhanced session storage configuration
+    // Enhanced session storage configuration with fallback
     storageKey: 'supabase.auth.token',
     storage: {
       getItem: (key: string) => {
         if (typeof window !== 'undefined') {
-          return window.localStorage.getItem(key)
+          try {
+            const value = window.localStorage.getItem(key);
+            console.log(`🔍 Storage getItem: ${key} = ${value ? 'exists' : 'null'}`);
+            return value;
+          } catch (error) {
+            console.error('Error getting from localStorage:', error);
+            return null;
+          }
         }
-        return null
+        return null;
       },
       setItem: (key: string, value: string) => {
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem(key, value)
+          try {
+            window.localStorage.setItem(key, value);
+            console.log(`💾 Storage setItem: ${key} = stored`);
+            
+            // Also set a backup in sessionStorage
+            window.sessionStorage.setItem(`backup_${key}`, value);
+          } catch (error) {
+            console.error('Error setting localStorage:', error);
+            // Fallback to sessionStorage
+            try {
+              window.sessionStorage.setItem(key, value);
+            } catch (sessionError) {
+              console.error('Error setting sessionStorage:', sessionError);
+            }
+          }
         }
       },
       removeItem: (key: string) => {
         if (typeof window !== 'undefined') {
-          window.localStorage.removeItem(key)
+          try {
+            window.localStorage.removeItem(key);
+            window.sessionStorage.removeItem(`backup_${key}`);
+            console.log(`🗑️ Storage removeItem: ${key}`);
+          } catch (error) {
+            console.error('Error removing from storage:', error);
+          }
         }
       },
-    }
+    },
+    // Enhanced flow type for better compatibility
+    flowType: 'pkce'
   },
-  // Enhanced cookie configuration (moved to top level)
+  // Enhanced cookie configuration
   cookieOptions: {
     name: 'supabase-auth-token',
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: false, // Allow client-side access
   },
   // Global configuration
   global: {
