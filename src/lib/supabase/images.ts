@@ -244,7 +244,7 @@ export class SupabaseImageAPI {
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
     
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: _uploadData, error: uploadError } = await supabase.storage
       .from('images')
       .upload(fileName, file, {
         cacheControl: '3600',

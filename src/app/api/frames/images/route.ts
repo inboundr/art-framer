@@ -26,8 +26,22 @@ export async function GET(request: NextRequest) {
     );
 
     try {
+      // Check if Prodigi API key is configured
+      const prodigiApiKey = process.env.PRODIGI_API_KEY;
+      if (!prodigiApiKey || prodigiApiKey === 'your_prodigi_api_key_here' || prodigiApiKey === 'your-prodigi-api-key-here') {
+        console.warn('⚠️ Prodigi API key not configured, using fallback data');
+        throw new Error('Prodigi API key not configured');
+      }
+
       // Fetch product details from Prodigi
+      console.log(`🔍 Fetching Prodigi product details for SKU: ${sku}`);
       const productDetails = await prodigiClient.getProductDetails(sku);
+      
+      console.log(`✅ Successfully fetched Prodigi product details:`, {
+        sku: productDetails.sku,
+        name: productDetails.name,
+        price: productDetails.price
+      });
       
       return NextResponse.json({
         success: true,
@@ -41,9 +55,20 @@ export async function GET(request: NextRequest) {
         }
       });
     } catch (prodigiError) {
-      console.error('Error fetching frame details from Prodigi:', prodigiError);
+      console.error('❌ Error fetching frame details from Prodigi:', prodigiError);
+      
+      // Enhanced error logging for debugging
+      if (prodigiError instanceof Error) {
+        console.error('Prodigi error details:', {
+          message: prodigiError.message,
+          stack: prodigiError.stack,
+          apiKey: process.env.PRODIGI_API_KEY ? 'Present' : 'Missing',
+          environment: process.env.PRODIGI_ENVIRONMENT || 'Not set'
+        });
+      }
       
       // Fallback to mock frame data with placeholder images
+      console.log('🔄 Using fallback mock data for frame details');
       return NextResponse.json({
         success: true,
         frame: {
@@ -60,7 +85,9 @@ export async function GET(request: NextRequest) {
               height: 500,
             }
           ],
-        }
+        },
+        fallback: true, // Indicate this is fallback data
+        error: prodigiError instanceof Error ? prodigiError.message : 'Unknown Prodigi error'
       });
     }
   } catch (error) {

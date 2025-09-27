@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useAuthPersistence } from '@/hooks/useAuthPersistence';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const { isInitialized, isAuthenticated, user, session, error, restoreSession } = useAuthPersistence();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
@@ -208,5 +208,24 @@ export default function CheckoutSuccessPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full">
+          <Card className="shadow-xl">
+            <CardContent className="p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    }>
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }

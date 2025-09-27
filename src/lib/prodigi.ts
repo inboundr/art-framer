@@ -89,6 +89,11 @@ export class ProdigiClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
+    // Enhanced logging for debugging
+    console.log(`🌐 Prodigi API request: ${options.method || 'GET'} ${url}`);
+    console.log(`🔑 API Key: ${this.apiKey ? 'Present' : 'Missing'}`);
+    console.log(`🌍 Environment: ${this.environment}`);
+    
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -100,10 +105,46 @@ export class ProdigiClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Prodigi API error: ${response.status} ${errorText}`);
+      
+      // Enhanced error handling for specific status codes
+      if (response.status === 401) {
+        console.error('❌ Prodigi API 401 Unauthorized:', {
+          message: 'Invalid or missing API key',
+          apiKey: this.apiKey ? 'Present but invalid' : 'Missing',
+          environment: this.environment,
+          endpoint: endpoint,
+          responseText: errorText
+        });
+        throw new Error(`Prodigi API 401 Unauthorized: Invalid or missing API key. Check PRODIGI_API_KEY environment variable.`);
+      } else if (response.status === 403) {
+        console.error('❌ Prodigi API 403 Forbidden:', {
+          message: 'API key valid but insufficient permissions',
+          environment: this.environment,
+          endpoint: endpoint
+        });
+        throw new Error(`Prodigi API 403 Forbidden: API key valid but insufficient permissions.`);
+      } else if (response.status === 404) {
+        console.error('❌ Prodigi API 404 Not Found:', {
+          message: 'Endpoint or resource not found',
+          endpoint: endpoint,
+          environment: this.environment
+        });
+        throw new Error(`Prodigi API 404 Not Found: ${endpoint} not found.`);
+      } else {
+        console.error(`❌ Prodigi API ${response.status} Error:`, {
+          status: response.status,
+          statusText: response.statusText,
+          endpoint: endpoint,
+          environment: this.environment,
+          responseText: errorText
+        });
+        throw new Error(`Prodigi API error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
     }
 
-    return response.json();
+    const responseData = await response.json();
+    console.log(`✅ Prodigi API response successful: ${endpoint}`);
+    return responseData;
   }
 
   async getProducts(): Promise<ProdigiProduct[]> {
@@ -338,7 +379,28 @@ export class ProdigiClient {
     serviceName: string;
   }> {
     try {
+      console.log('🚚 Calculating shipping cost with Prodigi API...', {
+        items: items.length,
+        countryCode: shippingAddress.countryCode,
+        environment: this.environment
+      });
+
       // Use the correct quotes endpoint structure from Postman collection
+      const requestBody = {
+        shippingMethod: 'Standard',
+        destinationCountryCode: shippingAddress.countryCode,
+        items: items.map(item => ({
+          sku: item.sku,
+          copies: item.quantity,
+          attributes: item.attributes || {},
+          assets: [{
+            printArea: 'default'
+          }]
+        }))
+      };
+
+      console.log('📤 Prodigi quotes request:', JSON.stringify(requestBody, null, 2));
+
       const response = await this.request<{
         outcome: string;
         quotes: Array<{
@@ -347,47 +409,57 @@ export class ProdigiClient {
             items: { amount: string; currency: string };
             shipping: { amount: string; currency: string };
           };
+          shipments: Array<{
+            carrier: { name: string; service: string };
+            cost: { amount: string; currency: string };
+          }>;
         }>;
       }>('/quotes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          shippingMethod: 'Standard',
-          destinationCountryCode: shippingAddress.countryCode,
-          items: items.map(item => ({
-            sku: item.sku,
-            copies: item.quantity,
-            attributes: item.attributes || {},
-            assets: [{
-              printArea: 'default'
-            }]
-          }))
-        })
+        body: JSON.stringify(requestBody)
       });
+
+      console.log('📥 Prodigi quotes response:', JSON.stringify(response, null, 2));
       
       // Return the first quote in the old format for backward compatibility
       if (response.quotes && response.quotes.length > 0) {
         const firstQuote = response.quotes[0];
+        const shippingCost = parseFloat(firstQuote.costSummary.shipping.amount);
+        
+        console.log('✅ Prodigi shipping cost calculated:', {
+          cost: shippingCost,
+          currency: firstQuote.costSummary.shipping.currency,
+          method: firstQuote.shipmentMethod
+        });
+
         return {
-          cost: parseFloat(firstQuote.costSummary.shipping.amount),
+          cost: shippingCost,
           currency: firstQuote.costSummary.shipping.currency,
           estimatedDays: 7, // Default since API doesn't provide this
           serviceName: firstQuote.shipmentMethod
         };
       }
       
-      throw new Error('No shipping quotes returned');
+      throw new Error('No shipping quotes returned from Prodigi API');
     } catch (error) {
-      console.error('Error calculating shipping cost:', error);
-      // Fallback to default shipping cost if API fails
-      return {
-        cost: 9.99,
-        currency: 'USD',
-        estimatedDays: 7,
-        serviceName: 'Standard Shipping'
-      };
+      console.error('❌ Error calculating shipping cost with Prodigi API:', error);
+      
+      // Enhanced error logging
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          apiKey: this.apiKey ? 'Present' : 'Missing',
+          environment: this.environment,
+          baseUrl: this.baseUrl
+        });
+      }
+      
+      // Instead of hardcoded fallback, throw error to let shipping service handle it
+      throw new Error(`Prodigi shipping calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

@@ -13,7 +13,7 @@ interface AuthDebugInfo {
     exists: boolean;
     valid: boolean;
     expiresAt: string | null;
-    user: any;
+    user: Record<string, unknown> | null;
   };
   cookies: {
     hasAccessToken: boolean;
@@ -103,11 +103,11 @@ export function useAuthDebug() {
         errors.push(`Session error: ${sessionError.message}`);
       } else if (session) {
         info.session.exists = true;
-        info.session.user = session.user;
-        info.session.expiresAt = session.expires_at || null;
+        info.session.user = session.user ? (session.user as unknown as Record<string, unknown>) : null;
+        info.session.expiresAt = session.expires_at ? new Date(session.expires_at * 1000).toISOString() : null;
         
         if (session.expires_at) {
-          const expiresAt = new Date(session.expires_at);
+          const expiresAt = new Date(session.expires_at * 1000); // Convert from Unix timestamp
           const now = new Date();
           info.session.valid = expiresAt > now;
           

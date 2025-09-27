@@ -204,9 +204,9 @@ export type Database = {
           id: string
           user_id: string
           prompt: string
-          settings: any
+          settings: Record<string, unknown>
           status: 'pending' | 'generating' | 'completed' | 'failed'
-          result: any
+          result: Record<string, unknown>
           created_at: string
           updated_at: string
         }
@@ -214,9 +214,9 @@ export type Database = {
           id?: string
           user_id: string
           prompt: string
-          settings: any
+          settings: Record<string, unknown>
           status?: 'pending' | 'generating' | 'completed' | 'failed'
-          result?: any
+          result?: Record<string, unknown>
           created_at?: string
           updated_at?: string
         }
@@ -224,9 +224,9 @@ export type Database = {
           id?: string
           user_id?: string
           prompt?: string
-          settings?: any
+          settings?: Record<string, unknown>
           status?: 'pending' | 'generating' | 'completed' | 'failed'
-          result?: any
+          result?: Record<string, unknown>
           created_at?: string
           updated_at?: string
         }
