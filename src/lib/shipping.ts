@@ -10,6 +10,7 @@ import { ShippingAddress, ShippingResult, ShippingCalculationError } from './pri
 export const ShippingItemSchema = z.object({
   sku: z.string().min(1),
   quantity: z.number().int().min(1),
+  price: z.number().min(0).optional(), // Product price for subtotal calculation
   weight: z.number().min(0).optional(),
   dimensions: z.object({
     length: z.number().min(0),
@@ -275,11 +276,31 @@ export class ShippingService {
     // Check free shipping
     const freeShippingAvailable = subtotal >= FREE_SHIPPING_THRESHOLD;
     
+    // If free shipping is available, set shipping cost to 0
+    if (freeShippingAvailable) {
+      const freeShippingQuotes = quotes.map(quote => ({
+        ...quote,
+        cost: 0,
+        service: `Free ${quote.service}`,
+      }));
+      
+      return {
+        quotes: freeShippingQuotes,
+        recommended: freeShippingQuotes[0],
+        freeShippingAvailable: true,
+        freeShippingThreshold: undefined,
+        calculatedAt: new Date(),
+        isEstimated: true,
+        provider: 'intelligent_fallback',
+        addressValidated: false,
+      };
+    }
+    
     return {
       quotes,
       recommended: quotes[0],
-      freeShippingAvailable,
-      freeShippingThreshold: freeShippingAvailable ? undefined : FREE_SHIPPING_THRESHOLD,
+      freeShippingAvailable: false,
+      freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
       calculatedAt: new Date(),
       isEstimated: true,
       provider: 'intelligent_fallback',
@@ -322,11 +343,31 @@ export class ShippingService {
       const subtotal = this.calculateSubtotal(items);
       const freeShippingAvailable = subtotal >= FREE_SHIPPING_THRESHOLD;
 
+      // If free shipping is available, set shipping cost to 0
+      if (freeShippingAvailable) {
+        const freeShippingQuotes = quotes.map(quote => ({
+          ...quote,
+          cost: 0,
+          service: `Free ${quote.service}`,
+        }));
+        
+        return {
+          quotes: freeShippingQuotes.sort((a, b) => a.cost - b.cost),
+          recommended: freeShippingQuotes[0],
+          freeShippingAvailable: true,
+          freeShippingThreshold: undefined,
+          calculatedAt: new Date(),
+          isEstimated: false,
+          provider: 'prodigi',
+          addressValidated: false,
+        };
+      }
+
       return {
         quotes: quotes.sort((a, b) => a.cost - b.cost), // Sort by cost
         recommended,
-        freeShippingAvailable,
-        freeShippingThreshold: freeShippingAvailable ? undefined : FREE_SHIPPING_THRESHOLD,
+        freeShippingAvailable: false,
+        freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
         calculatedAt: new Date(),
         isEstimated: false,
         provider: 'prodigi',
@@ -556,10 +597,10 @@ export class ShippingService {
    * Calculate subtotal for free shipping determination
    */
   private calculateSubtotal(items: ShippingItem[]): number {
-    // This is a simplified calculation - in practice, you'd need product prices
-    // For now, estimate based on quantity (assuming average price)
-    const averagePrice = 35; // Average frame price
-    return items.reduce((sum, item) => sum + (item.quantity * averagePrice), 0);
+    return items.reduce((sum, item) => {
+      const itemPrice = item.price || 35; // Use actual price or fallback to $35
+      return sum + (item.quantity * itemPrice);
+    }, 0);
   }
 
   /**

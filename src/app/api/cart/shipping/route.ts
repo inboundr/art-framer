@@ -60,9 +60,10 @@ export async function POST(request: NextRequest) {
     // Use enhanced shipping service
     const { defaultShippingService } = await import('@/lib/shipping');
     
-    const shippingItems: ShippingItem[] = cartItems.map((item: { products: { sku: string }; quantity: number }) => ({
+    const shippingItems: ShippingItem[] = cartItems.map((item: { products: { sku: string; price: number }; quantity: number }) => ({
       sku: item.products.sku,
       quantity: item.quantity,
+      price: item.products.price, // Include actual product price
     }));
 
     // Calculate shipping cost using GUARANTEED calculation
