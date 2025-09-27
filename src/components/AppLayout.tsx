@@ -48,7 +48,9 @@ export function AppLayout({ children }: AppLayoutProps) {
       referenceImages: string[];
     };
   } | null>(null);
-  const [showNotification, setShowNotification] = useState(true);
+  const [showNotification, setShowNotification] = useState(
+    process.env.NEXT_PUBLIC_SHOW_NOTIFICATION_BAR === 'true'
+  );
 
   useEffect(() => {
     const checkMobile = () => {
