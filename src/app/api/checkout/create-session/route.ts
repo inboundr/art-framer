@@ -5,7 +5,9 @@ import Stripe from "stripe";
 import type { PricingItem } from "@/lib/pricing";
 import type { ShippingItem } from "@/lib/shipping";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Initialize Stripe with fallback for build time
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_for_build';
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2025-08-27.basil',
 });
 
@@ -58,6 +60,14 @@ function getCurrencyForCountry(countryCode: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Stripe is properly configured
+    if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_placeholder_for_build') {
+      return NextResponse.json(
+        { error: 'Stripe is not properly configured. Please set STRIPE_SECRET_KEY environment variable.' },
+        { status: 500 }
+      );
+    }
+
     const supabase = await createClient();
     
     // Check authentication
