@@ -58,7 +58,7 @@ export async function GET() {
       customerPhone: '+1234567890',
     };
 
-    const prodigiOrder = prodigiClient.convertToProdigiOrder(testOrderData);
+    const prodigiOrder = await prodigiClient.convertToProdigiOrder(testOrderData);
 
     // Test 4: Test API connectivity (optional - might fail in sandbox)
     let apiTest: { status: string; message: string; products?: any[]; note?: string } = { status: 'skipped', message: 'API test skipped' };

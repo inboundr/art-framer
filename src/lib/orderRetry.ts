@@ -249,7 +249,7 @@ export class OrderRetryManager {
     };
 
     // Create Prodigi order
-    const prodigiOrder = prodigiClient.convertToProdigiOrder(prodigiOrderData);
+    const prodigiOrder = await prodigiClient.convertToProdigiOrder(prodigiOrderData);
     const prodigiResponse = await prodigiClient.createOrder(prodigiOrder);
 
     // Update dropship order

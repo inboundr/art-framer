@@ -74,6 +74,9 @@ export class ProdigiClient {
   private apiKey: string;
   private baseUrl: string;
   private environment: 'sandbox' | 'production';
+  private productCache: Map<string, ProdigiProduct> = new Map();
+  private cacheExpiry: Map<string, number> = new Map();
+  private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor(apiKey: string, environment: 'sandbox' | 'production' = 'sandbox') {
     this.apiKey = apiKey;
@@ -157,9 +160,24 @@ export class ProdigiClient {
     }
   }
 
+  /**
+   * Get product details with caching
+   */
   async getProductDetails(sku: string): Promise<ProdigiProduct> {
+    // Check cache first
+    if (this.isCacheValid(sku)) {
+      console.log(`📦 Using cached product data for SKU: ${sku}`);
+      return this.productCache.get(sku)!;
+    }
+
     try {
+      console.log(`🔍 Fetching fresh product data for SKU: ${sku}`);
       const response = await this.request<ProdigiProduct>(`/products/${sku}`);
+      
+      // Cache the result
+      this.productCache.set(sku, response);
+      this.cacheExpiry.set(sku, Date.now() + this.CACHE_DURATION);
+      
       return response;
     } catch (error) {
       console.error('Error fetching Prodigi product details:', error);
@@ -167,14 +185,111 @@ export class ProdigiClient {
     }
   }
 
-  async getProduct(sku: string): Promise<ProdigiProduct> {
+  /**
+   * Get all available products by category
+   */
+  async getAllProducts(category?: string): Promise<ProdigiProduct[]> {
     try {
-      const response = await this.request<ProdigiProduct>(`/products/${sku}`);
-      return response;
+      console.log(`🔍 Fetching all products${category ? ` for category: ${category}` : ''}`);
+      
+      // This would need to be implemented based on Prodigi's actual API
+      // For now, we'll use a list of known SKUs and fetch them individually
+      const knownSkus = await this.getKnownProductSkus();
+      const products: ProdigiProduct[] = [];
+      
+      for (const sku of knownSkus) {
+        try {
+          const product = await this.getProductDetails(sku);
+          if (!category || product.category === category) {
+            products.push(product);
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch product ${sku}:`, error);
+        }
+      }
+      
+      return products;
     } catch (error) {
-      console.error('Error fetching Prodigi product:', error);
+      console.error('Error fetching all products:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get products by category (wall art, prints, etc.)
+   */
+  async getProductsByCategory(category: string): Promise<ProdigiProduct[]> {
+    return this.getAllProducts(category);
+  }
+
+  /**
+   * Search products by attributes (size, material, etc.)
+   */
+  async searchProducts(criteria: {
+    size?: string;
+    material?: string;
+    finish?: string;
+    category?: string;
+  }): Promise<ProdigiProduct[]> {
+    try {
+      const allProducts = await this.getAllProducts(criteria.category);
+      
+      return allProducts.filter(product => {
+        if (criteria.size && product.attributes.size !== criteria.size) return false;
+        if (criteria.material && product.attributes.material !== criteria.material) return false;
+        if (criteria.finish && product.attributes.finish !== criteria.finish) return false;
+        return true;
+      });
+    } catch (error) {
+      console.error('Error searching products:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get known product SKUs (fallback when API doesn't provide a list endpoint)
+   */
+  private async getKnownProductSkus(): Promise<string[]> {
+    // This is a fallback list of known Prodigi SKUs
+    // In a real implementation, you might want to store this in a database
+    return [
+      'GLOBAL-CAN-10x10',
+      'GLOBAL-CFPM-16X20', 
+      'GLOBAL-FAP-16X24',
+      'GLOBAL-FRA-CAN-30X40',
+      'GLOBAL-FAP-8X10',
+      'GLOBAL-FAP-11X14',
+      'GLOBAL-FP-8X10',
+      'GLOBAL-FP-11X14',
+      'GLOBAL-FP-16X20',
+      'GLOBAL-DP-8X10',
+      'GLOBAL-DP-11X14',
+      'GLOBAL-DP-16X20',
+      'GLOBAL-POSTER-8X10',
+      'GLOBAL-POSTER-11X14',
+      'GLOBAL-POSTER-16X20',
+    ];
+  }
+
+  /**
+   * Check if cache is still valid
+   */
+  private isCacheValid(sku: string): boolean {
+    const expiry = this.cacheExpiry.get(sku);
+    return expiry ? Date.now() < expiry : false;
+  }
+
+  /**
+   * Clear product cache
+   */
+  clearCache(): void {
+    this.productCache.clear();
+    this.cacheExpiry.clear();
+    console.log('🗑️ Product cache cleared');
+  }
+
+  async getProduct(sku: string): Promise<ProdigiProduct> {
+    return this.getProductDetails(sku);
   }
 
   async createOrder(order: ProdigiOrder): Promise<ProdigiOrderResponse> {
@@ -214,45 +329,88 @@ export class ProdigiClient {
     }
   }
 
-  // Map our frame specifications to Prodigi SKUs
-  getProductSku(frameSize: string, frameStyle: string, frameMaterial: string): string {
-    // Updated to use real Prodigi SKUs from the official Postman collection
-    const productMap: Record<string, string> = {
-      // Small frames - Canvas prints (10" x 10")
-      'small-black-wood': 'GLOBAL-CAN-10x10',
-      'small-white-wood': 'GLOBAL-CAN-10x10',
-      'small-natural-wood': 'GLOBAL-CAN-10x10',
-      'small-gold-wood': 'GLOBAL-CAN-10x10',
-      'small-silver-wood': 'GLOBAL-CAN-10x10',
-      
-      // Medium frames - Canvas prints (16" x 20")
-      'medium-black-wood': 'GLOBAL-CFPM-16X20',
-      'medium-white-wood': 'GLOBAL-CFPM-16X20',
-      'medium-natural-wood': 'GLOBAL-CFPM-16X20',
-      'medium-gold-wood': 'GLOBAL-CFPM-16X20',
-      'medium-silver-wood': 'GLOBAL-CFPM-16X20',
-      
-      // Large frames - Framed art prints (16" x 24")
-      'large-black-wood': 'GLOBAL-FAP-16X24',
-      'large-white-wood': 'GLOBAL-FAP-16X24',
-      'large-natural-wood': 'GLOBAL-FAP-16X24',
-      'large-gold-wood': 'GLOBAL-FAP-16X24',
-      'large-silver-wood': 'GLOBAL-FAP-16X24',
-      
-      // Extra large frames - Frame canvas (30" x 40")
-      'extra_large-black-wood': 'GLOBAL-FRA-CAN-30X40',
-      'extra_large-white-wood': 'GLOBAL-FRA-CAN-30X40',
-      'extra_large-natural-wood': 'GLOBAL-FRA-CAN-30X40',
-      'extra_large-gold-wood': 'GLOBAL-FRA-CAN-30X40',
-      'extra_large-silver-wood': 'GLOBAL-FRA-CAN-30X40',
-    };
+  /**
+   * Dynamically find the best Prodigi SKU based on frame specifications
+   */
+  async getProductSku(frameSize: string, frameStyle: string, frameMaterial: string): Promise<string> {
+    try {
+      // Search for products that match our criteria
+      const products = await this.searchProducts({
+        size: this.mapFrameSizeToProdigiSize(frameSize),
+        material: this.mapFrameMaterialToProdigiMaterial(frameMaterial),
+        finish: this.mapFrameStyleToProdigiFinish(frameStyle)
+      });
 
-    const key = `${frameSize}-${frameStyle}-${frameMaterial}`;
-    return productMap[key] || 'GLOBAL-CFPM-16X20'; // Default to medium canvas print
+      if (products.length > 0) {
+        // Return the first matching product
+        console.log(`✅ Found matching Prodigi product: ${products[0].sku}`);
+        return products[0].sku;
+      }
+
+      // Fallback to size-based mapping if no exact match
+      return this.getFallbackSku(frameSize);
+    } catch (error) {
+      console.warn('Error finding dynamic product SKU, using fallback:', error);
+      return this.getFallbackSku(frameSize);
+    }
+  }
+
+  /**
+   * Fallback SKU mapping when dynamic search fails
+   */
+  private getFallbackSku(frameSize: string): string {
+    const fallbackMap: Record<string, string> = {
+      'small': 'GLOBAL-CAN-10x10',
+      'medium': 'GLOBAL-CFPM-16X20',
+      'large': 'GLOBAL-FAP-16X24',
+      'extra_large': 'GLOBAL-FRA-CAN-30X40',
+    };
+    
+    return fallbackMap[frameSize] || 'GLOBAL-CFPM-16X20';
+  }
+
+  /**
+   * Map our frame size to Prodigi size attribute
+   */
+  private mapFrameSizeToProdigiSize(frameSize: string): string {
+    const sizeMap: Record<string, string> = {
+      'small': '10x10',
+      'medium': '16x20',
+      'large': '16x24',
+      'extra_large': '30x40',
+    };
+    return sizeMap[frameSize] || '16x20';
+  }
+
+  /**
+   * Map our frame material to Prodigi material attribute
+   */
+  private mapFrameMaterialToProdigiMaterial(frameMaterial: string): string {
+    const materialMap: Record<string, string> = {
+      'wood': 'wood',
+      'metal': 'metal',
+      'plastic': 'plastic',
+      'bamboo': 'bamboo',
+    };
+    return materialMap[frameMaterial] || 'wood';
+  }
+
+  /**
+   * Map our frame style to Prodigi finish attribute
+   */
+  private mapFrameStyleToProdigiFinish(frameStyle: string): string {
+    const finishMap: Record<string, string> = {
+      'black': 'black',
+      'white': 'white',
+      'natural': 'natural',
+      'gold': 'gold',
+      'silver': 'silver',
+    };
+    return finishMap[frameStyle] || 'black';
   }
 
   // Convert our order format to Prodigi format (updated to match Postman collection)
-  convertToProdigiOrder(
+  async convertToProdigiOrder(
     orderData: {
       orderReference: string;
       items: Array<{
@@ -281,7 +439,7 @@ export class ProdigiClient {
       customerEmail: string;
       customerPhone?: string;
     }
-  ): ProdigiOrder {
+  ): Promise<ProdigiOrder> {
     return {
       merchantReference: orderData.orderReference,
       shippingMethod: 'Standard',
@@ -296,9 +454,9 @@ export class ProdigiClient {
           stateOrCounty: orderData.shippingAddress.state,
         },
       },
-      items: orderData.items.map(item => ({
+      items: await Promise.all(orderData.items.map(async item => ({
         merchantReference: `item-${item.productSku}`,
-        sku: this.getProductSku(item.frameSize, item.frameStyle, item.frameMaterial),
+        sku: await this.getProductSku(item.frameSize, item.frameStyle, item.frameMaterial),
         copies: item.quantity,
         sizing: 'fillPrintArea',
         attributes: this.getProductAttributes(item.frameStyle, item.frameMaterial),
@@ -306,7 +464,7 @@ export class ProdigiClient {
           printArea: 'default',
           url: item.imageUrl,
         }],
-      })),
+      }))),
       metadata: {
         customerEmail: orderData.customerEmail,
         customerPhone: orderData.customerPhone,

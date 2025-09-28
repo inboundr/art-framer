@@ -351,7 +351,7 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
     };
 
     // Convert to Prodigi format
-    const prodigiOrder = prodigiClient.convertToProdigiOrder(prodigiOrderData);
+    const prodigiOrder = await prodigiClient.convertToProdigiOrder(prodigiOrderData);
 
     // Create order in Prodigi
     const prodigiResponse = await prodigiClient.createOrder(prodigiOrder);
