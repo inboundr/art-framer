@@ -1,4 +1,4 @@
-interface ProdigiProduct {
+export interface ProdigiProduct {
   sku: string;
   name: string;
   description: string;

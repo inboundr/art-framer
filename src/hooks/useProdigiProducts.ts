@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { ProdigiProduct } from '@/lib/prodigi';
 
 export interface ProductSearchCriteria {
   category?: string;
@@ -7,32 +8,6 @@ export interface ProductSearchCriteria {
   finish?: string;
   priceMin?: number;
   priceMax?: number;
-}
-
-export interface ProdigiProduct {
-  sku: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  dimensions: {
-    width: number;
-    height: number;
-    depth?: number;
-  };
-  weight: number;
-  category: string;
-  attributes: {
-    size?: string;
-    material?: string;
-    finish?: string;
-  };
-  images?: {
-    url: string;
-    type: 'preview' | 'thumbnail' | 'full';
-    width: number;
-    height: number;
-  }[];
 }
 
 export interface UseProdigiProductsReturn {

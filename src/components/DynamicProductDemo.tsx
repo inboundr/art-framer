@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useProdigiProducts } from '@/hooks/useProdigiProducts';
-import { ProdigiProduct } from '@/lib/prodigi-product-service';
+import { ProdigiProduct } from '@/lib/prodigi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,9 +45,9 @@ export function DynamicProductDemo() {
 
   // Extract unique values for filters
   const uniqueCategories = [...new Set(products.map(p => p.category).filter(Boolean))];
-  const uniqueSizes = [...new Set(products.map(p => p.attributes?.size).filter(Boolean))];
-  const uniqueMaterials = [...new Set(products.map(p => p.attributes?.material).filter(Boolean))];
-  const uniqueFinishes = [...new Set(products.map(p => p.attributes?.finish).filter(Boolean))];
+  const uniqueSizes = [...new Set(products.map(p => p.attributes?.size).filter(Boolean))] as string[];
+  const uniqueMaterials = [...new Set(products.map(p => p.attributes?.material).filter(Boolean))] as string[];
+  const uniqueFinishes = [...new Set(products.map(p => p.attributes?.finish).filter(Boolean))] as string[];
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -135,7 +135,7 @@ export function DynamicProductDemo() {
               <Filter className="h-4 w-4 mr-2" />
               Clear Filters
             </Button>
-            <Button variant="outline" onClick={getAllProducts} disabled={loading}>
+            <Button variant="outline" onClick={() => getAllProducts()} disabled={loading}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh All
             </Button>
@@ -174,7 +174,7 @@ export function DynamicProductDemo() {
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-green-600" />
                   <span className="font-semibold">
-                    {product.price.amount} {product.price.currency}
+                    ${product.price}
                   </span>
                 </div>
               )}
@@ -192,14 +192,6 @@ export function DynamicProductDemo() {
                 </div>
               )}
 
-              {product.shipsTo && product.shipsTo.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-600">
-                    Ships to {product.shipsTo.length} countries
-                  </span>
-                </div>
-              )}
 
               {product.images && product.images.length > 0 && (
                 <div className="space-y-1">
