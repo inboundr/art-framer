@@ -90,19 +90,28 @@ export default function OrdersPage() {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('🔍 Frontend: Fetching orders for user', user?.id);
       const response = await fetch('/api/orders');
       
+      console.log('🔍 Frontend: Orders API response', { 
+        status: response.status, 
+        ok: response.ok 
+      });
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch orders');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Frontend: Orders API error', errorData);
+        throw new Error(`Failed to fetch orders: ${errorData.error || response.statusText}`);
       }
       
       const data = await response.json();
+      console.log('✅ Frontend: Orders data received', { count: data.orders?.length || 0 });
       setOrders(data.orders || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('❌ Frontend: Error fetching orders:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load orders. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to load orders. Please try again.',
         variant: 'destructive',
       });
     } finally {
