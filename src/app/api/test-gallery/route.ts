@@ -26,8 +26,10 @@ export async function GET(request: NextRequest) {
         hasMore: response.pagination.has_more,
         sampleImages: response.images.slice(0, 2).map(img => ({
           id: img.id,
-          title: img.title,
-          image_url: img.image_url ? 'present' : 'missing'
+          prompt: img.prompt,
+          image_url: img.image_url ? 'present' : 'missing',
+          status: img.status,
+          is_public: img.is_public
         }))
       }
     });
