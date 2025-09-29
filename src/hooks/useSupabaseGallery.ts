@@ -34,7 +34,17 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
       console.error('❌ Gallery loading error:', err);
       const error = err instanceof Error ? err : new Error('Failed to load gallery');
       setError(error);
-      options.onError?.(error);
+      
+      // If it's a timeout or connection error, show empty state instead of error
+      if (error.message.includes('timeout') || error.message.includes('Failed to fetch')) {
+        console.log('🔄 Gallery timeout/connection error, showing empty state');
+        if (!append) {
+          setImages([]);
+        }
+        setHasMore(false);
+      } else {
+        options.onError?.(error);
+      }
     } finally {
       setLoading(false);
     }
@@ -53,7 +63,7 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
   useEffect(() => {
     console.log('🚀 useGallery useEffect triggered');
     loadGallery(1, false);
-  }, []);
+  }, [loadGallery]);
 
   return {
     images,

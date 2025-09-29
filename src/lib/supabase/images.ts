@@ -29,47 +29,62 @@ export class SupabaseImageAPI {
     console.log('🔍 SupabaseImageAPI.getGallery called with page:', page, 'limit:', limit);
     const offset = (page - 1) * limit;
     
-    // Get total count
-    const { count } = await supabase
-      .from('images')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_public', true);
+    try {
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Gallery request timeout')), 10000); // 10 second timeout
+      });
 
-    // Get images for current page
-    const { data: images, error } = await supabase
-      .from('images')
-      .select(`
-        *,
-        profiles:user_id (
-          username,
-          full_name,
-          avatar_url
-        ),
-        image_likes (
-          user_id
-        )
-      `)
-      .eq('is_public', true)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      const galleryPromise = (async () => {
+        // Get total count
+        const { count } = await supabase
+          .from('images')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_public', true);
 
-    if (error) {
-      throw new Error(`Failed to fetch gallery: ${error.message}`);
+        // Get images for current page
+        const { data: images, error } = await supabase
+          .from('images')
+          .select(`
+            *,
+            profiles:user_id (
+              username,
+              full_name,
+              avatar_url
+            ),
+            image_likes (
+              user_id
+            )
+          `)
+          .eq('is_public', true)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (error) {
+          throw new Error(`Failed to fetch gallery: ${error.message}`);
+        }
+
+        const total = count || 0;
+        const total_pages = Math.ceil(total / limit);
+        const has_more = page < total_pages;
+
+        return {
+          images: images || [],
+          pagination: {
+            page,
+            total_pages,
+            total,
+            has_more,
+          },
+        };
+      })();
+
+      // Race between gallery request and timeout
+      return await Promise.race([galleryPromise, timeoutPromise]) as GalleryResponse;
+    } catch (error) {
+      console.error('❌ SupabaseImageAPI.getGallery error:', error);
+      throw error;
     }
-
-    const total = count || 0;
-    const total_pages = Math.ceil(total / limit);
-    const has_more = page < total_pages;
-
-    return {
-      images: images || [],
-      pagination: {
-        page,
-        total_pages,
-        total,
-        has_more,
-      },
-    };
   }
 
   // Search images
