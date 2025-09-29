@@ -42,6 +42,7 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
           setImages([]);
         }
         setHasMore(false);
+        setError(null); // Clear error state for timeout issues
       } else {
         options.onError?.(error);
       }

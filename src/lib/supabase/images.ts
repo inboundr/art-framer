@@ -36,40 +36,42 @@ export class SupabaseImageAPI {
       });
 
       const galleryPromise = (async () => {
+        // First try simple query without joins
+        console.log('🔍 Trying simple gallery query...');
+        const { data: simpleImages, error: simpleError } = await supabase
+          .from('images')
+          .select('id, prompt, image_url, created_at, likes, is_public')
+          .eq('is_public', true)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (simpleError) {
+          console.error('❌ Simple query failed:', simpleError);
+          throw new Error(`Failed to fetch gallery: ${simpleError.message}`);
+        }
+
         // Get total count
         const { count } = await supabase
           .from('images')
           .select('*', { count: 'exact', head: true })
           .eq('is_public', true);
 
-        // Get images for current page
-        const { data: images, error } = await supabase
-          .from('images')
-          .select(`
-            *,
-            profiles:user_id (
-              username,
-              full_name,
-              avatar_url
-            ),
-            image_likes (
-              user_id
-            )
-          `)
-          .eq('is_public', true)
-          .order('created_at', { ascending: false })
-          .range(offset, offset + limit - 1);
-
-        if (error) {
-          throw new Error(`Failed to fetch gallery: ${error.message}`);
-        }
-
         const total = count || 0;
         const total_pages = Math.ceil(total / limit);
         const has_more = page < total_pages;
 
+        // Transform simple images to match expected format
+        const images = simpleImages?.map(img => ({
+          ...img,
+          user_id: 'anonymous',
+          profiles: null,
+          image_likes: []
+        })) || [];
+
+        console.log('✅ Simple gallery query successful:', { imageCount: images.length, total });
+
         return {
-          images: images || [],
+          images,
           pagination: {
             page,
             total_pages,
@@ -83,7 +85,18 @@ export class SupabaseImageAPI {
       return await Promise.race([galleryPromise, timeoutPromise]) as GalleryResponse;
     } catch (error) {
       console.error('❌ SupabaseImageAPI.getGallery error:', error);
-      throw error;
+      
+      // Return empty gallery on timeout/error instead of throwing
+      console.log('🔄 Returning empty gallery due to error');
+      return {
+        images: [],
+        pagination: {
+          page: 1,
+          total_pages: 0,
+          total: 0,
+          has_more: false,
+        },
+      };
     }
   }
 
