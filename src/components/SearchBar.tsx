@@ -68,7 +68,7 @@ interface AttachedImage {
 
 export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps) {
   const { user, profile } = useAuth();
-  const [activeCategory, setActiveCategory] = useState('Poster');
+  // const [activeCategory, setActiveCategory] = useState('Poster'); // Hidden filter bar
   const [promptText, setPromptText] = useState('');
   const [aspectRatioDropdownOpen, setAspectRatioDropdownOpen] = useState(false);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
@@ -280,8 +280,9 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
     return colorSetting.charAt(0).toUpperCase() + colorSetting.slice(1);
   };
 
-  const leftCategories = ['Explore', 'Top'];
-  const rightCategories = ['People', 'Product', 'Nature', 'Poster', 'Logo', 'T-shirt'];
+  // Filter categories - hidden for now
+  // const leftCategories = ['Explore', 'Top'];
+  // const rightCategories = ['People', 'Product', 'Nature', 'Poster', 'Logo', 'T-shirt'];
 
   return (
     <div className="flex flex-col items-start self-stretch bg-dark">
@@ -491,13 +492,13 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
         </div>
       </div>
 
-      {/* Category Tabs */}
+      {/* Category Tabs - Hidden for now */}
+      {/* 
       <div className="flex max-w-full p-1 flex-col items-start self-stretch bg-dark overflow-x-auto">
         <div className="flex max-w-full items-center self-stretch min-w-max">
           <div className="flex h-8 md:h-10 items-center flex-1 bg-dark">
             <div className="flex h-8 md:h-10 items-center">
               <div className="flex w-8 md:w-10 h-8 md:h-10 p-0.5 justify-center items-center relative">
-                {/* Search Icon with Lock Overlay */}
                 <div className="flex h-7 md:h-9 min-w-7 md:min-w-9 p-1 justify-center items-center rounded-md">
                   <svg 
                     width="22" 
@@ -516,7 +517,6 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
                     />
                   </svg>
                 </div>
-                {/* Lock Icon Overlay */}
                 <div className="flex flex-col items-start absolute -right-0.5 top-3.5">
                   <svg 
                     width="12" 
@@ -541,7 +541,6 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
                 </div>
               </div>
               
-              {/* Left Categories */}
               <div className="flex items-center gap-0">
                 {leftCategories.map((category) => (
                   <CategoryButton
@@ -555,7 +554,6 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
 
               <Separator />
 
-              {/* Right Categories */}
               <div className="flex items-center">
                 {rightCategories.map((category) => (
                   <CategoryButton
@@ -570,6 +568,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
           </div>
         </div>
       </div>
+      */}
     </div>
   );
 }
