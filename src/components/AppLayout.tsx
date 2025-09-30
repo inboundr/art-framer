@@ -5,7 +5,7 @@ import { Sidebar } from './Sidebar';
 import { GenerationPanel } from './GenerationPanel';
 import { SearchBar } from './SearchBar';
 import { NotificationBar } from './NotificationBar';
-import { ImageGallery } from './ImageGallery';
+import { CuratedImageGallery } from './CuratedImageGallery';
 import { AuthModal } from './AuthModal';
 import { WelcomeModal } from './WelcomeModal';
 import { StylesOnboardingModal } from './StylesOnboardingModal';
@@ -189,8 +189,8 @@ export function AppLayout({ children }: AppLayoutProps) {
               {/* Search/Navigation Bar */}
               <SearchBar onOpenGenerationPanel={handleOpenGenerationPanel} />
               
-              {/* Main Image Gallery */}
-              <ImageGallery />
+              {/* Main Curated Image Gallery */}
+              <CuratedImageGallery />
             </div>
           )}
         </div>

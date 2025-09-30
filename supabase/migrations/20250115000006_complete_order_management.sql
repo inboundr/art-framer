@@ -241,9 +241,29 @@ WHERE order_number IS NULL;
 -- Create a view for comprehensive order information
 CREATE OR REPLACE VIEW public.order_details AS
 SELECT 
-  o.*,
-  u.email as customer_email,
-  p.full_name as customer_name,
+  o.id,
+  o.user_id,
+  o.order_number,
+  o.stripe_payment_intent_id,
+  o.stripe_session_id,
+  o.status,
+  o.payment_status,
+  o.customer_email,
+  o.customer_name,
+  o.customer_phone,
+  o.shipping_address,
+  o.billing_address,
+  o.subtotal,
+  o.tax_amount,
+  o.shipping_amount,
+  o.discount_amount,
+  o.total_amount,
+  o.currency,
+  o.notes,
+  o.metadata,
+  o.created_at,
+  o.updated_at,
+  p.full_name as profile_name,
   COUNT(oi.id) as item_count,
   SUM(oi.total_price) as calculated_total,
   ds.provider as dropship_provider,
@@ -253,11 +273,14 @@ SELECT
   ds.tracking_url as dropship_tracking_url,
   ds.estimated_delivery as dropship_estimated_delivery
 FROM public.orders o
-LEFT JOIN auth.users u ON o.user_id = u.id
 LEFT JOIN public.profiles p ON o.user_id = p.id
 LEFT JOIN public.order_items oi ON o.id = oi.order_id
 LEFT JOIN public.dropship_orders ds ON o.id = ds.order_id
-GROUP BY o.id, u.email, p.full_name, ds.provider, ds.status, ds.provider_order_id, 
+GROUP BY o.id, o.user_id, o.order_number, o.stripe_payment_intent_id, o.stripe_session_id,
+         o.status, o.payment_status, o.customer_email, o.customer_name, o.customer_phone,
+         o.shipping_address, o.billing_address, o.subtotal, o.tax_amount, o.shipping_amount,
+         o.discount_amount, o.total_amount, o.currency, o.notes, o.metadata, o.created_at, o.updated_at,
+         p.full_name, ds.provider, ds.status, ds.provider_order_id, 
          ds.tracking_number, ds.tracking_url, ds.estimated_delivery;
 
 -- Grant access to the view

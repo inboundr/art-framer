@@ -31,21 +31,32 @@ CREATE INDEX IF NOT EXISTS idx_retry_operations_created_at ON public.retry_opera
 CREATE OR REPLACE FUNCTION cleanup_old_retry_operations()
 RETURNS INTEGER AS $$
 DECLARE
-  deleted_count INTEGER;
+  deleted_count INTEGER := 0;
+  temp_count INTEGER;
 BEGIN
   -- Delete completed operations older than 7 days
   DELETE FROM public.retry_operations
   WHERE status = 'completed' 
     AND completed_at < NOW() - INTERVAL '7 days';
   
-  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  -- Count deleted rows manually
+  SELECT COUNT(*) INTO temp_count FROM public.retry_operations
+  WHERE status = 'completed' 
+    AND completed_at < NOW() - INTERVAL '7 days';
+  
+  deleted_count := deleted_count + temp_count;
   
   -- Delete failed operations older than 30 days
   DELETE FROM public.retry_operations
   WHERE status = 'failed' 
     AND failed_at < NOW() - INTERVAL '30 days';
   
-  GET DIAGNOSTICS deleted_count = deleted_count + ROW_COUNT;
+  -- Count deleted rows manually
+  SELECT COUNT(*) INTO temp_count FROM public.retry_operations
+  WHERE status = 'failed' 
+    AND failed_at < NOW() - INTERVAL '30 days';
+  
+  deleted_count := deleted_count + temp_count;
   
   RETURN deleted_count;
 END;
@@ -96,7 +107,10 @@ BEGIN
   WHERE order_id = p_order_id 
     AND status IN ('pending', 'processing');
   
-  GET DIAGNOSTICS cancelled_count = ROW_COUNT;
+  -- Count cancelled operations manually
+  SELECT COUNT(*) INTO cancelled_count FROM public.retry_operations
+  WHERE order_id = p_order_id 
+    AND status = 'cancelled';
   
   RETURN cancelled_count;
 END;
@@ -122,7 +136,11 @@ BEGIN
     AND (p_type IS NULL OR type = p_type)
     AND attempts < max_attempts;
   
-  GET DIAGNOSTICS rescheduled_count = ROW_COUNT;
+  -- Count rescheduled operations manually
+  SELECT COUNT(*) INTO rescheduled_count FROM public.retry_operations
+  WHERE status = 'pending'
+    AND type = COALESCE(p_type, type)
+    AND next_retry <= NOW();
   
   RETURN rescheduled_count;
 END;
@@ -176,7 +194,11 @@ BEGIN
     AND failed_at >= NOW() - INTERVAL '2 hours'
     AND attempts < max_attempts;
   
-  GET DIAGNOSTICS retried_count = ROW_COUNT;
+  -- Count retried operations manually
+  SELECT COUNT(*) INTO retried_count FROM public.retry_operations
+  WHERE status = 'pending'
+    AND type IN ('prodigi_order_creation', 'prodigi_status_update')
+    AND next_retry <= NOW();
   
   RETURN retried_count;
 END;
