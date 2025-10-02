@@ -1,0 +1,67 @@
+
+> art-framer@0.1.0 prebuild
+> echo 'Skipping env validation for testing'
+
+Skipping env validation for testing
+
+> art-framer@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.2
+   - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 8.8s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/30) ...
+   Generating static pages (7/30) 
+   Generating static pages (14/30) 
+   Generating static pages (22/30) 
+ ✓ Generating static pages (30/30)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                      262 B         221 kB
+├ ○ /_not-found                            997 B         103 kB
+├ ƒ /api/admin/health                      193 B         102 kB
+├ ƒ /api/cart                              193 B         102 kB
+├ ƒ /api/cart/[id]                         193 B         102 kB
+├ ƒ /api/cart/shipping                     193 B         102 kB
+├ ƒ /api/checkout/create-session           193 B         102 kB
+├ ƒ /api/dropship/gelato                   193 B         102 kB
+├ ƒ /api/dropship/prodigi                  193 B         102 kB
+├ ƒ /api/frames/images                     193 B         102 kB
+├ ƒ /api/ideogram/[...path]                193 B         102 kB
+├ ƒ /api/ideogram/test                     193 B         102 kB
+├ ƒ /api/notifications                     193 B         102 kB
+├ ƒ /api/orders                            193 B         102 kB
+├ ƒ /api/orders/[id]                       193 B         102 kB
+├ ƒ /api/orders/[id]/status                193 B         102 kB
+├ ƒ /api/orders/management                 193 B         102 kB
+├ ƒ /api/products                          193 B         102 kB
+├ ƒ /api/products/[id]                     193 B         102 kB
+├ ƒ /api/proxy-image                       193 B         102 kB
+├ ƒ /api/save-image                        193 B         102 kB
+├ ƒ /api/shipping/calculate                193 B         102 kB
+├ ƒ /api/test-prodigi                      193 B         102 kB
+├ ƒ /api/webhooks/prodigi                  193 B         102 kB
+├ ƒ /api/webhooks/stripe                   193 B         102 kB
+├ ○ /cart                                  948 B         226 kB
+├ ƒ /checkout/success                    3.46 kB         105 kB
+├ ○ /creations                           2.67 kB         223 kB
+├ ○ /faq                                 4.68 kB         225 kB
+├ ○ /login                                 694 B         158 kB
+├ ○ /orders                              3.85 kB         226 kB
+├ ○ /privacy                             5.86 kB         226 kB
+└ ○ /shop                                19.8 kB         205 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/1255-83cb42014f6de1e2.js      45.7 kB
+  ├ chunks/4bd1b696-f785427dddbba9fb.js  54.2 kB
+  └ other shared chunks (total)          1.94 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
