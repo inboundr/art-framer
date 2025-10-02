@@ -1,0 +1,181 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { z } from 'zod';
+
+const CreateCuratedProductSchema = z.object({
+  curatedImageId: z.string().uuid(),
+  frameSize: z.enum(['small', 'medium', 'large', 'extra_large']),
+  frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver']),
+  frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo']),
+  price: z.number().positive(),
+});
+
+// Frame dimensions mapping
+const getFrameDimensions = (size: string) => {
+  const dimensions = {
+    small: { width: 200, height: 200, depth: 20 },
+    medium: { width: 300, height: 300, depth: 25 },
+    large: { width: 400, height: 400, depth: 30 },
+    extra_large: { width: 500, height: 500, depth: 35 },
+  };
+  return dimensions[size as keyof typeof dimensions] || dimensions.medium;
+};
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    
+    // Check authentication
+    let user = null;
+    let authError = null;
+    
+    // Method 1: Try cookie-based auth
+    const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
+    if (!cookieError && cookieAuth.user) {
+      user = cookieAuth.user;
+    } else {
+      // Method 2: Try Authorization header
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { data: headerAuth, error: headerError } = await supabase.auth.getUser(token);
+        if (!headerError && headerAuth.user) {
+          user = headerAuth.user;
+        } else {
+          authError = headerError;
+        }
+      } else {
+        authError = cookieError;
+      }
+    }
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const validatedData = CreateCuratedProductSchema.parse(body);
+
+    // Verify the curated image exists and is active
+    const { data: curatedImage, error: curatedImageError } = await supabase
+      .from('curated_images')
+      .select('id, title, image_url, width, height')
+      .eq('id', validatedData.curatedImageId)
+      .eq('is_active', true)
+      .single();
+
+    if (curatedImageError || !curatedImage) {
+      return NextResponse.json(
+        { error: 'Curated image not found or not available' },
+        { status: 404 }
+      );
+    }
+
+    // Create a temporary image record for the curated image
+    const serviceSupabase = createServiceClient();
+    const { data: tempImage, error: tempImageError } = await (serviceSupabase as any)
+      .from('images')
+      .insert({
+        user_id: user.id,
+        prompt: curatedImage.title,
+        image_url: curatedImage.image_url,
+        width: curatedImage.width,
+        height: curatedImage.height,
+        status: 'completed',
+        is_public: true,
+      })
+      .select('id')
+      .single();
+
+    if (tempImageError || !tempImage) {
+      console.error('Error creating temp image:', tempImageError);
+      return NextResponse.json(
+        { error: 'Failed to create temporary image record' },
+        { status: 500 }
+      );
+    }
+
+    // Check if product already exists for this curated image and frame combination
+    const { data: existingProduct } = await (serviceSupabase as any)
+      .from('products')
+      .select('id')
+      .eq('image_id', tempImage.id)
+      .eq('frame_size', validatedData.frameSize)
+      .eq('frame_style', validatedData.frameStyle)
+      .eq('frame_material', validatedData.frameMaterial)
+      .single();
+
+    if (existingProduct) {
+      return NextResponse.json({
+        product: existingProduct,
+        message: 'Product already exists'
+      });
+    }
+
+    // Calculate dimensions based on frame size
+    const dimensions = getFrameDimensions(validatedData.frameSize);
+    const cost = validatedData.price * 0.4; // Default 40% cost margin
+
+    // Generate SKU
+    const skuPrefix = validatedData.curatedImageId.substring(0, 8).toUpperCase();
+    const sku = `CUR-${skuPrefix}-${validatedData.frameSize.toUpperCase()}-${validatedData.frameStyle.toUpperCase()}-${validatedData.frameMaterial.toUpperCase()}`;
+
+    // Create product using service client to bypass RLS
+    const { data: product, error: productError } = await (serviceSupabase as any)
+      .from('products')
+      .insert({
+        image_id: tempImage.id,
+        frame_size: validatedData.frameSize,
+        frame_style: validatedData.frameStyle,
+        frame_material: validatedData.frameMaterial,
+        price: validatedData.price,
+        cost: cost,
+        dimensions_cm: dimensions,
+        sku: sku,
+        status: 'active'
+      })
+      .select(`
+        id,
+        image_id,
+        frame_size,
+        frame_style,
+        frame_material,
+        price,
+        cost,
+        dimensions_cm,
+        sku,
+        status,
+        created_at
+      `)
+      .single();
+
+    if (productError) {
+      console.error('Error creating product:', productError);
+      return NextResponse.json(
+        { error: 'Failed to create product' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      product,
+      message: 'Product created successfully'
+    });
+
+  } catch (error) {
+    console.error('Error in POST /api/curated-products:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid parameters', details: error.issues },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

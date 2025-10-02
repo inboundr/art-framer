@@ -3,25 +3,45 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCuratedGallery } from '@/hooks/useCuratedGallery';
 import { CuratedImage } from '@/lib/curated-images';
-import { Heart, Eye, Download, Share2, Tag, Calendar } from 'lucide-react';
+import { Heart, Eye, Download, Share2, Tag, Calendar, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useDynamicLayoutSafe, useDynamicThemeSafe, useDynamicAnimationsSafe } from '@/hooks/useDynamicHooksSafe';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/hooks/use-toast';
+import { CreationsModal } from './CreationsModal';
 
 interface CuratedImageCardProps {
   image: CuratedImage;
   onImageClick?: (image: CuratedImage) => void;
+  onBuyAsFrame?: (image: CuratedImage) => void;
   animationDelay?: number;
 }
 
-function CuratedImageCard({ image, onImageClick, animationDelay = 0 }: CuratedImageCardProps) {
+function CuratedImageCard({ image, onImageClick, onBuyAsFrame, animationDelay = 0 }: CuratedImageCardProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const { createTransition } = useDynamicAnimationsSafe();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const handleImageClick = () => {
     onImageClick?.(image);
+  };
+
+  const handleBuyAsFrame = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering image click
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to purchase framed art.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    onBuyAsFrame?.(image);
   };
 
   const handleImageLoad = () => {
@@ -82,6 +102,14 @@ function CuratedImageCard({ image, onImageClick, animationDelay = 0 }: CuratedIm
               <Button size="sm" variant="secondary" className="rounded-full">
                 <Share2 className="w-4 h-4" />
               </Button>
+              <Button 
+                size="sm" 
+                variant="default" 
+                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={handleBuyAsFrame}
+              >
+                <ShoppingCart className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -132,18 +160,22 @@ interface CuratedImageGalleryProps {
   showFilters?: boolean;
   enableAnimations?: boolean;
   onImageClick?: (image: CuratedImage) => void;
+  onBuyAsFrame?: (image: CuratedImage) => void;
 }
 
 export function CuratedImageGallery({ 
   className = '',
   showFilters = true,
   enableAnimations = true,
-  onImageClick
+  onImageClick,
+  onBuyAsFrame
 }: CuratedImageGalleryProps) {
   const { images, loading, error, hasMore, loadMore } = useCuratedGallery();
   const [isHydrated, setIsHydrated] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
+  const [selectedImage, setSelectedImage] = useState<CuratedImage | null>(null);
+  const [showCreationsModal, setShowCreationsModal] = useState(false);
 
   // Dynamic UI hooks with safe fallbacks
   const { 
@@ -158,6 +190,17 @@ export function CuratedImageGallery({
   useEffect(() => {
     setIsHydrated(true);
   }, []);
+
+  const handleBuyAsFrame = (image: CuratedImage) => {
+    setSelectedImage(image);
+    setShowCreationsModal(true);
+    onBuyAsFrame?.(image);
+  };
+
+  const handleCloseCreationsModal = () => {
+    setShowCreationsModal(false);
+    setSelectedImage(null);
+  };
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -242,6 +285,7 @@ export function CuratedImageGallery({
                 key={`${image.id}-${index}`}
                 image={image}
                 onImageClick={onImageClick}
+                onBuyAsFrame={handleBuyAsFrame}
                 animationDelay={enableAnimations ? index * 100 : 0}
               />
             ))}
@@ -282,6 +326,18 @@ export function CuratedImageGallery({
           </div>
         )}
       </div>
+
+      {/* Creations Modal for frame ordering */}
+      {selectedImage && (
+        <CreationsModal
+          isOpen={showCreationsModal}
+          onClose={handleCloseCreationsModal}
+          imageUrl={selectedImage.image_url}
+          promptText={selectedImage.title}
+          imageId={selectedImage.id}
+          isMobile={false}
+        />
+      )}
     </div>
   );
 }

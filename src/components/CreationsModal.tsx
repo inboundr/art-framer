@@ -79,21 +79,46 @@ export function CreationsModal({
     }
 
     try {
-      // Create a product from the image and frame selection
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies for authentication
-        body: JSON.stringify({
-          imageId: imageId, // This should now be the actual database UUID
-          frameSize: frame.size,
-          frameStyle: frame.style,
-          frameMaterial: frame.material,
-          price: frame.price,
-        }),
-      });
+      // Determine if this is a curated image by checking if it starts with 'CUR-' in the URL or has specific characteristics
+      const isCuratedImage = imageUrl.includes('curated') || imageUrl.includes('placeholder') || 
+                            promptText.includes('Curated') || promptText.includes('Abstract') ||
+                            promptText.includes('Nature') || promptText.includes('Portrait') ||
+                            promptText.includes('Modern') || promptText.includes('Artistic');
+
+      let response;
+      if (isCuratedImage) {
+        // Use curated products API
+        response = await fetch('/api/curated-products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            curatedImageId: imageId,
+            frameSize: frame.size,
+            frameStyle: frame.style,
+            frameMaterial: frame.material,
+            price: frame.price,
+          }),
+        });
+      } else {
+        // Use regular products API
+        response = await fetch('/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            imageId: imageId,
+            frameSize: frame.size,
+            frameStyle: frame.style,
+            frameMaterial: frame.material,
+            price: frame.price,
+          }),
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
