@@ -230,7 +230,7 @@ export function FrameSelector({
       <div className="space-y-6">
         <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 shadow-lg">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-gray-800">Frame Preview</h3>
+            <h3 className="text-xl font-semibold text-foreground">Frame Preview</h3>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -240,7 +240,7 @@ export function FrameSelector({
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-gray-600 min-w-[3rem] text-center">
+              <span className="text-sm text-muted-foreground min-w-[3rem] text-center">
                 {Math.round(previewScale * 100)}%
               </span>
               <Button
@@ -339,13 +339,13 @@ export function FrameSelector({
           
           {/* Frame details below preview */}
           <div className="mt-6 text-center">
-            <h4 className="font-semibold text-lg text-gray-800 mb-2">
+            <h4 className="font-semibold text-lg text-foreground mb-2">
               {getSizeLabel(selectedSize)} Frame
             </h4>
-            <p className="text-gray-600 mb-1">
+            <p className="text-muted-foreground mb-1">
               {getStyleLabel(selectedStyle)} {getMaterialLabel(selectedMaterial)}
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               {currentFrame?.dimensions.width}&quot; × {currentFrame?.dimensions.height}&quot; × {currentFrame?.dimensions.depth}&quot;
             </p>
             <div className="flex items-center justify-center gap-2 mt-3">
@@ -385,11 +385,11 @@ export function FrameSelector({
                       className={`flex flex-col items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                         selectedSize === size 
                           ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:border-gray-300'
+                          : 'border-border hover:border-border/80'
                       }`}
                     >
                       <div className="text-sm font-medium mb-1">{getSizeLabel(size)}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted-foreground">
                         {FRAME_OPTIONS.find(f => f.size === size && f.style === 'black' && f.material === 'wood')?.dimensions.width}&quot; × {FRAME_OPTIONS.find(f => f.size === size && f.style === 'black' && f.material === 'wood')?.dimensions.height}&quot;
                       </div>
                     </Label>
@@ -419,11 +419,11 @@ export function FrameSelector({
                       className={`flex flex-col items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                         selectedStyle === style 
                           ? 'border-purple-500 bg-purple-50' 
-                          : 'border-gray-200 hover:border-gray-300'
+                          : 'border-border hover:border-border/80'
                       }`}
                     >
                       <div 
-                        className="w-8 h-8 rounded-full border-2 border-gray-300 mb-2"
+                        className="w-8 h-8 rounded-full border-2 border-border mb-2"
                         style={{ backgroundColor: getFrameColor(style) }}
                       />
                       <div className="text-sm font-medium">{getStyleLabel(style)}</div>
@@ -454,7 +454,7 @@ export function FrameSelector({
                       className={`flex items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                         selectedMaterial === material 
                           ? 'border-green-500 bg-green-50' 
-                          : 'border-gray-200 hover:border-gray-300'
+                          : 'border-border hover:border-border/80'
                       }`}
                     >
                       <div className="text-sm font-medium">{getMaterialLabel(material)}</div>
@@ -479,10 +479,10 @@ export function FrameSelector({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-semibold text-lg text-gray-800">
+                    <h4 className="font-semibold text-lg text-foreground">
                       {getSizeLabel(currentFrame.size)} Frame
                     </h4>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       {getStyleLabel(currentFrame.style)} {getMaterialLabel(currentFrame.material)}
                     </p>
                   </div>
@@ -490,7 +490,7 @@ export function FrameSelector({
                     <div className="text-3xl font-bold text-blue-600">
                       {formatPrice(currentFrame.price)}
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-muted-foreground">
                       {currentFrame.dimensions.width}&quot; × {currentFrame.dimensions.height}&quot; × {currentFrame.dimensions.depth}&quot;
                     </div>
                   </div>
@@ -501,7 +501,7 @@ export function FrameSelector({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm text-gray-600">4.8 (127 reviews)</span>
+                    <span className="text-sm text-muted-foreground">4.8 (127 reviews)</span>
                   </div>
                   <Button 
                     onClick={() => handleAddToCart(currentFrame)}

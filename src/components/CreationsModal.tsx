@@ -423,13 +423,13 @@ export function CreationsModal({
       {showFrameSelector && (
         <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-sm">
           <div className="flex h-full">
-            <div className="flex-1 bg-white overflow-y-auto">
+            <div className="flex-1 bg-background overflow-y-auto">
               <div className="max-w-4xl mx-auto p-6">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-2xl font-bold">Choose Your Frame</h2>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       Select the perfect frame for your AI-generated art
                     </p>
                   </div>
