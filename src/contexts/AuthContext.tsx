@@ -249,6 +249,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async (): Promise<{ error: Error | null }> => {
     try {
       console.log('🚪 Starting logout process...');
+      console.log('🚪 Supabase client:', supabase);
+      console.log('🚪 Current user before logout:', user);
       
       // Clear local state first
       setUser(null);
@@ -261,7 +263,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('supabase.auth.token');
       
       // Sign out from Supabase
+      console.log('🚪 Calling supabase.auth.signOut()...');
       const { error } = await supabase.auth.signOut();
+      console.log('🚪 Supabase signOut result:', { error });
+      
       if (error) {
         console.error('Supabase sign out error:', error);
         return { error };
