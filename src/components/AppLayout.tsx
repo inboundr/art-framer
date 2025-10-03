@@ -190,7 +190,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <SearchBar onOpenGenerationPanel={handleOpenGenerationPanel} />
               
               {/* Main Curated Image Gallery */}
-              <CuratedImageGallery />
+              <CuratedImageGallery onOpenAuthModal={() => setAuthModalVisible(true)} />
             </div>
           )}
         </div>

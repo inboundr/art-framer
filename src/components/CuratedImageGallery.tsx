@@ -17,10 +17,11 @@ interface CuratedImageCardProps {
   image: CuratedImage;
   onImageClick?: (image: CuratedImage) => void;
   onBuyAsFrame?: (image: CuratedImage) => void;
+  onOpenAuthModal?: () => void;
   animationDelay?: number;
 }
 
-function CuratedImageCard({ image, onImageClick, onBuyAsFrame, animationDelay = 0 }: CuratedImageCardProps) {
+function CuratedImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal, animationDelay = 0 }: CuratedImageCardProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const { createTransition } = useDynamicAnimationsSafe();
@@ -34,11 +35,10 @@ function CuratedImageCard({ image, onImageClick, onBuyAsFrame, animationDelay = 
   const handleBuyAsFrame = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering image click
     if (!user) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please sign in to purchase framed art.',
-        variant: 'destructive',
-      });
+      // Show auth modal for non-authenticated users
+      if (onOpenAuthModal) {
+        onOpenAuthModal();
+      }
       return;
     }
     onBuyAsFrame?.(image);
@@ -161,6 +161,7 @@ interface CuratedImageGalleryProps {
   enableAnimations?: boolean;
   onImageClick?: (image: CuratedImage) => void;
   onBuyAsFrame?: (image: CuratedImage) => void;
+  onOpenAuthModal?: () => void;
 }
 
 export function CuratedImageGallery({ 
@@ -168,7 +169,8 @@ export function CuratedImageGallery({
   showFilters = true,
   enableAnimations = true,
   onImageClick,
-  onBuyAsFrame
+  onBuyAsFrame,
+  onOpenAuthModal
 }: CuratedImageGalleryProps) {
   const { images, loading, error, hasMore, loadMore } = useCuratedGallery();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -286,6 +288,7 @@ export function CuratedImageGallery({
                 image={image}
                 onImageClick={onImageClick}
                 onBuyAsFrame={handleBuyAsFrame}
+                onOpenAuthModal={onOpenAuthModal}
                 animationDelay={enableAnimations ? index * 100 : 0}
               />
             ))}
