@@ -6,6 +6,7 @@ import { Package, Download, Share2, XCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
+import { supabase } from '@/lib/supabase/client';
 
 interface CreationsModalProps {
   isOpen: boolean;
@@ -79,6 +80,9 @@ export function CreationsModal({
     }
 
     try {
+      // Get the session to access the token
+      const { data: { session } } = await supabase.auth.getSession();
+      
       // Determine if this is a curated image by checking if it starts with 'CUR-' in the URL or has specific characteristics
       const isCuratedImage = imageUrl.includes('curated') || imageUrl.includes('placeholder') || 
                             promptText.includes('Curated') || promptText.includes('Abstract') ||
@@ -92,6 +96,7 @@ export function CreationsModal({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
           },
           credentials: 'include',
           body: JSON.stringify({
@@ -108,6 +113,7 @@ export function CreationsModal({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
           },
           credentials: 'include',
           body: JSON.stringify({
