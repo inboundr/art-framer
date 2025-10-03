@@ -388,8 +388,12 @@ export function FrameSelector({
                           : 'border-border hover:border-border/80'
                       }`}
                     >
-                      <div className="text-sm font-medium mb-1">{getSizeLabel(size)}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className={`text-sm font-medium mb-1 ${
+                        selectedSize === size ? 'text-blue-700' : 'text-foreground'
+                      }`}>{getSizeLabel(size)}</div>
+                      <div className={`text-xs ${
+                        selectedSize === size ? 'text-blue-600' : 'text-muted-foreground'
+                      }`}>
                         {FRAME_OPTIONS.find(f => f.size === size && f.style === 'black' && f.material === 'wood')?.dimensions.width}&quot; × {FRAME_OPTIONS.find(f => f.size === size && f.style === 'black' && f.material === 'wood')?.dimensions.height}&quot;
                       </div>
                     </Label>
@@ -426,7 +430,9 @@ export function FrameSelector({
                         className="w-8 h-8 rounded-full border-2 border-border mb-2"
                         style={{ backgroundColor: getFrameColor(style) }}
                       />
-                      <div className="text-sm font-medium">{getStyleLabel(style)}</div>
+                      <div className={`text-sm font-medium ${
+                        selectedStyle === style ? 'text-purple-700' : 'text-foreground'
+                      }`}>{getStyleLabel(style)}</div>
                     </Label>
                   </div>
                 ))}
@@ -457,7 +463,9 @@ export function FrameSelector({
                           : 'border-border hover:border-border/80'
                       }`}
                     >
-                      <div className="text-sm font-medium">{getMaterialLabel(material)}</div>
+                      <div className={`text-sm font-medium ${
+                        selectedMaterial === material ? 'text-green-700' : 'text-foreground'
+                      }`}>{getMaterialLabel(material)}</div>
                     </Label>
                   </div>
                 ))}
