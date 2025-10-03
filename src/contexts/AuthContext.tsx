@@ -14,7 +14,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<{ error: Error | null }>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
   refreshProfile: () => Promise<void>;
 }
@@ -246,8 +246,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const signOut = async (): Promise<{ error: Error | null }> => {
+    try {
+      console.log('🚪 Starting logout process...');
+      
+      // Clear local state first
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      
+      // Clear any cached data
+      localStorage.removeItem('art-framer-welcome-seen');
+      localStorage.removeItem('pending-generation');
+      localStorage.removeItem('supabase.auth.token');
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase sign out error:', error);
+        return { error };
+      } else {
+        console.log('✅ Successfully signed out from Supabase');
+        return { error: null };
+      }
+    } catch (error) {
+      console.error('Sign out error:', error);
+      return { error: error as Error };
+    }
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {

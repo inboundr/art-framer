@@ -74,16 +74,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Type assertion to ensure we have the expected fields
+    const curatedImageData = curatedImage as {
+      id: string;
+      title: string;
+      image_url: string;
+      width: number;
+      height: number;
+    };
+
     // Create a temporary image record for the curated image
     const serviceSupabase = createServiceClient();
     const { data: tempImage, error: tempImageError } = await (serviceSupabase as any)
       .from('images')
       .insert({
         user_id: user.id,
-        prompt: curatedImage.title,
-        image_url: curatedImage.image_url,
-        width: curatedImage.width,
-        height: curatedImage.height,
+        prompt: curatedImageData.title,
+        image_url: curatedImageData.image_url,
+        width: curatedImageData.width,
+        height: curatedImageData.height,
         status: 'completed',
         is_public: true,
       })

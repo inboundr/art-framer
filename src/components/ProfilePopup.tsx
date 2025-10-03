@@ -43,8 +43,21 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
   const creditsPercentage = Math.min(((profile?.credits || 0) / 100) * 100, 100);
 
   const handleLogout = async () => {
-    await signOut();
-    onClose();
+    try {
+      console.log('🚪 ProfilePopup logout initiated...');
+      const { error } = await signOut();
+      if (error) {
+        console.error('Logout error:', error);
+      } else {
+        console.log('✅ ProfilePopup logout successful');
+      }
+      onClose();
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      onClose();
+      router.push('/');
+    }
   };
 
   return (

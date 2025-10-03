@@ -130,10 +130,19 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      console.log('🚪 Sidebar logout initiated...');
+      const { error } = await signOut();
+      if (error) {
+        console.error('Logout error:', error);
+        // Still redirect even if there's an error
+      } else {
+        console.log('✅ Sidebar logout successful');
+      }
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
+      // Still redirect even if there's an error
+      router.push('/');
     }
   };
 
