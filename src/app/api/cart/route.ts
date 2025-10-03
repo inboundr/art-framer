@@ -15,6 +15,8 @@ const UpdateCartItemSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Cart API: Starting request');
+    
     const supabase = await createClient();
     
     // Check authentication - try both cookie and header methods
@@ -23,6 +25,13 @@ export async function GET(request: NextRequest) {
     
     // Method 1: Try cookie-based auth
     const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
+    console.log('Cart API: Cookie auth check', { 
+      hasUser: !!cookieAuth.user, 
+      userId: cookieAuth.user?.id, 
+      userEmail: cookieAuth.user?.email,
+      cookieError: cookieError?.message 
+    });
+    
     if (!cookieError && cookieAuth.user) {
       user = cookieAuth.user;
     } else {

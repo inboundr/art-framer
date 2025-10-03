@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/AppLayout';
 import { FramePreview } from '@/components/FramePreview';
+import { supabase } from '@/lib/supabase/client';
 
 interface OrderItem {
   id: string;
@@ -90,25 +91,35 @@ export default function OrdersPage() {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('🔍 Frontend: Fetching orders for user', user?.id);
-      const response = await fetch('/api/orders');
+      console.log('Frontend: Fetching orders for user', user?.id);
       
-      console.log('🔍 Frontend: Orders API response', { 
+      // Get the session to access the token
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Frontend: Session data', { hasSession: !!session, hasToken: !!session?.access_token });
+      
+      const response = await fetch('/api/orders', {
+        credentials: 'include',
+        headers: session?.access_token ? {
+          'Authorization': `Bearer ${session.access_token}`
+        } : {}
+      });
+      
+      console.log('Frontend: Orders API response', { 
         status: response.status, 
         ok: response.ok 
       });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Frontend: Orders API error', errorData);
+        console.error('Frontend: Orders API error', errorData);
         throw new Error(`Failed to fetch orders: ${errorData.error || response.statusText}`);
       }
       
       const data = await response.json();
-      console.log('✅ Frontend: Orders data received', { count: data.orders?.length || 0 });
+      console.log('Frontend: Orders data received', { count: data.orders?.length || 0 });
       setOrders(data.orders || []);
     } catch (error) {
-      console.error('❌ Frontend: Error fetching orders:', error);
+      console.error('Frontend: Error fetching orders:', error);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to load orders. Please try again.',

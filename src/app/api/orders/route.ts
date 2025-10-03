@@ -25,19 +25,21 @@ const GetOrdersSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Orders API: Starting request');
+    console.log('Orders API: Starting request');
+    
     const supabase = await createClient();
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('🔍 Orders API: Auth check', { 
+    console.log('Orders API: Auth check', { 
       hasUser: !!user, 
       userId: user?.id, 
+      userEmail: user?.email,
       authError: authError?.message 
     });
     
     if (authError || !user) {
-      console.log('❌ Orders API: Authentication failed', { authError });
+      console.log('Orders API: Authentication failed', { authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -93,18 +95,18 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', params.status);
     }
 
-    console.log('🔍 Orders API: Executing query for user', user.id);
+    console.log('Orders API: Executing query for user', user.id);
     const { data: orders, error } = await query;
 
     if (error) {
-      console.error('❌ Orders API: Database error:', error);
+      console.error('Orders API: Database error:', error);
       return NextResponse.json(
         { error: 'Failed to fetch orders', details: error.message },
         { status: 500 }
       );
     }
 
-    console.log('✅ Orders API: Successfully fetched orders', { count: orders?.length || 0 });
+    console.log('Orders API: Successfully fetched orders', { count: orders?.length || 0 });
     return NextResponse.json({ orders });
   } catch (error) {
     console.error('Error in GET /api/orders:', error);

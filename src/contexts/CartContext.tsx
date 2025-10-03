@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/supabase/client';
 
 interface CartItem {
   id: string;
@@ -73,8 +74,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
     try {
+      // Get the session to access the token
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Cart: Session data', { hasSession: !!session, hasToken: !!session?.access_token });
+      
       const response = await fetch('/api/cart', {
         credentials: 'include',
+        headers: session?.access_token ? {
+          'Authorization': `Bearer ${session.access_token}`
+        } : {}
       });
 
       if (response.ok) {
@@ -95,10 +103,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
 
     try {
+      // Get the session to access the token
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch('/api/cart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -122,10 +134,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
 
     try {
+      // Get the session to access the token
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch('/api/cart', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -149,9 +165,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
 
     try {
+      // Get the session to access the token
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch(`/api/cart/${cartItemId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: session?.access_token ? {
+          'Authorization': `Bearer ${session.access_token}`
+        } : {}
       });
 
       if (response.ok) {
