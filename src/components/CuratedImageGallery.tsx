@@ -234,8 +234,8 @@ export function CuratedImageGallery({
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load images</h3>
-          <p className="text-gray-600 mb-4">{error.message}</p>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load images</h3>
+          <p className="text-muted-foreground mb-4">{error.message}</p>
           <Button onClick={() => window.location.reload()}>
             Try Again
           </Button>
@@ -246,7 +246,7 @@ export function CuratedImageGallery({
 
   return (
     <div 
-      className={`flex flex-col items-center self-stretch min-h-screen ${className}`}
+      className={`flex flex-col items-center self-stretch ${className}`}
       style={{
         backgroundColor: theme.colors.background,
         color: theme.colors.foreground,
@@ -303,11 +303,11 @@ export function CuratedImageGallery({
           >
             {loading ? (
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-gray-600">Loading more images...</span>
+                <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-muted-foreground">Loading more images...</span>
               </div>
             ) : (
-              <div className="text-gray-500">Scroll to load more</div>
+              <div className="text-muted-foreground">Scroll to load more</div>
             )}
           </div>
         )}
@@ -315,7 +315,7 @@ export function CuratedImageGallery({
         {/* No more images */}
         {!hasMore && images.length > 0 && (
           <div className="flex justify-center items-center py-8">
-            <div className="text-gray-500">No more images to load</div>
+            <div className="text-muted-foreground">No more images to load</div>
           </div>
         )}
 
@@ -323,8 +323,8 @@ export function CuratedImageGallery({
         {!loading && images.length === 0 && (
           <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No images found</h3>
-              <p className="text-gray-600">Check back later for new curated content.</p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">No images found</h3>
+              <p className="text-muted-foreground">Check back later for new curated content.</p>
             </div>
           </div>
         )}
