@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAddresses } from '@/hooks/useAddresses';
 import { GooglePlacesAutocomplete } from '@/components/ui/google-places-autocomplete';
+import { supabase } from '@/lib/supabase/client';
 
 interface CheckoutFlowProps {
   onSuccess?: (orderId: string) => void;
@@ -204,10 +205,16 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
     setShippingLoading(true);
     try {
+      // Get the session to access the token for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch('/api/cart/shipping', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(session?.access_token && {
+            'Authorization': `Bearer ${session.access_token}`
+          })
         },
         credentials: 'include',
         body: JSON.stringify({

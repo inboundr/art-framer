@@ -447,30 +447,48 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
             
             {/* Cart Button - Always visible */}
             <div className="flex pt-1 flex-col items-start">
-              <div className="flex w-16 h-16 flex-col justify-center items-center gap-[-2px] rounded hover:bg-white/5 transition-colors relative">
+              <div 
+                className="flex w-16 h-16 flex-col justify-center items-center gap-1 rounded hover:bg-white/5 transition-colors relative cursor-pointer touch-manipulation"
+                onClick={() => {
+                  if (!user) {
+                    // Show auth modal for non-authenticated users with redirect path
+                    if (onOpenAuthModal) {
+                      onOpenAuthModal('/cart');
+                    }
+                  } else {
+                    // Navigate to cart for authenticated users
+                    handleNavClick('/cart');
+                  }
+                }}
+                onTouchEnd={(e) => {
+                  // Prevent double-tap zoom on mobile
+                  e.preventDefault();
+                  if (!user) {
+                    if (onOpenAuthModal) {
+                      onOpenAuthModal('/cart');
+                    }
+                  } else {
+                    handleNavClick('/cart');
+                  }
+                }}
+                style={{
+                  // Ensure minimum touch target size for mobile
+                  minHeight: '44px',
+                  minWidth: '44px',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
                 <div className="flex p-2 justify-center items-center rounded-md">
-                  <div className="flex flex-col items-start">
-                    <CartButton 
-                      onCartClick={() => {
-                        if (!user) {
-                          // Show auth modal for non-authenticated users with redirect path
-                          if (onOpenAuthModal) {
-                            onOpenAuthModal('/cart');
-                          }
-                        } else {
-                          // Navigate to cart for authenticated users
-                          handleNavClick('/cart');
-                        }
-                      }}
-                    />
-                  </div>
+                  <CartButton 
+                    onCartClick={() => {
+                      // This will be handled by the parent div click
+                    }}
+                  />
                 </div>
-                <div className="flex flex-col items-start">
-                  <div className="flex flex-col items-center">
-                    <span className="text-gray-text text-center text-[11px] font-semibold leading-5 tracking-[-0.55px]">
-                      Cart
-                    </span>
-                  </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-gray-text text-center text-[11px] font-semibold leading-5 tracking-[-0.55px]">
+                    Cart
+                  </span>
                 </div>
               </div>
             </div>

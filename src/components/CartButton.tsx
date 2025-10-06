@@ -30,8 +30,18 @@ export function CartButton({ onCartClick }: CartButtonProps) {
       <Button
         variant="ghost"
         size="sm"
-        onClick={handleClick}
-        className="relative"
+        onClick={(e) => {
+          // Prevent event bubbling to parent when used in sidebar
+          e.stopPropagation();
+          handleClick();
+        }}
+        onTouchEnd={(e) => {
+          // Prevent double-tap zoom and event bubbling on mobile
+          e.preventDefault();
+          e.stopPropagation();
+          handleClick();
+        }}
+        className="relative touch-manipulation"
         disabled={loading}
       >
         <ShoppingCart className="h-5 w-5" />
