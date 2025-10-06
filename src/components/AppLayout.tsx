@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { GenerationPanel } from './GenerationPanel';
 import { SearchBar } from './SearchBar';
@@ -20,10 +21,12 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, profile, updateProfile } = useAuth();
+  const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [generationPanelVisible, setGenerationPanelVisible] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
+  const [authRedirectPath, setAuthRedirectPath] = useState<string | null>(null);
   const [welcomeModalVisible, setWelcomeModalVisible] = useState(false);
   const [stylesOnboardingVisible, setStylesOnboardingVisible] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
@@ -148,7 +151,10 @@ export function AppLayout({ children }: AppLayoutProps) {
         isMobile={isMobile} 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
-        onOpenAuthModal={() => setAuthModalVisible(true)}
+        onOpenAuthModal={(redirectPath) => {
+          setAuthRedirectPath(redirectPath || null);
+          setAuthModalVisible(true);
+        }}
       />
       
       {/* Main Content */}
@@ -222,6 +228,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           onAuthSuccess={() => {
             setAuthModalVisible(false);
             
+            // Handle redirect after successful authentication
+            if (authRedirectPath) {
+              router.push(authRedirectPath);
+              setAuthRedirectPath(null); // Clear the redirect path
+            }
+            
             // If there's a pending generation request, process it
             if (pendingGenerationRequest) {
               setCurrentPrompt(pendingGenerationRequest.prompt);
@@ -238,6 +250,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           onClose={() => setWelcomeModalVisible(false)}
           onStartCreating={() => {
             setWelcomeModalVisible(false);
+            
+            // Handle redirect after welcome modal
+            if (authRedirectPath) {
+              router.push(authRedirectPath);
+              setAuthRedirectPath(null); // Clear the redirect path
+            }
             
             // If there's a pending generation request, process it after welcome modal
             if (pendingGenerationRequest) {

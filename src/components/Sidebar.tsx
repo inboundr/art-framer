@@ -21,7 +21,7 @@ interface SidebarProps {
   isMobile?: boolean;
   isOpen?: boolean;
   onClose?: () => void;
-  onOpenAuthModal?: () => void;
+  onOpenAuthModal?: (redirectPath?: string) => void;
 }
 
 function NavItem({ icon, label, active = false, badge, onClick, isMobile = false }: NavItemProps) {
@@ -378,7 +378,17 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               label="Creations"
               badge={activeGenerations > 0 ? activeGenerations : undefined}
               active={pathname === '/creations'}
-              onClick={() => handleNavClick('/creations')}
+              onClick={() => {
+                if (!user) {
+                  // Show auth modal for non-authenticated users with redirect path
+                  if (onOpenAuthModal) {
+                    onOpenAuthModal('/creations');
+                  }
+                } else {
+                  // Navigate to creations for authenticated users
+                  handleNavClick('/creations');
+                }
+              }}
             />
 
             <NavItem
@@ -390,7 +400,17 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               }
               label="Orders"
               active={pathname === '/orders'}
-              onClick={() => handleNavClick('/orders')}
+              onClick={() => {
+                if (!user) {
+                  // Show auth modal for non-authenticated users with redirect path
+                  if (onOpenAuthModal) {
+                    onOpenAuthModal('/orders');
+                  }
+                } else {
+                  // Navigate to orders for authenticated users
+                  handleNavClick('/orders');
+                }
+              }}
             />
             
             {/* Canvas - COMMENTED OUT */}
@@ -433,9 +453,9 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
                     <CartButton 
                       onCartClick={() => {
                         if (!user) {
-                          // Show auth modal for non-authenticated users
+                          // Show auth modal for non-authenticated users with redirect path
                           if (onOpenAuthModal) {
-                            onOpenAuthModal();
+                            onOpenAuthModal('/cart');
                           }
                         } else {
                           // Navigate to cart for authenticated users
