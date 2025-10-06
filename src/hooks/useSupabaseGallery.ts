@@ -1,8 +1,13 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabaseImageAPI, Image, GalleryResponse, SearchFilters } from '@/lib/supabase/images';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function useGallery(options: { pageSize?: number; onError?: (error: Error) => void } = {}) {
+  // Memoize options to prevent infinite re-renders
+  const memoizedOptions = useMemo(() => options, [
+    options.pageSize,
+    options.onError
+  ]);
   const [images, setImages] = useState<Image[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -17,7 +22,7 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
     setError(null);
 
     try {
-      const response = await supabaseImageAPI.getGallery(page, options.pageSize || 20);
+      const response = await supabaseImageAPI.getGallery(page, memoizedOptions.pageSize || 20);
       console.log('✅ Gallery response:', response);
       
       if (append) {
@@ -44,12 +49,12 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
         setHasMore(false);
         setError(null); // Clear error state for timeout issues
       } else {
-        options.onError?.(error);
+        memoizedOptions.onError?.(error);
       }
     } finally {
       setLoading(false);
     }
-  }, [options.pageSize, options.onError]);
+  }, [memoizedOptions]);
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) {
@@ -63,7 +68,7 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
     setError(null);
 
     try {
-      const response = await supabaseImageAPI.getGallery(currentPage + 1, options.pageSize || 20);
+      const response = await supabaseImageAPI.getGallery(currentPage + 1, memoizedOptions.pageSize || 20);
       console.log('✅ Load more response:', response);
       
       setImages(prev => [...prev, ...response.images]);
@@ -81,12 +86,12 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
         setHasMore(false);
         setError(null);
       } else {
-        options.onError?.(error);
+        memoizedOptions.onError?.(error);
       }
     } finally {
       setLoading(false);
     }
-  }, [loading, hasMore, currentPage, options.pageSize, options.onError]);
+  }, [loading, hasMore, currentPage, memoizedOptions]);
 
   const refresh = useCallback(async () => {
     console.log('🔄 Refreshing gallery');
@@ -94,7 +99,7 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
     setError(null);
 
     try {
-      const response = await supabaseImageAPI.getGallery(1, options.pageSize || 20);
+      const response = await supabaseImageAPI.getGallery(1, memoizedOptions.pageSize || 20);
       console.log('✅ Refresh response:', response);
       
       setImages(response.images);
@@ -113,12 +118,12 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
         setHasMore(false);
         setError(null);
       } else {
-        options.onError?.(error);
+        memoizedOptions.onError?.(error);
       }
     } finally {
       setLoading(false);
     }
-  }, [options.pageSize, options.onError]);
+  }, [memoizedOptions]);
 
   // Load initial gallery on mount
   useEffect(() => {
@@ -129,7 +134,7 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
       setError(null);
 
       try {
-        const response = await supabaseImageAPI.getGallery(1, options.pageSize || 20);
+        const response = await supabaseImageAPI.getGallery(1, memoizedOptions.pageSize || 20);
         console.log('✅ Initial gallery response:', response);
         
         setImages(response.images);
@@ -148,7 +153,7 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
           setHasMore(false);
           setError(null);
         } else {
-          options.onError?.(error);
+          memoizedOptions.onError?.(error);
         }
       } finally {
         setLoading(false);
@@ -156,7 +161,7 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
     };
 
     loadInitialGallery();
-  }, [options.pageSize, options.onError]); // Safe dependencies only
+  }, [memoizedOptions]); // Safe dependencies only
 
   return {
     images,

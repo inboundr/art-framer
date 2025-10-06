@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { curatedImageAPI, CuratedImage, CuratedImageFilters } from '@/lib/curated-images';
 
 export function useCuratedGallery(options: { 
@@ -6,6 +6,12 @@ export function useCuratedGallery(options: {
   onError?: (error: Error) => void;
   filters?: CuratedImageFilters;
 } = {}) {
+  // Memoize options to prevent infinite re-renders
+  const memoizedOptions = useMemo(() => options, [
+    options.pageSize,
+    options.onError,
+    options.filters
+  ]);
   const [images, setImages] = useState<CuratedImage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -20,7 +26,7 @@ export function useCuratedGallery(options: {
     setError(null);
 
     try {
-      const response = await curatedImageAPI.getGallery(page, options.pageSize || 20, options.filters);
+      const response = await curatedImageAPI.getGallery(page, memoizedOptions.pageSize || 20, memoizedOptions.filters);
       console.log('✅ Curated gallery response:', response);
       
       if (append) {
@@ -37,11 +43,11 @@ export function useCuratedGallery(options: {
       console.error('❌ Curated gallery loading error:', err);
       const error = err instanceof Error ? err : new Error('Failed to load curated gallery');
       setError(error);
-      options.onError?.(error);
+      memoizedOptions.onError?.(error);
     } finally {
       setLoading(false);
     }
-  }, [options.pageSize, options.onError, options.filters]);
+  }, [memoizedOptions]);
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) {
@@ -55,7 +61,7 @@ export function useCuratedGallery(options: {
     setError(null);
 
     try {
-      const response = await curatedImageAPI.getGallery(currentPage + 1, options.pageSize || 20, options.filters);
+      const response = await curatedImageAPI.getGallery(currentPage + 1, memoizedOptions.pageSize || 20, memoizedOptions.filters);
       console.log('✅ Load more response:', response);
       
       setImages(prev => [...prev, ...response.images]);
@@ -67,11 +73,11 @@ export function useCuratedGallery(options: {
       console.error('❌ Load more error:', err);
       const error = err instanceof Error ? err : new Error('Failed to load more images');
       setError(error);
-      options.onError?.(error);
+      memoizedOptions.onError?.(error);
     } finally {
       setLoading(false);
     }
-  }, [loading, hasMore, currentPage, options.pageSize, options.onError, options.filters]);
+  }, [loading, hasMore, currentPage, memoizedOptions]);
 
   const refresh = useCallback(async () => {
     console.log('🔄 Refreshing curated gallery');
@@ -79,7 +85,7 @@ export function useCuratedGallery(options: {
     setError(null);
 
     try {
-      const response = await curatedImageAPI.getGallery(1, options.pageSize || 20, options.filters);
+      const response = await curatedImageAPI.getGallery(1, memoizedOptions.pageSize || 20, memoizedOptions.filters);
       console.log('✅ Refresh response:', response);
       
       setImages(response.images);
@@ -91,11 +97,11 @@ export function useCuratedGallery(options: {
       console.error('❌ Refresh error:', err);
       const error = err instanceof Error ? err : new Error('Failed to refresh gallery');
       setError(error);
-      options.onError?.(error);
+      memoizedOptions.onError?.(error);
     } finally {
       setLoading(false);
     }
-  }, [options.pageSize, options.onError, options.filters]);
+  }, [memoizedOptions]);
 
   const searchImages = useCallback(async (query: string, page: number = 1) => {
     console.log('🔍 Searching curated images:', { query, page });
@@ -103,7 +109,7 @@ export function useCuratedGallery(options: {
     setError(null);
 
     try {
-      const response = await curatedImageAPI.searchImages(query, page, options.pageSize || 20);
+      const response = await curatedImageAPI.searchImages(query, page, memoizedOptions.pageSize || 20);
       console.log('✅ Search response:', response);
       
       if (page === 1) {
@@ -120,11 +126,11 @@ export function useCuratedGallery(options: {
       console.error('❌ Search error:', err);
       const error = err instanceof Error ? err : new Error('Failed to search images');
       setError(error);
-      options.onError?.(error);
+      memoizedOptions.onError?.(error);
     } finally {
       setLoading(false);
     }
-  }, [options.pageSize, options.onError]);
+  }, [memoizedOptions]);
 
   // Load initial gallery on mount
   useEffect(() => {
@@ -135,7 +141,7 @@ export function useCuratedGallery(options: {
       setError(null);
 
       try {
-        const response = await curatedImageAPI.getGallery(1, options.pageSize || 20, options.filters);
+        const response = await curatedImageAPI.getGallery(1, memoizedOptions.pageSize || 20, memoizedOptions.filters);
         console.log('✅ Initial curated gallery response:', response);
         
         setImages(response.images);
@@ -147,14 +153,14 @@ export function useCuratedGallery(options: {
         console.error('❌ Initial curated gallery error:', err);
         const error = err instanceof Error ? err : new Error('Failed to load initial curated gallery');
         setError(error);
-        options.onError?.(error);
+        memoizedOptions.onError?.(error);
       } finally {
         setLoading(false);
       }
     };
 
     loadInitialGallery();
-  }, [options.pageSize, options.onError, options.filters]); // Safe dependencies only
+  }, [memoizedOptions]); // Use memoized options to prevent infinite re-renders
 
   return {
     images,
