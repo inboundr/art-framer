@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { supabase as supabaseClient } from "@/lib/supabase/client";
 import { z } from "zod";
 
 const GetOrdersSchema = z.object({
@@ -23,6 +24,38 @@ const GetOrdersSchema = z.object({
   }),
 });
 
+async function authenticateUser(request: NextRequest) {
+  // First try server-side client (cookies)
+  const supabaseServer = await createClient();
+  const { data: { user: serverUser }, error: serverError } = await supabaseServer.auth.getUser();
+  
+  if (serverUser && !serverError) {
+    console.log('Orders API: Authenticated via server client');
+    return { user: serverUser, supabase: supabaseServer };
+  }
+  
+  // If server auth fails, try Authorization header
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    console.log('Orders API: Trying Authorization header authentication');
+    
+    const { data: { user: clientUser }, error: clientError } = await supabaseClient.auth.getUser(token);
+    
+    if (clientUser && !clientError) {
+      console.log('Orders API: Authenticated via Authorization header');
+      return { user: clientUser, supabase: supabaseClient };
+    }
+  }
+  
+  console.log('Orders API: Authentication failed', { 
+    serverError: serverError?.message,
+    hasAuthHeader: !!authHeader 
+  });
+  
+  return { user: null, error: 'Authentication failed' };
+}
+
 export async function GET(request: NextRequest) {
   try {
     console.log('Orders API: Starting request');
@@ -32,68 +65,22 @@ export async function GET(request: NextRequest) {
       userAgent: request.headers.get('user-agent')
     });
     
-    const supabase = await createClient();
+    // Authenticate user with both cookies and Authorization header support
+    const authResult = await authenticateUser(request);
     
-    // Try to get session first, then user
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('Orders API: Session check', { 
-      hasSession: !!session, 
-      sessionError: sessionError?.message,
-      accessToken: session?.access_token ? 'present' : 'missing'
-    });
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('Orders API: Auth check', { 
-      hasUser: !!user, 
-      userId: user?.id, 
-      userEmail: user?.email,
-      authError: authError?.message 
-    });
-    
-    // If no user from session, try to refresh session
-    let authenticatedUser = user;
-    if (authError || !user) {
-      console.log('Orders API: No user found, attempting session refresh');
-      try {
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        if (!refreshError && refreshData.session) {
-          console.log('Orders API: Session refreshed successfully');
-          const { data: { user: refreshedUser }, error: refreshedError } = await supabase.auth.getUser();
-          if (refreshedUser) {
-            console.log('Orders API: User found after refresh', { userId: refreshedUser.id });
-            authenticatedUser = refreshedUser;
-          } else {
-            console.log('Orders API: Still no user after refresh', { refreshedError });
-            return NextResponse.json(
-              { error: 'Unauthorized' },
-              { status: 401 }
-            );
-          }
-        } else {
-          console.log('Orders API: Session refresh failed', { refreshError });
-          return NextResponse.json(
-            { error: 'Unauthorized' },
-            { status: 401 }
-          );
-        }
-      } catch (refreshError) {
-        console.log('Orders API: Session refresh error', { refreshError });
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
-    }
-
-    // Final check - ensure we have a user
-    if (!authenticatedUser) {
-      console.log('Orders API: No authenticated user found');
+    if (!authResult.user) {
+      console.log('Orders API: Authentication failed');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    const { user: authenticatedUser, supabase } = authResult;
+    console.log('Orders API: Authenticated user', { 
+      userId: authenticatedUser.id, 
+      userEmail: authenticatedUser.email 
+    });
 
     const { searchParams } = new URL(request.url);
     
