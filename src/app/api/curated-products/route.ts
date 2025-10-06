@@ -83,6 +83,13 @@ export async function POST(request: NextRequest) {
       height: number;
     };
 
+    // Calculate aspect ratio from dimensions
+    const calculateAspectRatio = (width: number, height: number): 'square' | 'tall' | 'wide' => {
+      if (width === height) return 'square';
+      if (width > height) return 'wide';
+      return 'tall';
+    };
+
     // Create a temporary image record for the curated image
     const serviceSupabase = createServiceClient();
     const { data: tempImage, error: tempImageError } = await (serviceSupabase as any)
@@ -93,6 +100,8 @@ export async function POST(request: NextRequest) {
         image_url: curatedImageData.image_url,
         width: curatedImageData.width,
         height: curatedImageData.height,
+        aspect_ratio: calculateAspectRatio(curatedImageData.width, curatedImageData.height),
+        model: '3.0-latest', // Default model for curated images
         status: 'completed',
         is_public: true,
       })
