@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase/client';
 
 interface OrderItem {
   id: string;
@@ -108,7 +109,18 @@ export function OrderManagement({ userId }: OrderManagementProps) {
         params.append('status', statusFilter);
       }
 
-      const response = await fetch(`/api/orders?${params}`);
+      // Get the session to access the token for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await fetch(`/api/orders?${params}`, {
+        headers: {
+          ...(session?.access_token && {
+            'Authorization': `Bearer ${session.access_token}`
+          })
+        },
+        credentials: 'include',
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
       }
