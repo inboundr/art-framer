@@ -200,14 +200,17 @@ export class ProdigiClient {
       for (const sku of knownSkus) {
         try {
           const product = await this.getProductDetails(sku);
-          if (!category || product.category === category) {
+          // Only add valid products with required attributes
+          if (product && product.attributes && (!category || product.category === category)) {
             products.push(product);
           }
         } catch (error) {
           console.warn(`Failed to fetch product ${sku}:`, error);
+          // Continue with other products instead of failing completely
         }
       }
       
+      console.log(`✅ Successfully loaded ${products.length} valid products`);
       return products;
     } catch (error) {
       console.error('Error fetching all products:', error);
@@ -235,6 +238,12 @@ export class ProdigiClient {
       const allProducts = await this.getAllProducts(criteria.category);
       
       return allProducts.filter(product => {
+        // Skip undefined or invalid products
+        if (!product || !product.attributes) {
+          console.warn('Skipping invalid product:', product);
+          return false;
+        }
+        
         if (criteria.size && product.attributes.size !== criteria.size) return false;
         if (criteria.material && product.attributes.material !== criteria.material) return false;
         if (criteria.finish && product.attributes.finish !== criteria.finish) return false;
@@ -248,26 +257,28 @@ export class ProdigiClient {
 
   /**
    * Get known product SKUs (fallback when API doesn't provide a list endpoint)
+   * Only includes SKUs that have been verified to exist in the Prodigi API
    */
   private async getKnownProductSkus(): Promise<string[]> {
-    // This is a fallback list of known Prodigi SKUs
-    // In a real implementation, you might want to store this in a database
+    // Only include SKUs that have been verified to exist in the Prodigi API
+    // Based on the logs, these are the ones that return 200 OK
     return [
-      'GLOBAL-CAN-10x10',
-      'GLOBAL-CFPM-16X20', 
-      'GLOBAL-FAP-16X24',
-      'GLOBAL-FRA-CAN-30X40',
-      'GLOBAL-FAP-8X10',
-      'GLOBAL-FAP-11X14',
-      'GLOBAL-FP-8X10',
-      'GLOBAL-FP-11X14',
-      'GLOBAL-FP-16X20',
-      'GLOBAL-DP-8X10',
-      'GLOBAL-DP-11X14',
-      'GLOBAL-DP-16X20',
-      'GLOBAL-POSTER-8X10',
-      'GLOBAL-POSTER-11X14',
-      'GLOBAL-POSTER-16X20',
+      'GLOBAL-CAN-10x10',        // ✅ Verified exists
+      'GLOBAL-CFPM-16X20',       // ✅ Verified exists
+      'GLOBAL-FAP-16X24',        // ✅ Verified exists
+      'GLOBAL-FRA-CAN-30X40',    // ✅ Verified exists
+      'GLOBAL-FAP-8X10',         // ✅ Verified exists
+      'GLOBAL-FAP-11X14',        // ✅ Verified exists
+      // Removed SKUs that return 404 Not Found:
+      // 'GLOBAL-FP-8X10',        // ❌ 404 Not Found
+      // 'GLOBAL-FP-11X14',       // ❌ 404 Not Found
+      // 'GLOBAL-FP-16X20',       // ❌ 404 Not Found
+      // 'GLOBAL-DP-8X10',        // ❌ 404 Not Found
+      // 'GLOBAL-DP-11X14',       // ❌ 404 Not Found
+      // 'GLOBAL-DP-16X20',       // ❌ 404 Not Found
+      // 'GLOBAL-POSTER-8X10',    // ❌ 404 Not Found
+      // 'GLOBAL-POSTER-11X14',   // ❌ 404 Not Found
+      // 'GLOBAL-POSTER-16X20',   // ❌ 404 Not Found
     ];
   }
 
@@ -357,16 +368,17 @@ export class ProdigiClient {
 
   /**
    * Fallback SKU mapping when dynamic search fails
+   * Uses only verified SKUs that exist in the Prodigi API
    */
   private getFallbackSku(frameSize: string): string {
     const fallbackMap: Record<string, string> = {
-      'small': 'GLOBAL-CAN-10x10',
-      'medium': 'GLOBAL-CFPM-16X20',
-      'large': 'GLOBAL-FAP-16X24',
-      'extra_large': 'GLOBAL-FRA-CAN-30X40',
+      'small': 'GLOBAL-CAN-10x10',      // ✅ Verified exists
+      'medium': 'GLOBAL-CFPM-16X20',    // ✅ Verified exists  
+      'large': 'GLOBAL-FAP-16X24',      // ✅ Verified exists
+      'extra_large': 'GLOBAL-FRA-CAN-30X40', // ✅ Verified exists
     };
     
-    return fallbackMap[frameSize] || 'GLOBAL-CFPM-16X20';
+    return fallbackMap[frameSize] || 'GLOBAL-CFPM-16X20'; // Default to verified medium frame
   }
 
   /**
