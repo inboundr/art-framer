@@ -257,26 +257,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       setSession(null);
       
-      // Clear any cached data
-      localStorage.removeItem('art-framer-welcome-seen');
-      localStorage.removeItem('pending-generation');
-      localStorage.removeItem('supabase.auth.token');
+      // Clear all localStorage items related to auth
+      const keysToRemove = [
+        'art-framer-welcome-seen',
+        'pending-generation',
+        'supabase.auth.token',
+        'sb-access-token',
+        'sb-refresh-token',
+        'supabase.auth.token',
+        'supabase.auth.refresh_token'
+      ];
       
-      // Sign out from Supabase
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
+      
+      // Clear all Supabase-related cookies by setting them to expire
+      document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+      });
+      
+      // Sign out from Supabase with scope: 'local' to clear local session only
       console.log('🚪 Calling supabase.auth.signOut()...');
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
       console.log('🚪 Supabase signOut result:', { error });
       
       if (error) {
         console.error('Supabase sign out error:', error);
-        return { error };
+        // Even if Supabase signOut fails, we've cleared local state
+        return { error: null };
       } else {
         console.log('✅ Successfully signed out from Supabase');
         return { error: null };
       }
     } catch (error) {
       console.error('Sign out error:', error);
-      return { error: error as Error };
+      // Even if there's an error, we've cleared local state
+      return { error: null };
     }
   };
 

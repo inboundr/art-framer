@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createClientClient } from '@/lib/supabase/client';
+import { supabase as createClientClient } from '@/lib/supabase/client';
 import { z } from 'zod';
 import type { ShippingItem } from '@/lib/shipping';
 
