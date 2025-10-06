@@ -44,13 +44,58 @@ export function useCuratedGallery(options: {
   }, [options.pageSize, options.onError, options.filters]);
 
   const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return;
-    await loadGallery(currentPage + 1, true);
-  }, [loading, hasMore, currentPage, loadGallery]);
+    if (loading || !hasMore) {
+      console.log('🚫 loadMore blocked - loading:', loading, 'hasMore:', hasMore);
+      return;
+    }
+    console.log('🔄 loadMore called for page:', currentPage + 1);
+    
+    // Direct API call to avoid circular dependency
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await curatedImageAPI.getGallery(currentPage + 1, options.pageSize || 20, options.filters);
+      console.log('✅ Load more response:', response);
+      
+      setImages(prev => [...prev, ...response.images]);
+      setCurrentPage(response.pagination.page);
+      setTotalPages(response.pagination.total_pages);
+      setTotalImages(response.pagination.total);
+      setHasMore(response.pagination.has_more);
+    } catch (err) {
+      console.error('❌ Load more error:', err);
+      const error = err instanceof Error ? err : new Error('Failed to load more images');
+      setError(error);
+      options.onError?.(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, hasMore, currentPage, options.pageSize, options.onError, options.filters]);
 
   const refresh = useCallback(async () => {
-    await loadGallery(1, false);
-  }, [loadGallery]);
+    console.log('🔄 Refreshing curated gallery');
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await curatedImageAPI.getGallery(1, options.pageSize || 20, options.filters);
+      console.log('✅ Refresh response:', response);
+      
+      setImages(response.images);
+      setCurrentPage(response.pagination.page);
+      setTotalPages(response.pagination.total_pages);
+      setTotalImages(response.pagination.total);
+      setHasMore(response.pagination.has_more);
+    } catch (err) {
+      console.error('❌ Refresh error:', err);
+      const error = err instanceof Error ? err : new Error('Failed to refresh gallery');
+      setError(error);
+      options.onError?.(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [options.pageSize, options.onError, options.filters]);
 
   const searchImages = useCallback(async (query: string, page: number = 1) => {
     console.log('🔍 Searching curated images:', { query, page });
@@ -84,8 +129,32 @@ export function useCuratedGallery(options: {
   // Load initial gallery on mount
   useEffect(() => {
     console.log('🚀 useCuratedGallery useEffect triggered');
-    loadGallery(1, false);
-  }, [loadGallery]);
+    
+    const loadInitialGallery = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await curatedImageAPI.getGallery(1, options.pageSize || 20, options.filters);
+        console.log('✅ Initial curated gallery response:', response);
+        
+        setImages(response.images);
+        setCurrentPage(response.pagination.page);
+        setTotalPages(response.pagination.total_pages);
+        setTotalImages(response.pagination.total);
+        setHasMore(response.pagination.has_more);
+      } catch (err) {
+        console.error('❌ Initial curated gallery error:', err);
+        const error = err instanceof Error ? err : new Error('Failed to load initial curated gallery');
+        setError(error);
+        options.onError?.(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialGallery();
+  }, [options.pageSize, options.onError, options.filters]); // Safe dependencies only
 
   return {
     images,
