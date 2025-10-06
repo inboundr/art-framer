@@ -26,8 +26,21 @@ const GetOrdersSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     console.log('Orders API: Starting request');
+    console.log('Orders API: Request headers', {
+      authorization: request.headers.get('authorization'),
+      cookie: request.headers.get('cookie'),
+      userAgent: request.headers.get('user-agent')
+    });
     
     const supabase = await createClient();
+    
+    // Try to get session first, then user
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('Orders API: Session check', { 
+      hasSession: !!session, 
+      sessionError: sessionError?.message,
+      accessToken: session?.access_token ? 'present' : 'missing'
+    });
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -38,8 +51,44 @@ export async function GET(request: NextRequest) {
       authError: authError?.message 
     });
     
+    // If no user from session, try to refresh session
+    let authenticatedUser = user;
     if (authError || !user) {
-      console.log('Orders API: Authentication failed', { authError });
+      console.log('Orders API: No user found, attempting session refresh');
+      try {
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (!refreshError && refreshData.session) {
+          console.log('Orders API: Session refreshed successfully');
+          const { data: { user: refreshedUser }, error: refreshedError } = await supabase.auth.getUser();
+          if (refreshedUser) {
+            console.log('Orders API: User found after refresh', { userId: refreshedUser.id });
+            authenticatedUser = refreshedUser;
+          } else {
+            console.log('Orders API: Still no user after refresh', { refreshedError });
+            return NextResponse.json(
+              { error: 'Unauthorized' },
+              { status: 401 }
+            );
+          }
+        } else {
+          console.log('Orders API: Session refresh failed', { refreshError });
+          return NextResponse.json(
+            { error: 'Unauthorized' },
+            { status: 401 }
+          );
+        }
+      } catch (refreshError) {
+        console.log('Orders API: Session refresh error', { refreshError });
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    }
+
+    // Final check - ensure we have a user
+    if (!authenticatedUser) {
+      console.log('Orders API: No authenticated user found');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -87,7 +136,7 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', authenticatedUser.id)
       .order('created_at', { ascending: false })
       .range(params.offset, params.offset + params.limit - 1);
 
@@ -95,7 +144,7 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', params.status);
     }
 
-    console.log('Orders API: Executing query for user', user.id);
+    console.log('Orders API: Executing query for user', authenticatedUser.id);
     const { data: orders, error } = await query;
 
     if (error) {
