@@ -147,12 +147,12 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
     }
   };
 
-  const removeItem = async (productId: string) => {
+  const removeItem = async (cartItemId: string) => {
     if (!user) return;
 
-    setUpdating(productId);
+    setUpdating(cartItemId);
     try {
-      const response = await fetch(`/api/cart?productId=${productId}`, {
+      const response = await fetch(`/api/cart/${cartItemId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -359,7 +359,7 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => removeItem(item.products.id)}
+                              onClick={() => removeItem(item.id)}
                               disabled={updating === item.id}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >

@@ -209,10 +209,21 @@ export function ImageGallery() {
       observerRef.current.disconnect();
     }
 
+    // Only create observer if we have more content to load
+    if (!hasMore || isLoading) {
+      return;
+    }
+
     observerRef.current = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !isLoading) {
-          loadMore();
+          console.log('🔄 Intersection observer triggered loadMore');
+          // Add a small delay to prevent rapid-fire calls
+          setTimeout(() => {
+            if (hasMore && !isLoading) {
+              loadMore();
+            }
+          }, 100);
         }
       },
       { threshold: 0.1 }
@@ -227,7 +238,7 @@ export function ImageGallery() {
         observerRef.current.disconnect();
       }
     };
-  }, [loadMore, hasMore, isLoading]);
+  }, [hasMore, isLoading]); // Remove loadMore from dependencies to prevent infinite re-creation
 
   return (
     <div 

@@ -210,9 +210,15 @@ export function CuratedImageGallery({
       observerRef.current.disconnect();
     }
 
+    // Only create observer if we have more content to load
+    if (!hasMore || loading) {
+      return;
+    }
+
     observerRef.current = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loading) {
+          console.log('🔄 Curated gallery intersection observer triggered loadMore');
           loadMore();
         }
       },
@@ -228,7 +234,7 @@ export function CuratedImageGallery({
         observerRef.current.disconnect();
       }
     };
-  }, [loadMore, hasMore, loading]);
+  }, [hasMore, loading]); // Remove loadMore from dependencies to prevent infinite re-creation
 
   if (error) {
     return (

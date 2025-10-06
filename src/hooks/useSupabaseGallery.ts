@@ -52,9 +52,13 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
   }, [options.pageSize, options.onError]);
 
   const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return;
+    if (loading || !hasMore) {
+      console.log('🚫 loadMore blocked - loading:', loading, 'hasMore:', hasMore);
+      return;
+    }
+    console.log('🔄 loadMore called for page:', currentPage + 1);
     await loadGallery(currentPage + 1, true);
-  }, [loading, hasMore, currentPage]);
+  }, [loading, hasMore, currentPage, loadGallery]);
 
   const refresh = useCallback(async () => {
     await loadGallery(1, false);
@@ -64,7 +68,7 @@ export function useGallery(options: { pageSize?: number; onError?: (error: Error
   useEffect(() => {
     console.log('🚀 useGallery useEffect triggered');
     loadGallery(1, false);
-  }, [loadGallery]);
+  }, []); // Remove loadGallery dependency to prevent infinite loops
 
   return {
     images,

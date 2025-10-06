@@ -263,10 +263,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
     if (!shippingAddress.firstName.trim()) newErrors.firstName = 'First name is required';
     if (!shippingAddress.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!shippingAddress.address1.trim()) newErrors.address1 = 'Address is required';
-    if (!shippingAddress.city.trim()) newErrors.city = 'City is required';
-    if (!shippingAddress.state.trim()) newErrors.state = 'State is required';
-    if (!shippingAddress.zip.trim()) newErrors.zip = 'ZIP code is required';
+    if (!shippingAddress.address1.trim()) newErrors.address1 = 'Please select an address from the suggestions';
     if (!shippingAddress.phone.trim()) newErrors.phone = 'Phone number is required';
 
     setErrors(newErrors);
@@ -280,10 +277,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
     if (!billingAddress.firstName.trim()) newErrors.billingFirstName = 'First name is required';
     if (!billingAddress.lastName.trim()) newErrors.billingLastName = 'Last name is required';
-    if (!billingAddress.address1.trim()) newErrors.billingAddress1 = 'Address is required';
-    if (!billingAddress.city.trim()) newErrors.billingCity = 'City is required';
-    if (!billingAddress.state.trim()) newErrors.billingState = 'State is required';
-    if (!billingAddress.zip.trim()) newErrors.billingZip = 'ZIP code is required';
+    if (!billingAddress.address1.trim()) newErrors.billingAddress1 = 'Please select an address from the suggestions';
 
     setErrors(prev => ({ ...prev, ...newErrors }));
     return Object.keys(newErrors).length === 0;
@@ -493,7 +487,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
                 <div>
                   <GooglePlacesAutocomplete
-                    label="Street Address"
+                    label="Shipping Address"
                     placeholder="Start typing your address..."
                     value={googlePlacesAddress}
                     onChange={(value) => setGooglePlacesAddress(value)}
@@ -501,64 +495,19 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                     required={true}
                     error={errors.address1}
                   />
-                  
-                  {/* Fallback manual input if Google Maps fails */}
-                  {!googlePlacesAddress && (
-                    <div className="mt-2 space-y-2">
-                      <Label htmlFor="address1-manual" className="text-sm text-muted-foreground">
-                        Or enter manually:
-                      </Label>
-                      <Input
-                        id="address1-manual"
-                        placeholder="Street address"
-                        value={shippingAddress.address1}
-                        onChange={(e) => setShippingAddress(prev => ({ ...prev, address1: e.target.value }))}
-                        className={errors.address1 ? 'border-red-500' : ''}
-                      />
-                    </div>
-                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select your address from the suggestions for accurate shipping calculation
+                  </p>
                 </div>
 
                 <div>
-                  <Label htmlFor="address2">Address Line 2</Label>
+                  <Label htmlFor="address2">Address Line 2 (Optional)</Label>
                   <Input
                     id="address2"
+                    placeholder="Apartment, suite, unit, etc."
                     value={shippingAddress.address2}
                     onChange={(e) => setShippingAddress(prev => ({ ...prev, address2: e.target.value }))}
                   />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      value={shippingAddress.city}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
-                      className={errors.city ? 'border-red-500' : ''}
-                    />
-                    {errors.city && <p className="text-sm text-red-500 mt-1">{errors.city}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="state">State *</Label>
-                    <Input
-                      id="state"
-                      value={shippingAddress.state}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
-                      className={errors.state ? 'border-red-500' : ''}
-                    />
-                    {errors.state && <p className="text-sm text-red-500 mt-1">{errors.state}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="zip">ZIP Code *</Label>
-                    <Input
-                      id="zip"
-                      value={shippingAddress.zip}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, zip: e.target.value }))}
-                      className={errors.zip ? 'border-red-500' : ''}
-                    />
-                    {errors.zip && <p className="text-sm text-red-500 mt-1">{errors.zip}</p>}
-                  </div>
                 </div>
 
                 <div>
@@ -621,9 +570,10 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                     </div>
 
                     <div>
-                      <Label htmlFor="billingAddress1">Address Line 1 *</Label>
+                      <Label htmlFor="billingAddress1">Billing Address *</Label>
                       <Input
                         id="billingAddress1"
+                        placeholder="Street address"
                         value={billingAddress.address1}
                         onChange={(e) => setBillingAddress(prev => ({ ...prev, address1: e.target.value }))}
                         className={errors.billingAddress1 ? 'border-red-500' : ''}
@@ -632,45 +582,13 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                     </div>
 
                     <div>
-                      <Label htmlFor="billingAddress2">Address Line 2</Label>
+                      <Label htmlFor="billingAddress2">Address Line 2 (Optional)</Label>
                       <Input
                         id="billingAddress2"
+                        placeholder="Apartment, suite, unit, etc."
                         value={billingAddress.address2}
                         onChange={(e) => setBillingAddress(prev => ({ ...prev, address2: e.target.value }))}
                       />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="billingCity">City *</Label>
-                        <Input
-                          id="billingCity"
-                          value={billingAddress.city}
-                          onChange={(e) => setBillingAddress(prev => ({ ...prev, city: e.target.value }))}
-                          className={errors.billingCity ? 'border-red-500' : ''}
-                        />
-                        {errors.billingCity && <p className="text-sm text-red-500 mt-1">{errors.billingCity}</p>}
-                      </div>
-                      <div>
-                        <Label htmlFor="billingState">State *</Label>
-                        <Input
-                          id="billingState"
-                          value={billingAddress.state}
-                          onChange={(e) => setBillingAddress(prev => ({ ...prev, state: e.target.value }))}
-                          className={errors.billingState ? 'border-red-500' : ''}
-                        />
-                        {errors.billingState && <p className="text-sm text-red-500 mt-1">{errors.billingState}</p>}
-                      </div>
-                      <div>
-                        <Label htmlFor="billingZip">ZIP Code *</Label>
-                        <Input
-                          id="billingZip"
-                          value={billingAddress.zip}
-                          onChange={(e) => setBillingAddress(prev => ({ ...prev, zip: e.target.value }))}
-                          className={errors.billingZip ? 'border-red-500' : ''}
-                        />
-                        {errors.billingZip && <p className="text-sm text-red-500 mt-1">{errors.billingZip}</p>}
-                      </div>
                     </div>
                   </>
                 )}

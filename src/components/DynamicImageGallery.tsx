@@ -285,7 +285,8 @@ export function DynamicImageGallery({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          console.log('🔄 Dynamic gallery intersection observer triggered loadMore');
           loadMore();
         }
       },
@@ -295,7 +296,7 @@ export function DynamicImageGallery({
     observer.observe(loadingRef.current);
 
     return () => observer.disconnect();
-  }, [loadMore, hasMore, isLoading]);
+  }, [hasMore, isLoading]); // Remove loadMore from dependencies to prevent infinite re-creation
 
   // Staggered animation for new images
   useEffect(() => {
