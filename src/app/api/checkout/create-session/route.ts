@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { supabase as supabaseClient } from "@/lib/supabase/client";
 import { z } from "zod";
 import Stripe from "stripe";
 import type { PricingItem } from "@/lib/pricing";
@@ -70,19 +71,30 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
     
-    // Check authentication
+    // Check authentication - try both cookie and header methods
     let user = null;
     let authError = null;
     
+    // Method 1: Try cookie-based auth
     const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
+    console.log('Checkout API: Cookie auth check', { 
+      hasUser: !!cookieAuth.user, 
+      userId: cookieAuth.user?.id, 
+      userEmail: cookieAuth.user?.email,
+      cookieError: cookieError?.message 
+    });
+    
     if (!cookieError && cookieAuth.user) {
       user = cookieAuth.user;
     } else {
+      // Method 2: Try Authorization header
       const authHeader = request.headers.get('authorization');
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
-        const { data: headerAuth, error: headerError } = await supabase.auth.getUser(token);
+        console.log('Checkout API: Trying Authorization header authentication');
+        const { data: headerAuth, error: headerError } = await supabaseClient.auth.getUser(token);
         if (!headerError && headerAuth.user) {
+          console.log('Checkout API: Authenticated via Authorization header');
           user = headerAuth.user;
         } else {
           authError = headerError;
@@ -93,11 +105,20 @@ export async function POST(request: NextRequest) {
     }
     
     if (authError || !user) {
+      console.log('Checkout API: Authentication failed', { 
+        authError: authError?.message,
+        hasUser: !!user 
+      });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    console.log('Checkout API: Authenticated user', { 
+      userId: user.id, 
+      userEmail: user.email 
+    });
 
     const body = await request.json();
     const validatedData = CreateCheckoutSessionSchema.parse(body);
