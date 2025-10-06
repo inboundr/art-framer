@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { supabase as supabaseClient } from '@/lib/supabase/client';
 import { z } from 'zod';
 import type { ShippingItem } from '@/lib/shipping';
@@ -69,8 +69,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedAddress = ShippingAddressSchema.parse(body);
 
+    // Use service client to bypass RLS for cart operations
+    const serviceSupabase = createServiceClient();
+    
     // Get cart items
-    const { data: cartItems, error: cartError } = await supabase
+    const { data: cartItems, error: cartError } = await serviceSupabase
       .from('cart_items')
       .select(`
         *,
