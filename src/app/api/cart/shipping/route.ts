@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createClientClient } from '@/lib/supabase/client';
 import { z } from 'zod';
 import type { ShippingItem } from '@/lib/shipping';
 
@@ -9,15 +10,61 @@ const ShippingAddressSchema = z.object({
   postalCode: z.string().optional(),
 });
 
+async function authenticateUser(request: NextRequest) {
+  // First try server-side client (cookies)
+  const supabaseServer = await createClient();
+  const { data: { user: serverUser }, error: serverError } = await supabaseServer.auth.getUser();
+  
+  if (serverUser && !serverError) {
+    console.log('Cart Shipping API: Authenticated via server client');
+    return { user: serverUser, supabase: supabaseServer };
+  }
+  
+  // If server auth fails, try Authorization header
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    console.log('Cart Shipping API: Trying Authorization header authentication');
+    
+    const supabaseClient = createClientClient();
+    const { data: { user: clientUser }, error: clientError } = await supabaseClient.auth.getUser(token);
+    
+    if (clientUser && !clientError) {
+      console.log('Cart Shipping API: Authenticated via Authorization header');
+      return { user: clientUser, supabase: supabaseClient };
+    }
+  }
+  
+  console.log('Cart Shipping API: Authentication failed', { 
+    serverError: serverError?.message,
+    hasAuthHeader: !!authHeader 
+  });
+  
+  return { user: null, error: 'Authentication failed' };
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    console.log('Cart Shipping API: Starting request');
+    console.log('Cart Shipping API: Request headers', {
+      authorization: request.headers.get('authorization'),
+      cookie: request.headers.get('cookie'),
+      userAgent: request.headers.get('user-agent')
+    });
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Authenticate user with both cookies and Authorization header support
+    const authResult = await authenticateUser(request);
+    
+    if (!authResult.user) {
+      console.log('Cart Shipping API: Authentication failed');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    const { user, supabase } = authResult;
+    console.log('Cart Shipping API: Authenticated user', { 
+      userId: user.id, 
+      userEmail: user.email 
+    });
 
     const body = await request.json();
     const validatedAddress = ShippingAddressSchema.parse(body);
