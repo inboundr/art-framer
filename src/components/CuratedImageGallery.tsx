@@ -7,9 +7,8 @@ import { Heart, Eye, Download, Share2, Tag, Calendar, ShoppingCart } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { useDynamicLayoutSafe, useDynamicThemeSafe, useDynamicAnimationsSafe } from '@/hooks/useDynamicHooksSafe';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCart } from '@/contexts/CartContext';
+import { useDynamicAnimationsSafe } from '@/hooks/useDynamicHooksSafe';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { CreationsModal } from './CreationsModal';
 
@@ -179,13 +178,7 @@ export function CuratedImageGallery({
   const [selectedImage, setSelectedImage] = useState<CuratedImage | null>(null);
   const [showCreationsModal, setShowCreationsModal] = useState(false);
 
-  // Dynamic UI hooks with safe fallbacks
-  const { 
-    optimalImageGrid, 
-    getSpacing,
-    getResponsiveClasses 
-  } = useDynamicLayoutSafe();
-  const { theme } = useDynamicThemeSafe();
+  // Dynamic animations hook
   const { createTransition } = useDynamicAnimationsSafe();
 
   // Ensure hydration safety
@@ -252,41 +245,16 @@ export function CuratedImageGallery({
 
   return (
     <div 
-      className={`flex flex-col items-center self-stretch ${className}`}
-      style={{
-        backgroundColor: theme.colors.background,
-        color: theme.colors.foreground,
-        transition: createTransition([
-          { property: 'background-color', duration: 300 },
-          { property: 'color', duration: 300 },
-        ]),
-      }}
+      className={`flex flex-col items-center self-stretch bg-background text-foreground ${className}`}
     >
       <div 
-        className="flex flex-col items-center w-full max-w-7xl mx-auto"
-        style={{ 
-          padding: isHydrated ? `${getSpacing(24)} ${getSpacing(4)}` : '24px 4px',
-        }}
+        className="flex flex-col items-center w-full max-w-7xl mx-auto py-6 px-4"
       >
         {/* Masonry Layout Container */}
         <div className="w-full">
           {/* Dynamic Responsive Masonry Columns */}
           <div 
-            className={isHydrated ? getResponsiveClasses({
-              xs: 'columns-1',
-              sm: 'columns-2',
-              md: 'columns-3',
-              lg: 'columns-4',
-              xl: 'columns-5',
-              '2xl': 'columns-6',
-            }) : 'columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6'}
-            style={{
-              gap: isHydrated ? `${optimalImageGrid.gap}px` : '16px',
-              transition: isHydrated ? createTransition([
-                { property: 'column-count', duration: 300 },
-                { property: 'gap', duration: 300 },
-              ]) : undefined,
-            }}
+            className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4"
           >
             {images.map((image, index) => (
               <CuratedImageCard 

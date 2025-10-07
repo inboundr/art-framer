@@ -10,7 +10,7 @@ import { CuratedImageGallery } from './CuratedImageGallery';
 import { AuthModal } from './AuthModal';
 import { WelcomeModal } from './WelcomeModal';
 import { StylesOnboardingModal } from './StylesOnboardingModal';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 // Temporarily simplified imports to resolve bundler issues
 // import { DynamicThemeProvider, ThemeToggle, DynamicStatusIndicator } from './DynamicThemeProvider';
 // import { DynamicErrorBoundary } from './DynamicErrorBoundary';

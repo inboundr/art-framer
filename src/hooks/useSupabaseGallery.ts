@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabaseImageAPI, Image, GalleryResponse, SearchFilters } from '@/lib/supabase/images';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export function useGallery(options: { pageSize?: number; onError?: (error: Error) => void } = {}) {
   // Memoize options to prevent infinite re-renders

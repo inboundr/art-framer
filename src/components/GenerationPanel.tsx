@@ -6,7 +6,7 @@ import { IdeogramImageGenerationRequest } from '@/lib/ideogram/api';
 import { CreationsModal } from './CreationsModal';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { saveGeneratedImageToSupabase } from '@/lib/utils/saveGeneratedImage';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useGeneration } from '@/contexts/GenerationContext';
 
 interface GenerationPanelProps {

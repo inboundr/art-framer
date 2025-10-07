@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { ideogramAPI, IdeogramImageGenerationRequest, IdeogramImageGenerationResponse } from '@/lib/ideogram/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UseImageGenerationOptions {
   onSuccess?: (response: IdeogramImageGenerationResponse) => void;

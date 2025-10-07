@@ -1,7 +1,7 @@
 'use client';
 
-import { AppLayout } from '../components/AppLayout';
+import { PublicLayout } from '../components/PublicLayout';
 
 export default function Index() {
-  return <AppLayout />;
+  return <PublicLayout />;
 }

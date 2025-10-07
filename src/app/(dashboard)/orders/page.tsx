@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { AppLayout } from '@/components/AppLayout';
+import { AuthenticatedLayout } from '@/components/AuthenticatedLayout';
 import { FramePreview } from '@/components/FramePreview';
 import { supabase } from '@/lib/supabase/client';
 
@@ -432,19 +432,19 @@ export default function OrdersPage() {
 
   if (!user) {
     return (
-      <AppLayout>
+      <AuthenticatedLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Please sign in to view your orders</h1>
             <p className="text-muted-foreground">You need to be logged in to track your orders.</p>
           </div>
         </div>
-      </AppLayout>
+      </AuthenticatedLayout>
     );
   }
 
   return (
-    <AppLayout>
+    <AuthenticatedLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -512,6 +512,6 @@ export default function OrdersPage() {
         {/* Order Details Modal */}
         {selectedOrder && <OrderDetailsModal order={selectedOrder} />}
       </div>
-    </AppLayout>
+    </AuthenticatedLayout>
   );
 }

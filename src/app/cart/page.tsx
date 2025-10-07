@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AppLayout } from '@/components/AppLayout';
+import { AuthenticatedLayout } from '@/components/AuthenticatedLayout';
 import { ShoppingCart } from '@/components/ShoppingCart';
 import { CheckoutFlow } from '@/components/CheckoutFlow';
 
@@ -24,7 +24,7 @@ export default function CartPage() {
 
   if (showCheckout) {
     return (
-      <AppLayout>
+      <AuthenticatedLayout>
         <div className="flex flex-col min-h-screen bg-background">
           {/* Top Spacer - same as other pages */}
           <div className="h-16 min-h-16 self-stretch bg-background" />
@@ -37,12 +37,12 @@ export default function CartPage() {
             />
           </div>
         </div>
-      </AppLayout>
+      </AuthenticatedLayout>
     );
   }
 
   return (
-    <AppLayout>
+    <AuthenticatedLayout>
       <div className="flex flex-col min-h-screen bg-background">
         {/* Top Spacer - same as other pages */}
         <div className="h-16 min-h-16 self-stretch bg-background" />
@@ -58,6 +58,6 @@ export default function CartPage() {
           </div>
         </div>
       </div>
-    </AppLayout>
+    </AuthenticatedLayout>
   );
 }

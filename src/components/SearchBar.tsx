@@ -6,7 +6,7 @@ import { ModelDropdown } from './ModelDropdown';
 import { MagicPromptDropdown } from './MagicPromptDropdown';
 import { StyleDropdown } from './StyleDropdown';
 import { ColorDropdown } from './ColorDropdown';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CategoryButtonProps {
   label: string;

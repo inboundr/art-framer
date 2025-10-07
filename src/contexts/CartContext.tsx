@@ -64,7 +64,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cartData, setCartData] = useState<CartData | null>(null);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, session } = useAuth();
 
   const fetchCart = useCallback(async () => {
     if (!user) {
@@ -74,8 +74,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
     try {
-      // Get the session to access the token
-      const { data: { session } } = await supabase.auth.getSession();
       console.log('Cart: Session data', { hasSession: !!session, hasToken: !!session?.access_token });
       
       const response = await fetch('/api/cart', {
@@ -97,15 +95,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, session]);
 
   const addToCart = async (productId: string, quantity: number = 1): Promise<boolean> => {
     if (!user) return false;
 
     try {
-      // Get the session to access the token
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await fetch('/api/cart', {
         method: 'POST',
         headers: {
@@ -134,9 +129,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
 
     try {
-      // Get the session to access the token
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await fetch('/api/cart', {
         method: 'PATCH',
         headers: {
@@ -165,9 +157,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
 
     try {
-      // Get the session to access the token
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await fetch(`/api/cart/${cartItemId}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -196,6 +185,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         fetch(`/api/cart/${item.id}`, {
           method: 'DELETE',
           credentials: 'include',
+          headers: session?.access_token ? {
+            'Authorization': `Bearer ${session.access_token}`
+          } : {}
         })
       );
 
@@ -223,7 +215,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } else {
       setCartData(null);
     }
-  }, [user, fetchCart]);
+  }, [user, session, fetchCart]);
 
   const value: CartContextType = {
     cartData,

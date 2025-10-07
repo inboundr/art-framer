@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { LoginForm } from './forms/LoginForm';
 import { SignupForm } from './forms/SignupForm';
 import { WelcomeModal } from './WelcomeModal';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AuthModalProps {
   isOpen: boolean;

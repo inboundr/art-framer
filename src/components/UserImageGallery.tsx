@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { CreationsModal } from './CreationsModal';

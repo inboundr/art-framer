@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AppLayout } from '../../components/AppLayout';
+import { AuthenticatedLayout } from '../../components/AuthenticatedLayout';
 import { SearchBar } from '../../components/SearchBar';
 import { UserImageGallery } from '../../components/UserImageGallery';
 
@@ -14,7 +14,7 @@ export default function Creations() {
   };
 
   return (
-    <AppLayout>
+    <AuthenticatedLayout>
       {/* Exact same layout as home page */}
       <div className="flex flex-col min-h-screen bg-background">
         {/* Top Spacer - same as home */}
@@ -26,6 +26,6 @@ export default function Creations() {
         {/* User Image Gallery - instead of public ImageGallery */}
         <UserImageGallery />
       </div>
-    </AppLayout>
+    </AuthenticatedLayout>
   );
 }

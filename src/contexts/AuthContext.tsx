@@ -19,7 +19,7 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -31,11 +31,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     let retryCount = 0;
     const maxRetries = 3;
+    let timeoutId: NodeJS.Timeout | null = null;
 
     // Enhanced session initialization with multiple retry attempts
     const initializeAuth = async () => {
       try {
         console.log('🔐 Initializing authentication...');
+        
+        // Set a maximum timeout to prevent infinite loading
+        timeoutId = setTimeout(() => {
+          if (mounted) {
+            console.log('⚠️ Auth initialization timeout, setting loading to false');
+            setLoading(false);
+          }
+        }, 5000); // 5 second timeout
         
         // Wait a bit for localStorage to be available
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -155,10 +164,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }, 1000 * retryCount);
           return;
+        } else {
+          // If all retries failed, just set loading to false and continue
+          console.log('⚠️ All auth initialization retries failed, continuing without auth');
+          if (mounted) {
+            setLoading(false);
+          }
         }
       } finally {
         if (mounted) {
           setLoading(false);
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
         }
       }
     };
@@ -204,6 +222,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       subscription.unsubscribe();
     };
   }, []);

@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { SidebarAvatar } from './SidebarAvatar';
 
 interface ProfilePopupProps {

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart as ShoppingCartIcon, Package, CreditCard } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { AuthenticatedLayout } from '@/components/AuthenticatedLayout';
 
 export default function ShopPage() {
   const [activeTab, setActiveTab] = useState('catalog');
@@ -32,36 +33,41 @@ export default function ShopPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In Required</h2>
-          <p className="text-gray-600 mb-4">
-            Please sign in to access the shop and purchase framed art.
-          </p>
-          <Button onClick={() => window.location.href = '/login'}>
-            Sign In
-          </Button>
+      <AuthenticatedLayout>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In Required</h2>
+            <p className="text-gray-600 mb-4">
+              Please sign in to access the shop and purchase framed art.
+            </p>
+            <Button onClick={() => window.location.href = '/login'}>
+              Sign In
+            </Button>
+          </div>
         </div>
-      </div>
+      </AuthenticatedLayout>
     );
   }
 
   if (showCheckout) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <CheckoutFlow
-            onSuccess={handleCheckoutSuccess}
-            onCancel={handleCheckoutCancel}
-          />
+      <AuthenticatedLayout>
+        <div className="min-h-screen bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <CheckoutFlow
+              onSuccess={handleCheckoutSuccess}
+              onCancel={handleCheckoutCancel}
+            />
+          </div>
         </div>
-      </div>
+      </AuthenticatedLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <AuthenticatedLayout>
+      <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Art Shop</h1>
@@ -111,5 +117,6 @@ export default function ShopPage() {
         </Tabs>
       </div>
     </div>
+    </AuthenticatedLayout>
   );
 }

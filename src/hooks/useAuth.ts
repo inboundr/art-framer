@@ -1,3 +1,3 @@
 'use client';
 
-export { useAuth } from '@/contexts/AuthContext';
+export { useLazyAuth as useAuth } from '@/contexts/LazyAuthProvider';

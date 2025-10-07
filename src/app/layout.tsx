@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { LazyAuthProvider } from "@/contexts/LazyAuthProvider";
 import { CartProvider } from "@/contexts/CartContext";
 import { GenerationProvider } from "@/contexts/GenerationContext";
 import { AuthDebugPanel } from "@/components/AuthDebugPanel";
@@ -37,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={manrope.className} suppressHydrationWarning={true}>
-        <AuthProvider>
+        <LazyAuthProvider>
           <CartProvider>
             <GenerationProvider>
               <TooltipProvider>
@@ -48,7 +48,7 @@ export default function RootLayout({
               </TooltipProvider>
             </GenerationProvider>
           </CartProvider>
-        </AuthProvider>
+        </LazyAuthProvider>
       </body>
     </html>
   );
