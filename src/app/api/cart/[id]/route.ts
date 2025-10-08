@@ -53,7 +53,7 @@ export async function PUT(
     const body = await request.json();
     const validatedData = UpdateCartItemSchema.parse(body);
 
-    // Use service client for database operations
+    // Use service client for verification
     const serviceSupabase = createServiceClient();
 
     // Verify cart item belongs to user
@@ -71,14 +71,14 @@ export async function PUT(
       );
     }
 
-    // Update cart item
-    const updateData = { 
-      quantity: validatedData.quantity,
-      updated_at: new Date().toISOString()
-    };
-    const { data: updatedItem, error: updateError } = await serviceSupabase
+    // Use regular client for update operation to avoid typing issues
+    const supabase = await createClient();
+    const { data: updatedItem, error: updateError } = await (supabase as any)
       .from('cart_items')
-      .update(updateData)
+      .update({
+        quantity: validatedData.quantity,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
       .select(`
         *,
