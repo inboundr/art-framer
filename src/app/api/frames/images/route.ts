@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Get the Prodigi SKU for this frame combination
-    const sku = await prodigiClient.getProductSku(
+    const sku = await prodigiClient.generateFrameSku(
       validatedData.frameSize,
       validatedData.frameStyle,
       validatedData.frameMaterial

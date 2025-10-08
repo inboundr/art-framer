@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     
     const supabase = await createClient();
     
-    // Check authentication - try both cookie and header methods
+    // Check authentication - try multiple methods
     let user = null;
     let authError = null;
     
@@ -46,7 +46,14 @@ export async function GET(request: NextRequest) {
           authError = headerError;
         }
       } else {
-        authError = cookieError;
+        // Method 3: Try to get session from cookies directly
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (!sessionError && sessionData.session?.user) {
+          console.log('Cart API: Authenticated via session');
+          user = sessionData.session.user;
+        } else {
+          authError = cookieError || sessionError;
+        }
       }
     }
     

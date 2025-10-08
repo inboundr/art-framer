@@ -137,9 +137,13 @@ export async function POST(request: NextRequest) {
     const dimensions = getFrameDimensions(validatedData.frameSize);
     const cost = validatedData.price * 0.4; // Default 40% cost margin
 
-    // Generate SKU
-    const skuPrefix = validatedData.curatedImageId.substring(0, 8).toUpperCase();
-    const sku = `CUR-${skuPrefix}-${validatedData.frameSize.toUpperCase()}-${validatedData.frameStyle.toUpperCase()}-${validatedData.frameMaterial.toUpperCase()}`;
+    // Generate SKU using Prodigi client
+    const { prodigiClient } = await import('@/lib/prodigi');
+    const sku = await prodigiClient.generateFrameSku(
+      validatedData.frameSize,
+      validatedData.frameStyle,
+      validatedData.frameMaterial
+    );
 
     // Create product using service client to bypass RLS
     const { data: product, error: productError } = await (serviceSupabase as any)
