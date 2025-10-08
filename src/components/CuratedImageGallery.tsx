@@ -3,9 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCuratedGallery } from '@/hooks/useCuratedGallery';
 import { CuratedImage } from '@/lib/curated-images';
-import { Heart, Eye, Download, Share2, Tag, Calendar, ShoppingCart } from 'lucide-react';
+import { Heart, Eye, Download, Share2, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useDynamicAnimationsSafe } from '@/hooks/useDynamicHooksSafe';
 import { useAuth } from '@/hooks/useAuth';
@@ -113,42 +112,6 @@ function CuratedImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal, 
           </div>
         </div>
 
-        {/* Image Info */}
-        <div className="p-4 space-y-2">
-          <h3 className="font-semibold text-lg line-clamp-1">{image.title}</h3>
-          
-          {image.description && (
-            <p className="text-sm text-gray-600 line-clamp-2">{image.description}</p>
-          )}
-          
-          {/* Tags */}
-          {image.tags && image.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {image.tags.slice(0, 3).map((tag, index) => (
-                <Badge key={index} variant="secondary" className="text-xs">
-                  <Tag className="w-3 h-3 mr-1" />
-                  {tag}
-                </Badge>
-              ))}
-              {image.tags.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{image.tags.length - 3} more
-                </Badge>
-              )}
-            </div>
-          )}
-          
-          {/* Metadata */}
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              {new Date(image.created_at).toLocaleDateString()}
-            </div>
-            <div className="flex items-center gap-1">
-              <span>{image.width}×{image.height}</span>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

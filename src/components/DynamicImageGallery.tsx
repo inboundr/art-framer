@@ -162,34 +162,6 @@ function DynamicImageCard({
         </div>
       </div>
 
-      {/* Content */}
-      <div className="mt-3">
-        <p 
-          className="text-sm line-clamp-2"
-          style={{ 
-            color: 'hsl(var(--muted-foreground))',
-            fontSize: '0.875rem',
-          }}
-        >
-          {image.prompt}
-        </p>
-        
-        {/* Metadata */}
-        <div className="flex items-center justify-between mt-2">
-          <span 
-            className="text-xs"
-            style={{ color: 'hsl(var(--muted-foreground))' }}
-          >
-            {image.aspect_ratio || '1:1'}
-          </span>
-          <span 
-            className="text-xs"
-            style={{ color: 'hsl(var(--muted-foreground))' }}
-          >
-            {image.model || 'V_3'}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
