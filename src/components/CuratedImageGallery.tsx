@@ -135,6 +135,16 @@ export function CuratedImageGallery({
   onOpenAuthModal
 }: CuratedImageGalleryProps) {
   const { images, loading, error, hasMore, loadMore } = useCuratedGallery();
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('🖼️ CuratedImageGallery render:', { 
+      imagesCount: images.length, 
+      loading, 
+      hasError: !!error,
+      hasMore 
+    });
+  }, [images.length, loading, error, hasMore]);
   const [isHydrated, setIsHydrated] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);

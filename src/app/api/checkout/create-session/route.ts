@@ -84,6 +84,17 @@ export async function POST(request: NextRequest) {
       cookieError: cookieError?.message 
     });
     
+    // Debug: Check if we have session cookies
+    const cookies = request.cookies.getAll();
+    const authCookies = cookies.filter(cookie => 
+      cookie.name.includes('sb-') || cookie.name.includes('supabase')
+    );
+    console.log('Checkout API: Auth cookies found', {
+      totalCookies: cookies.length,
+      authCookies: authCookies.length,
+      cookieNames: authCookies.map(c => c.name)
+    });
+    
     if (!cookieError && cookieAuth.user) {
       user = cookieAuth.user;
     } else {
@@ -106,14 +117,28 @@ export async function POST(request: NextRequest) {
           console.log('Checkout API: Authenticated via session');
           user = sessionData.session.user;
         } else {
-          authError = cookieError || sessionError;
+          // Method 4: Try to refresh the session
+          console.log('Checkout API: Attempting session refresh');
+          try {
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            if (!refreshError && refreshData.session?.user) {
+              console.log('Checkout API: Session refreshed successfully');
+              user = refreshData.session.user;
+            } else {
+              console.log('Checkout API: Session refresh failed', refreshError?.message);
+              authError = cookieError || sessionError || refreshError;
+            }
+          } catch (refreshError) {
+            console.log('Checkout API: Session refresh error', refreshError);
+            authError = cookieError || sessionError || refreshError;
+          }
         }
       }
     }
     
     if (authError || !user) {
       console.log('Checkout API: Authentication failed', { 
-        authError: authError?.message,
+        authError: authError instanceof Error ? authError.message : String(authError),
         hasUser: !!user 
       });
       return NextResponse.json(

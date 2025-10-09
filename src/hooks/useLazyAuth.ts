@@ -25,16 +25,13 @@ export function useLazyAuth(): LazyAuthState {
   useEffect(() => {
     let mounted = true;
     
-    // Small delay to ensure component renders first
-    const timer = setTimeout(() => {
-      if (mounted) {
-        setIsInitialized(true);
-      }
-    }, 100);
+    // Set initialized immediately to prevent blocking
+    if (mounted) {
+      setIsInitialized(true);
+    }
 
     return () => {
       mounted = false;
-      clearTimeout(timer);
     };
   }, []);
 

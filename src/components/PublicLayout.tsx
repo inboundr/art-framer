@@ -16,7 +16,7 @@ interface PublicLayoutProps {
 }
 
 export function PublicLayout({ children }: PublicLayoutProps) {
-  const { user } = useAuth();
+  const { user } = useAuth(); // Keep this for generation panel logic
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [generationPanelVisible, setGenerationPanelVisible] = useState(false);

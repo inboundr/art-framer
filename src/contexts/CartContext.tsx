@@ -74,7 +74,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
     try {
-      console.log('Cart: Session data', { hasSession: !!session, hasToken: !!session?.access_token });
+      console.log('Cart: Session data', { 
+        hasSession: !!session, 
+        hasToken: !!session?.access_token,
+        userId: user.id,
+        userEmail: user.email,
+        sessionExpiry: session?.expires_at
+      });
       
       const response = await fetch('/api/cart', {
         credentials: 'include',

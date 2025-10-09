@@ -128,6 +128,16 @@ export function LazyAuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Token refreshed successfully');
+          // Force a session refresh to ensure cookies are updated
+          try {
+            const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+            if (refreshedSession) {
+              setSession(refreshedSession);
+              console.log('Session updated after token refresh');
+            }
+          } catch (error) {
+            console.error('Error updating session after token refresh:', error);
+          }
         } else if (event === 'SIGNED_IN') {
           console.log('User signed in:', session?.user?.email);
         }
@@ -141,12 +151,39 @@ export function LazyAuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Set up periodic session refresh to prevent expiration
+    const refreshInterval = setInterval(async () => {
+      if (mounted && user) {
+        try {
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (currentSession && currentSession.expires_at) {
+            const expiresAt = new Date(currentSession.expires_at * 1000);
+            const now = new Date();
+            const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+            
+            // If session expires in less than 5 minutes, refresh it
+            if (timeUntilExpiry < 5 * 60 * 1000) {
+              console.log('Session expiring soon, refreshing...');
+              const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+              if (!refreshError && refreshData.session) {
+                setSession(refreshData.session);
+                console.log('Session refreshed proactively');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error during periodic session check:', error);
+        }
+      }
+    }, 60000); // Check every minute
+
     return () => {
       mounted = false;
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
       clearTimeout(timer);
+      clearInterval(refreshInterval);
       subscription.unsubscribe();
     };
   }, []);

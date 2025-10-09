@@ -9,8 +9,8 @@ export function useCuratedGallery(options: {
   // Memoize options to prevent infinite re-renders
   const memoizedOptions = useMemo(() => options, [
     options.pageSize,
-    options.onError,
     options.filters
+    // Removed options.onError to prevent infinite re-renders
   ]);
   const [images, setImages] = useState<CuratedImage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -153,7 +153,8 @@ export function useCuratedGallery(options: {
         console.error('❌ Initial curated gallery error:', err);
         const error = err instanceof Error ? err : new Error('Failed to load initial curated gallery');
         setError(error);
-        memoizedOptions.onError?.(error);
+        // Don't call onError to prevent infinite re-renders
+        // memoizedOptions.onError?.(error);
       } finally {
         setLoading(false);
       }
