@@ -33,6 +33,16 @@ function CuratedImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal, 
   const handleBuyAsFrame = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering image click
     if (!user) {
+      // Store the selected image in localStorage for after login
+      localStorage.setItem('pending-cart-image', JSON.stringify({
+        id: image.id,
+        image_url: image.image_url,
+        title: image.title,
+        description: image.description,
+        aspect_ratio: image.aspect_ratio,
+        timestamp: Date.now()
+      }));
+      
       // Show auth modal for non-authenticated users
       if (onOpenAuthModal) {
         onOpenAuthModal();
@@ -135,6 +145,7 @@ export function CuratedImageGallery({
   onOpenAuthModal
 }: CuratedImageGalleryProps) {
   const { images, loading, error, hasMore, loadMore } = useCuratedGallery();
+  const { user } = useAuth();
   
   // Debug logging
   useEffect(() => {
@@ -145,6 +156,51 @@ export function CuratedImageGallery({
       hasMore 
     });
   }, [images.length, loading, error, hasMore]);
+
+  // Check for pending cart image after login
+  useEffect(() => {
+    if (user) {
+      const pendingImageData = localStorage.getItem('pending-cart-image');
+      if (pendingImageData) {
+        try {
+          const pendingImage = JSON.parse(pendingImageData);
+          // Check if the data is not too old (within 1 hour)
+          const isRecent = Date.now() - pendingImage.timestamp < 60 * 60 * 1000;
+          if (isRecent) {
+            console.log('🛒 Found pending cart image after login:', pendingImage);
+            // Convert to CuratedImage format and show modal
+            const curatedImage: CuratedImage = {
+              id: pendingImage.id,
+              image_url: pendingImage.image_url,
+              title: pendingImage.title,
+              description: pendingImage.description,
+              category: 'curated',
+              tags: [],
+              thumbnail_url: null,
+              width: 800,
+              height: 600,
+              aspect_ratio: pendingImage.aspect_ratio,
+              display_order: 0,
+              is_featured: false,
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            setSelectedImage(curatedImage);
+            setShowCreationsModal(true);
+            // Clear the pending image
+            localStorage.removeItem('pending-cart-image');
+          } else {
+            // Clear old pending image
+            localStorage.removeItem('pending-cart-image');
+          }
+        } catch (error) {
+          console.error('Error parsing pending cart image:', error);
+          localStorage.removeItem('pending-cart-image');
+        }
+      }
+    }
+  }, [user]);
   const [isHydrated, setIsHydrated] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
