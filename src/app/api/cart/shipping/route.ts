@@ -8,6 +8,7 @@ const ShippingAddressSchema = z.object({
   countryCode: z.string().min(2).max(2),
   stateOrCounty: z.string().optional(),
   postalCode: z.string().optional(),
+  city: z.string().optional(),
 });
 
 async function authenticateUser(request: NextRequest) {

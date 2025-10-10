@@ -24,13 +24,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useAddresses } from '@/hooks/useAddresses';
 import { GooglePlacesAutocomplete } from '@/components/ui/google-places-autocomplete';
 import { supabase } from '@/lib/supabase/client';
+import type { ShippingAddress } from '@/lib/pricing';
 
 interface CheckoutFlowProps {
   onSuccess?: (orderId: string) => void;
   onCancel?: () => void;
 }
 
-interface ShippingAddress {
+interface CheckoutShippingAddress {
   firstName: string;
   lastName: string;
   address1: string;
@@ -76,7 +77,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
   const [shippingLoading, setShippingLoading] = useState(false);
   const [googlePlacesAddress, setGooglePlacesAddress] = useState('');
   
-  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
+  const [shippingAddress, setShippingAddress] = useState<CheckoutShippingAddress>({
     firstName: '',
     lastName: '',
     address1: '',
@@ -163,41 +164,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     });
   };
 
-  // Calculate shipping when address changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
-        calculateShipping(shippingAddress);
-      }
-    }, 500); // Debounce to avoid too many API calls
-
-    return () => clearTimeout(timer);
-  }, [shippingAddress.country, shippingAddress.city, shippingAddress.zip, shippingAddress.state, shippingAddress]);
-
-  const formatPrice = (price: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency.toUpperCase(),
-    }).format(price);
-  };
-
-  // Get currency based on shipping address
-  const getDisplayCurrency = () => {
-    if (!shippingAddress.country) return 'USD';
-    
-    const currencyMap: Record<string, string> = {
-      'US': 'USD', 'CA': 'CAD', 'GB': 'GBP', 'AU': 'AUD', 'DE': 'EUR', 'FR': 'EUR',
-      'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR', 'BE': 'EUR', 'AT': 'EUR', 'PT': 'EUR',
-      'IE': 'EUR', 'FI': 'EUR', 'LU': 'EUR', 'JP': 'JPY', 'KR': 'KRW', 'SG': 'SGD',
-      'HK': 'HKD', 'CH': 'CHF', 'SE': 'SEK', 'NO': 'NOK', 'DK': 'DKK', 'PL': 'PLN',
-      'CZ': 'CZK', 'HU': 'HUF', 'MX': 'MXN', 'BR': 'BRL', 'IN': 'INR', 'NZ': 'NZD',
-    };
-    
-    return currencyMap[shippingAddress.country.toUpperCase()] || 'USD';
-  };
-
   // Calculate shipping costs when address changes
-  const calculateShipping = useCallback(async (address: ShippingAddress) => {
+  const calculateShipping = useCallback(async (address: CheckoutShippingAddress) => {
     if (!address.country || !address.city || !address.zip) {
       setCalculatedShipping(null);
       return;
@@ -221,6 +189,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
           countryCode: address.country,
           stateOrCounty: address.state,
           postalCode: address.zip,
+          city: address.city,
         }),
       });
 
@@ -246,6 +215,39 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       setShippingLoading(false);
     }
   }, []);
+
+  // Calculate shipping when address changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
+        calculateShipping(shippingAddress);
+      }
+    }, 500); // Debounce to avoid too many API calls
+
+    return () => clearTimeout(timer);
+  }, [shippingAddress.country, shippingAddress.city, shippingAddress.zip, shippingAddress.state, calculateShipping]);
+
+  const formatPrice = (price: number, currency: string = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(price);
+  };
+
+  // Get currency based on shipping address
+  const getDisplayCurrency = () => {
+    if (!shippingAddress.country) return 'USD';
+    
+    const currencyMap: Record<string, string> = {
+      'US': 'USD', 'CA': 'CAD', 'GB': 'GBP', 'AU': 'AUD', 'DE': 'EUR', 'FR': 'EUR',
+      'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR', 'BE': 'EUR', 'AT': 'EUR', 'PT': 'EUR',
+      'IE': 'EUR', 'FI': 'EUR', 'LU': 'EUR', 'JP': 'JPY', 'KR': 'KRW', 'SG': 'SGD',
+      'HK': 'HKD', 'CH': 'CHF', 'SE': 'SEK', 'NO': 'NOK', 'DK': 'DKK', 'PL': 'PLN',
+      'CZ': 'CZK', 'HU': 'HUF', 'MX': 'MXN', 'BR': 'BRL', 'IN': 'INR', 'NZ': 'NZD',
+    };
+    
+    return currencyMap[shippingAddress.country.toUpperCase()] || 'USD';
+  };
 
   const getFrameSizeLabel = (size: string) => {
     const labels = {
@@ -338,12 +340,19 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         return;
       }
 
+      // Get the session to access the token for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+
       // Create checkout session
       const response = await fetch('/api/checkout/create-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(session?.access_token && {
+            'Authorization': `Bearer ${session.access_token}`
+          })
         },
+        credentials: 'include',
         body: JSON.stringify({
           cartItemIds: cartItems.map(item => item.id),
           shippingAddress: {

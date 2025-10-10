@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
+import { supabase } from '@/lib/supabase/client';
 
 interface CartItem {
   id: string;
@@ -182,10 +183,16 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
     if (!user || !cartData || cartData.cartItems.length === 0) return;
 
     try {
+      // Get the session to access the token for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+
       const response = await fetch('/api/checkout/create-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(session?.access_token && {
+            'Authorization': `Bearer ${session.access_token}`
+          })
         },
         credentials: 'include',
         body: JSON.stringify({
