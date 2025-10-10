@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         frameSize: item.products.frame_size,
         frameStyle: item.products.frame_style,
         frameMaterial: item.products.frame_material,
-      })),
+      }))),
       shippingAddress: (order as any).shipping_address,
       customerEmail: (order as any).customer_email,
       customerPhone: (order as any).customer_phone,

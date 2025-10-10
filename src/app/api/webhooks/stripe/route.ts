@@ -344,7 +344,7 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
         frameSize: item.products?.frame_size || 'medium',
         frameStyle: item.products?.frame_style || 'black',
         frameMaterial: item.products?.frame_material || 'wood',
-      })),
+      }))),
       shippingAddress: order.shipping_address,
       customerEmail: order.customer_email,
       customerPhone: order.customer_phone,
