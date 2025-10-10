@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
     // Prepare order data for Prodigi
     const prodigiOrderData = {
       orderReference: (order as any).order_number,
-      items: (order as any).order_items.map((item: any) => ({
-        productSku: prodigiClient.getProductSku(
+      items: await Promise.all((order as any).order_items.map(async (item: any) => ({
+        productSku: await prodigiClient.getProductSku(
           item.products.frame_size,
           item.products.frame_style,
           item.products.frame_material

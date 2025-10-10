@@ -27,10 +27,10 @@ export async function GET() {
       { size: 'extra_large', style: 'gold', material: 'wood' },
     ];
 
-    const skuMappings = testMappings.map(({ size, style, material }) => ({
+    const skuMappings = await Promise.all(testMappings.map(async ({ size, style, material }) => ({
       input: `${size}-${style}-${material}`,
-      sku: prodigiClient.getProductSku(size, style, material)
-    }));
+      sku: await prodigiClient.getProductSku(size, style, material)
+    })));
 
     // Test 3: Test order conversion
     const testOrderData = {

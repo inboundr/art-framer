@@ -231,8 +231,8 @@ export class OrderRetryManager {
     // Prepare Prodigi order data
     const prodigiOrderData = {
       orderReference: order.order_number || `ORDER-${orderId.slice(-8)}`,
-      items: order.order_items.map((item: any) => ({
-        productUid: prodigiClient.getProductSku(
+      items: await Promise.all(order.order_items.map(async (item: any) => ({
+        productUid: await prodigiClient.getProductSku(
           item.products?.frame_size || 'medium',
           item.products?.frame_style || 'black',
           item.products?.frame_material || 'wood'
@@ -242,7 +242,7 @@ export class OrderRetryManager {
         frameSize: item.products?.frame_size || 'medium',
         frameStyle: item.products?.frame_style || 'black',
         frameMaterial: item.products?.frame_material || 'wood',
-      })),
+      }))),
       shippingAddress: order.shipping_address,
       customerEmail: order.customer_email,
       customerPhone: order.customer_phone,

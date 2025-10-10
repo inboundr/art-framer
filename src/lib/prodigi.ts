@@ -387,64 +387,22 @@ export class ProdigiClient {
    */
   async generateFrameSku(frameSize: string, frameStyle: string, frameMaterial: string): Promise<string> {
     try {
-      // First try to get a dynamic SKU
+      // Try to get a dynamic SKU from Prodigi
       const dynamicSku = await this.getProductSku(frameSize, frameStyle, frameMaterial);
       if (dynamicSku && dynamicSku !== this.getFallbackSku(frameSize)) {
+        console.log(`✅ Using dynamic SKU: ${dynamicSku}`);
         return dynamicSku;
       }
       
-      // If dynamic search fails, use a consistent format
-      const sizeCode = this.getSizeCode(frameSize);
-      const styleCode = this.getStyleCode(frameStyle);
-      const materialCode = this.getMaterialCode(frameMaterial);
-      
-      // Create a consistent SKU format
-      const customSku = `CUR-${sizeCode}-${styleCode}-${materialCode}`;
-      
-      // Verify this SKU exists in Prodigi
-      try {
-        await this.getProductDetails(customSku);
-        return customSku;
-      } catch (error) {
-        console.warn(`Custom SKU ${customSku} not found, using fallback`);
-        return this.getFallbackSku(frameSize);
-      }
+      // If dynamic search fails, use fallback SKU
+      console.log(`⚠️ Dynamic search failed, using fallback SKU for size: ${frameSize}`);
+      return this.getFallbackSku(frameSize);
     } catch (error) {
       console.warn('Error generating frame SKU, using fallback:', error);
       return this.getFallbackSku(frameSize);
     }
   }
 
-  private getSizeCode(size: string): string {
-    const sizeMap: Record<string, string> = {
-      'small': 'SM',
-      'medium': 'MED',
-      'large': 'LG',
-      'extra_large': 'XL',
-    };
-    return sizeMap[size] || 'MED';
-  }
-
-  private getStyleCode(style: string): string {
-    const styleMap: Record<string, string> = {
-      'black': 'BLACK',
-      'white': 'WHITE',
-      'natural': 'NATURAL',
-      'gold': 'GOLD',
-      'silver': 'SILVER',
-    };
-    return styleMap[style] || 'BLACK';
-  }
-
-  private getMaterialCode(material: string): string {
-    const materialMap: Record<string, string> = {
-      'wood': 'WOOD',
-      'metal': 'METAL',
-      'plastic': 'PLASTIC',
-      'bamboo': 'BAMBOO',
-    };
-    return materialMap[material] || 'WOOD';
-  }
 
   /**
    * Map our frame size to Prodigi size attribute
