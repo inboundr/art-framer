@@ -111,10 +111,30 @@ async function handleCheckoutSessionCompleted(
 
     console.log('✅ Cart items fetched:', { count: cartItems.length, items: cartItems.map((item: any) => ({ id: item.id, productId: item.product_id })) });
 
+    // Check if order already exists (idempotency protection)
+    const { data: existingOrder } = await supabase
+      .from('orders')
+      .select('id, order_number, status')
+      .eq('stripe_session_id', session.id)
+      .single();
+
+    if (existingOrder) {
+      console.log('🔄 Order already exists, skipping creation:', { 
+        orderId: existingOrder.id, 
+        orderNumber: existingOrder.order_number,
+        status: existingOrder.status 
+      });
+      return;
+    }
+
+    // Generate unique order number
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    
     // Create order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
+        order_number: orderNumber,
         user_id: userId,
         stripe_session_id: session.id,
         stripe_payment_intent_id: session.payment_intent as string,

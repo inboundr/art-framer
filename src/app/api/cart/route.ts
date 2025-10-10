@@ -223,105 +223,75 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if item already exists in cart
-    const { data: existingItem, error: existingError } = await serviceSupabase
+    // First, try to get existing item to check current quantity
+    const { data: existingItem } = await serviceSupabase
       .from('cart_items')
       .select('id, quantity')
       .eq('user_id', user.id)
       .eq('product_id', validatedData.productId)
       .single();
 
-    if (existingError && existingError.code !== 'PGRST116') {
-      console.error('Error checking existing cart item:', existingError);
+    let finalQuantity = validatedData.quantity;
+    let isNewItem = false;
+
+    if (existingItem) {
+      // Item exists, add to existing quantity
+      finalQuantity = (existingItem as any).quantity + validatedData.quantity;
+      isNewItem = false;
+    } else {
+      // New item
+      finalQuantity = validatedData.quantity;
+      isNewItem = true;
+    }
+
+    // Check if final quantity exceeds maximum
+    if (finalQuantity > 10) {
       return NextResponse.json(
-        { error: 'Failed to check cart' },
+        { error: 'Maximum quantity per item is 10' },
+        { status: 400 }
+      );
+    }
+
+    // Use upsert to handle race conditions atomically
+    const { data: cartItem, error: upsertError } = await (serviceSupabase as any)
+      .from('cart_items')
+      .upsert({
+        user_id: user.id,
+        product_id: validatedData.productId,
+        quantity: finalQuantity,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,product_id',
+        ignoreDuplicates: false
+      })
+      .select(`
+        *,
+        products (
+          *,
+          images (
+            id,
+            prompt,
+            image_url,
+            thumbnail_url,
+            user_id,
+            created_at
+          )
+        )
+      `)
+      .single();
+
+    if (upsertError) {
+      console.error('Error upserting cart item:', upsertError);
+      return NextResponse.json(
+        { error: 'Failed to add/update cart item', details: upsertError.message },
         { status: 500 }
       );
     }
 
-    if (existingItem) {
-      // Update existing item quantity
-      const newQuantity = (existingItem as any).quantity + validatedData.quantity;
-      if (newQuantity > 10) {
-        return NextResponse.json(
-          { error: 'Maximum quantity per item is 10' },
-          { status: 400 }
-        );
-      }
-
-      const { data: updatedItem, error: updateError } = await (serviceSupabase as any)
-        .from('cart_items')
-        .update({ 
-          quantity: newQuantity,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', (existingItem as any).id)
-        .select(`
-          *,
-          products (
-            *,
-            images (
-              id,
-              prompt,
-              image_url,
-              thumbnail_url,
-              user_id,
-              created_at
-            )
-          )
-        `)
-        .single();
-
-      if (updateError) {
-        console.error('Error updating cart item:', updateError);
-        return NextResponse.json(
-          { error: 'Failed to update cart item' },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ 
-        cartItem: updatedItem,
-        message: 'Cart item updated successfully'
-      });
-    } else {
-      // Create new cart item
-      const { data: newItem, error: insertError } = await (serviceSupabase as any)
-        .from('cart_items')
-        .insert({
-          user_id: user.id,
-          product_id: validatedData.productId,
-          quantity: validatedData.quantity
-        })
-        .select(`
-          *,
-          products (
-            *,
-            images (
-              id,
-              prompt,
-              image_url,
-              thumbnail_url,
-              user_id,
-              created_at
-            )
-          )
-        `)
-        .single();
-
-      if (insertError) {
-        console.error('Error adding to cart:', insertError);
-        return NextResponse.json(
-          { error: 'Failed to add item to cart', details: insertError.message },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ 
-        cartItem: newItem,
-        message: 'Item added to cart successfully'
-      }, { status: 201 });
-    }
+    return NextResponse.json({ 
+      cartItem,
+      message: isNewItem ? 'Item added to cart successfully' : 'Cart item updated successfully'
+    }, { status: isNewItem ? 201 : 200 });
   } catch (error) {
     console.error('Error in POST /api/cart:', error);
     if (error instanceof z.ZodError) {

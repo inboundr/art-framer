@@ -243,6 +243,14 @@ export function LazyAuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', user.id);
 
       if (error) {
+        // Handle unique constraint violations
+        if (error.code === '23505') {
+          if (error.message.includes('username')) {
+            return { error: new Error('Username already taken. Please choose a different username.') };
+          } else if (error.message.includes('email')) {
+            return { error: new Error('Email already in use. Please use a different email.') };
+          }
+        }
         return { error };
       }
 
@@ -250,7 +258,8 @@ export function LazyAuthProvider({ children }: { children: React.ReactNode }) {
       await fetchProfile(user.id);
       return { error: null };
     } catch (error) {
-      return { error };
+      console.error('Error updating profile:', error);
+      return { error: error instanceof Error ? error : new Error('Failed to update profile') };
     }
   };
 

@@ -359,10 +359,10 @@ export class ProdigiClient {
       }
 
       // Fallback to size-based mapping if no exact match
-      return this.getFallbackSku(frameSize);
+      return this.getFallbackSku(frameSize, frameStyle, frameMaterial);
     } catch (error) {
       console.warn('Error finding dynamic product SKU, using fallback:', error);
-      return this.getFallbackSku(frameSize);
+      return this.getFallbackSku(frameSize, frameStyle, frameMaterial);
     }
   }
 
@@ -370,15 +370,45 @@ export class ProdigiClient {
    * Fallback SKU mapping when dynamic search fails
    * Uses only verified SKUs that exist in the Prodigi API
    */
-  private getFallbackSku(frameSize: string): string {
-    const fallbackMap: Record<string, string> = {
-      'small': 'GLOBAL-CAN-10x10',      // ✅ Verified exists
-      'medium': 'GLOBAL-CFPM-16X20',    // ✅ Verified exists  
-      'large': 'GLOBAL-FAP-16X24',      // ✅ Verified exists
-      'extra_large': 'GLOBAL-FRA-CAN-30X40', // ✅ Verified exists
-    };
+  private getFallbackSku(frameSize: string, frameStyle: string, frameMaterial: string): string {
+    // Create a more specific fallback SKU that includes style and material
+    const sizeCode = this.getSizeCode(frameSize);
+    const styleCode = this.getStyleCode(frameStyle);
+    const materialCode = this.getMaterialCode(frameMaterial);
     
-    return fallbackMap[frameSize] || 'GLOBAL-CFPM-16X20'; // Default to verified medium frame
+    // Generate a unique fallback SKU that won't conflict
+    return `FALLBACK-${sizeCode}-${styleCode}-${materialCode}`;
+  }
+
+  private getSizeCode(size: string): string {
+    const sizeMap: Record<string, string> = {
+      'small': 'SM',
+      'medium': 'MED',
+      'large': 'LG',
+      'extra_large': 'XL',
+    };
+    return sizeMap[size] || 'MED';
+  }
+
+  private getStyleCode(style: string): string {
+    const styleMap: Record<string, string> = {
+      'black': 'BLK',
+      'white': 'WHT',
+      'natural': 'NAT',
+      'gold': 'GLD',
+      'silver': 'SLV',
+    };
+    return styleMap[style] || 'BLK';
+  }
+
+  private getMaterialCode(material: string): string {
+    const materialMap: Record<string, string> = {
+      'wood': 'WD',
+      'metal': 'MT',
+      'plastic': 'PL',
+      'bamboo': 'BM',
+    };
+    return materialMap[material] || 'WD';
   }
 
   /**
@@ -389,17 +419,17 @@ export class ProdigiClient {
     try {
       // Try to get a dynamic SKU from Prodigi
       const dynamicSku = await this.getProductSku(frameSize, frameStyle, frameMaterial);
-      if (dynamicSku && dynamicSku !== this.getFallbackSku(frameSize)) {
+      if (dynamicSku && dynamicSku !== this.getFallbackSku(frameSize, frameStyle, frameMaterial)) {
         console.log(`✅ Using dynamic SKU: ${dynamicSku}`);
         return dynamicSku;
       }
       
       // If dynamic search fails, use fallback SKU
-      console.log(`⚠️ Dynamic search failed, using fallback SKU for size: ${frameSize}`);
-      return this.getFallbackSku(frameSize);
+      console.log(`⚠️ Dynamic search failed, using fallback SKU for: ${frameSize}-${frameStyle}-${frameMaterial}`);
+      return this.getFallbackSku(frameSize, frameStyle, frameMaterial);
     } catch (error) {
       console.warn('Error generating frame SKU, using fallback:', error);
-      return this.getFallbackSku(frameSize);
+      return this.getFallbackSku(frameSize, frameStyle, frameMaterial);
     }
   }
 

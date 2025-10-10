@@ -322,16 +322,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('No user logged in') };
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id);
 
-    if (!error) {
-      setProfile(prev => prev ? { ...prev, ...updates } : null);
+      if (error) {
+        // Handle unique constraint violations
+        if (error.code === '23505') {
+          if (error.message.includes('username')) {
+            return { error: new Error('Username already taken. Please choose a different username.') };
+          } else if (error.message.includes('email')) {
+            return { error: new Error('Email already in use. Please use a different email.') };
+          }
+        }
+        return { error };
+      }
+
+      if (!error) {
+        setProfile(prev => prev ? { ...prev, ...updates } : null);
+      }
+
+      return { error: null };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return { error: error instanceof Error ? error : new Error('Failed to update profile') };
     }
-
-    return { error };
   };
 
   const refreshProfile = async () => {
