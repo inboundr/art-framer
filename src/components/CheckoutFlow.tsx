@@ -168,6 +168,12 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
   // Enhanced shipping calculation with comprehensive error handling and retry mechanism
   const calculateShipping = useCallback(async (address: CheckoutShippingAddress, retryCount = 0) => {
+    // Prevent multiple simultaneous calculations
+    if (shippingLoading) {
+      console.log('📍 Shipping calculation already in progress, skipping');
+      return;
+    }
+
     // Enhanced validation
     if (!address.country || !address.city || !address.zip) {
       console.log('📍 Address incomplete, clearing shipping calculation');
@@ -258,6 +264,9 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
   // Track if address has been manually modified by user
   const [addressManuallyModified, setAddressManuallyModified] = useState(false);
+  
+  // Debounce mechanism to prevent rapid-fire calculations
+  const [calculationTimeout, setCalculationTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Enhanced address change detection - only trigger for user interactions
   useEffect(() => {
@@ -265,6 +274,11 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     if (!addressManuallyModified) {
       console.log('📍 Address loaded from cache, skipping automatic shipping calculation');
       return;
+    }
+
+    // Clear any existing timeout
+    if (calculationTimeout) {
+      clearTimeout(calculationTimeout);
     }
 
     const timer = setTimeout(() => {
@@ -285,16 +299,23 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         console.log('📍 Address incomplete, clearing shipping calculation');
         setCalculatedShipping(null);
       }
-    }, 800); // Increased debounce to handle rapid changes
+    }, 1000); // Increased debounce to 1 second to prevent rapid calculations
 
-    return () => clearTimeout(timer);
+    setCalculationTimeout(timer);
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
   }, [
     shippingAddress.country, 
     shippingAddress.city, 
     shippingAddress.zip, 
     shippingAddress.state,
     calculateShipping,
-    addressManuallyModified
+    addressManuallyModified,
+    calculationTimeout
   ]);
 
   // Additional effect to handle Google Maps edge cases (only for user interactions)
@@ -307,19 +328,19 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       }
       
       if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
-        // Only calculate if we don't already have a valid shipping calculation
-        if (!calculatedShipping || calculatedShipping.cost === 0) {
+        // Only calculate if we don't already have a valid shipping calculation AND we're not currently loading
+        if (!calculatedShipping && !shippingLoading) {
           console.log('📍 Google Maps edge case detected, recalculating shipping');
           calculateShipping(shippingAddress);
         }
       }
     };
 
-    // Set up a periodic check for Google Maps edge cases
-    const interval = setInterval(handleGoogleMapsEdgeCases, 3000);
+    // Set up a periodic check for Google Maps edge cases (only if no shipping calculation exists)
+    const interval = setInterval(handleGoogleMapsEdgeCases, 5000); // Increased interval to 5 seconds
     
     return () => clearInterval(interval);
-  }, [shippingAddress, calculatedShipping, calculateShipping, addressManuallyModified]);
+  }, [shippingAddress, calculatedShipping, calculateShipping, addressManuallyModified, shippingLoading]);
 
   const formatPrice = (price: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
