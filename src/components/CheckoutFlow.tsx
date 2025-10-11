@@ -170,7 +170,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
   const calculateShipping = useCallback(async (address: CheckoutShippingAddress, retryCount = 0) => {
     // Prevent multiple simultaneous calculations
     if (shippingLoading) {
-      console.log('📍 Shipping calculation already in progress, skipping');
+      console.log('📍 Shipping calculation already in progress, skipping - current state:', { shippingLoading });
       return;
     }
 
@@ -198,6 +198,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         retryCount
       });
 
+      console.log('🔍 About to get session...');
       // Get the session to access the token for authentication
       const { data: { session } } = await supabase.auth.getSession();
       console.log('🔐 Session status:', { hasSession: !!session, hasToken: !!session?.access_token });
