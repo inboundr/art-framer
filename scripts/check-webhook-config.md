@@ -23,11 +23,13 @@ Your orders aren't being created because the Stripe webhook is not configured. S
 Enable these events for comprehensive payment handling:
 
 **Primary Events (Required):**
+
 - ✅ `checkout.session.completed` - **Main event for successful orders**
 - ✅ `payment_intent.succeeded` - **Backup confirmation for successful payments**
 - ✅ `payment_intent.payment_failed` - **Handle failed payments**
 
 **Additional Events (Recommended):**
+
 - ✅ `checkout.session.async_payment_succeeded` - **For bank transfers, SEPA, etc.**
 - ✅ `checkout.session.async_payment_failed` - **For failed async payments**
 - ✅ `payment_intent.requires_action` - **For 3D Secure authentication**
@@ -96,18 +98,21 @@ Look for these log messages in your application:
 ## **Expected Flow After Fix**
 
 ### **Successful Payment Flow:**
+
 1. ✅ User completes checkout → Stripe processes payment
 2. ✅ Stripe sends `checkout.session.completed` webhook to your app
 3. ✅ Your webhook creates order in database
 4. ✅ User sees order in their order list
 
 ### **Failed Payment Flow:**
+
 1. ❌ User payment fails (insufficient funds, declined card, etc.)
 2. ❌ Stripe sends `payment_intent.payment_failed` webhook
 3. ❌ Your webhook updates order status to "cancelled"
 4. ❌ User sees payment failed message
 
 ### **Async Payment Flow (Bank Transfers, SEPA):**
+
 1. 🔄 User initiates bank transfer payment
 2. 🔄 Stripe sends `checkout.session.completed` (payment pending)
 3. 🔄 Later: Stripe sends `checkout.session.async_payment_succeeded` when bank confirms
