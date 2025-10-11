@@ -36,6 +36,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="build-version" content={Date.now().toString()} />
+        <meta name="cache-control" content="no-cache, no-store, must-revalidate" />
+        <meta name="pragma" content="no-cache" />
+        <meta name="expires" content="0" />
+      </head>
       <body className={manrope.className} suppressHydrationWarning={true}>
         <LazyAuthProvider>
           <CartProvider>

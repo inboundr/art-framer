@@ -92,6 +92,12 @@ export async function middleware(request: NextRequest) {
     } else {
       supabaseResponse.headers.set('x-auth-status', 'unauthenticated')
     }
+
+    // Add simple cache busting headers
+    supabaseResponse.headers.set('x-build-time', Date.now().toString());
+    supabaseResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    supabaseResponse.headers.set('Pragma', 'no-cache');
+    supabaseResponse.headers.set('Expires', '0');
   } catch (error) {
     console.error('Middleware error:', error)
     supabaseResponse.headers.set('x-auth-status', 'error')

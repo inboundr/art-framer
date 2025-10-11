@@ -1,0 +1,8 @@
+{
+  "version": "2025-10-11T21-57-55-711Z-7e7d0c1",
+  "buildTime": "2025-10-11T21:57:55.744Z",
+  "gitHash": "7e7d0c1fd3a5fbeb3b7594defa93e8c6ca1adb02",
+  "gitShortHash": "7e7d0c1",
+  "branch": "main",
+  "lastCommit": "fix: prevent infinite shipping calculation loop"
+}
