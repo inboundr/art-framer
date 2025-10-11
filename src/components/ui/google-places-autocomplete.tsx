@@ -71,30 +71,55 @@ export function GooglePlacesAutocomplete({
     }
   }, []);
 
-  // Initialize autocomplete when Google Maps is loaded
+  // Enhanced autocomplete initialization with comprehensive error handling
   useEffect(() => {
     if (isLoaded && inputRef.current && !autocompleteRef.current) {
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
-        types: ['address'],
-        componentRestrictions: { country: ['us', 'ca', 'gb', 'au', 'de', 'fr', 'it', 'es'] }, // Major shipping countries
-        fields: [
-          'address_components',
-          'formatted_address',
-          'geometry',
-          'name',
-          'place_id',
-          'types'
-        ],
-      });
+      try {
+        console.log('🗺️ Initializing Google Places Autocomplete');
+        
+        autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+          types: ['address'],
+          componentRestrictions: { 
+            country: ['us', 'ca', 'gb', 'au', 'de', 'fr', 'it', 'es', 'nl', 'be', 'at', 'pt', 'ie', 'fi', 'lu', 'jp', 'kr', 'sg', 'hk', 'ch', 'se', 'no', 'dk', 'pl', 'cz', 'hu', 'mx', 'br', 'in', 'nz'] 
+          },
+          fields: [
+            'address_components',
+            'formatted_address',
+            'geometry',
+            'name',
+            'place_id',
+            'types'
+          ],
+          strictBounds: false,
+        });
 
-      if (autocompleteRef.current) {
-        autocompleteRef.current.addListener('place_changed', handlePlaceSelect);
+        if (autocompleteRef.current) {
+          // Enhanced event listeners
+          autocompleteRef.current.addListener('place_changed', () => {
+            console.log('📍 Place changed event triggered');
+            handlePlaceSelect();
+          });
+
+          // Handle input changes for better UX
+          autocompleteRef.current.addListener('input', () => {
+            setValidationStatus(null);
+          });
+
+          console.log('✅ Google Places Autocomplete initialized successfully');
+        }
+      } catch (error) {
+        console.error('❌ Error initializing Google Places Autocomplete:', error);
       }
     }
 
     return () => {
-      if (autocompleteRef.current && window.google?.maps?.event) {
-        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      try {
+        if (autocompleteRef.current && window.google?.maps?.event) {
+          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+          console.log('🧹 Google Places Autocomplete cleaned up');
+        }
+      } catch (error) {
+        console.error('❌ Error cleaning up Google Places Autocomplete:', error);
       }
     };
   }, [isLoaded]);
@@ -104,7 +129,16 @@ export function GooglePlacesAutocomplete({
 
     const place = autocompleteRef.current.getPlace();
     
+    console.log('🔍 Google Places place selected:', {
+      place_id: place.place_id,
+      formatted_address: place.formatted_address,
+      has_components: !!place.address_components,
+      has_geometry: !!place.geometry,
+      component_count: place.address_components?.length || 0
+    });
+    
     if (!place.address_components || !place.geometry) {
+      console.warn('❌ Invalid place data:', { place });
       setValidationStatus('invalid');
       return;
     }
@@ -113,7 +147,7 @@ export function GooglePlacesAutocomplete({
     setValidationStatus(null);
 
     try {
-      // Parse address components
+      // Enhanced address parsing with fallbacks
       const addressComponents = place.address_components;
       const addressData = {
         address1: '',
@@ -127,35 +161,84 @@ export function GooglePlacesAutocomplete({
         formattedAddress: place.formatted_address || '',
       };
 
+      // Enhanced component parsing with multiple fallbacks
       for (const component of addressComponents) {
         const types = component.types;
         
+        // Street address parsing with fallbacks
         if (types.includes('street_number')) {
           addressData.address1 = component.long_name + ' ';
         } else if (types.includes('route')) {
           addressData.address1 += component.long_name;
-        } else if (types.includes('locality')) {
+        } else if (types.includes('premise')) {
+          // Fallback for building names
+          if (!addressData.address1) {
+            addressData.address1 = component.long_name;
+          }
+        }
+        
+        // City parsing with multiple fallbacks
+        if (types.includes('locality')) {
           addressData.city = component.long_name;
-        } else if (types.includes('administrative_area_level_1')) {
+        } else if (types.includes('sublocality') && !addressData.city) {
+          addressData.city = component.long_name;
+        } else if (types.includes('administrative_area_level_2') && !addressData.city) {
+          addressData.city = component.long_name;
+        }
+        
+        // State parsing with fallbacks
+        if (types.includes('administrative_area_level_1')) {
           addressData.state = component.short_name;
-        } else if (types.includes('postal_code')) {
+        } else if (types.includes('administrative_area_level_2') && !addressData.state) {
+          addressData.state = component.short_name;
+        }
+        
+        // ZIP code parsing
+        if (types.includes('postal_code')) {
           addressData.zip = component.long_name;
-        } else if (types.includes('country')) {
+        }
+        
+        // Country parsing
+        if (types.includes('country')) {
           addressData.country = component.long_name;
           addressData.countryCode = component.short_name;
         }
       }
 
-      // Validate required fields
-      if (addressData.address1 && addressData.city && addressData.state && addressData.zip && addressData.countryCode) {
+      // Enhanced validation with better error messages
+      const validationErrors = [];
+      
+      if (!addressData.address1 || addressData.address1.trim().length < 3) {
+        validationErrors.push('Street address is required');
+      }
+      
+      if (!addressData.city || addressData.city.trim().length < 2) {
+        validationErrors.push('City is required');
+      }
+      
+      if (!addressData.countryCode || addressData.countryCode.length !== 2) {
+        validationErrors.push('Country is required');
+      }
+      
+      // ZIP code is optional for some countries, but validate if present
+      if (addressData.zip && addressData.zip.length < 3) {
+        validationErrors.push('ZIP code is too short');
+      }
+
+      console.log('📍 Parsed address data:', addressData);
+      console.log('🔍 Validation errors:', validationErrors);
+
+      if (validationErrors.length === 0) {
         setValidationStatus('valid');
         onChange(place.formatted_address || '', place);
         onAddressSelect?.(addressData);
+        console.log('✅ Address validation successful');
       } else {
         setValidationStatus('invalid');
+        console.warn('❌ Address validation failed:', validationErrors);
       }
     } catch (error) {
-      console.error('Error processing place selection:', error);
+      console.error('❌ Error processing place selection:', error);
       setValidationStatus('invalid');
     } finally {
       setIsValidating(false);

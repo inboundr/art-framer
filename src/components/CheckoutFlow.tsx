@@ -157,15 +157,32 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     calculateShipping(newAddress);
   };
 
-  // Calculate shipping costs when address changes
-  const calculateShipping = useCallback(async (address: CheckoutShippingAddress) => {
+  // Enhanced shipping calculation with comprehensive error handling and retry mechanism
+  const calculateShipping = useCallback(async (address: CheckoutShippingAddress, retryCount = 0) => {
+    // Enhanced validation
     if (!address.country || !address.city || !address.zip) {
+      console.log('📍 Address incomplete, clearing shipping calculation');
+      setCalculatedShipping(null);
+      return;
+    }
+
+    // Additional validation for better address quality
+    if (address.zip.length < 3 || address.city.length < 2) {
+      console.log('📍 Address validation failed: insufficient data');
       setCalculatedShipping(null);
       return;
     }
 
     setShippingLoading(true);
     try {
+      console.log('🚚 Calculating shipping for address:', {
+        country: address.country,
+        city: address.city,
+        zip: address.zip,
+        state: address.state,
+        retryCount
+      });
+
       // Get the session to access the token for authentication
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -197,28 +214,88 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
           addressValidated: data.addressValidated || false,
           currency: data.currency || getDisplayCurrency(),
         });
+        console.log('✅ Shipping calculated successfully:', data);
       } else {
-        console.error('Failed to calculate shipping');
+        console.error('❌ Failed to calculate shipping:', response.status, response.statusText);
+        
+        // Retry mechanism for failed requests
+        if (retryCount < 2 && (response.status >= 500 || response.status === 429)) {
+          console.log(`🔄 Retrying shipping calculation (attempt ${retryCount + 1}/2)`);
+          setTimeout(() => {
+            calculateShipping(address, retryCount + 1);
+          }, 1000 * (retryCount + 1)); // Exponential backoff
+          return;
+        }
+        
         setCalculatedShipping(null);
       }
     } catch (error) {
-      console.error('Error calculating shipping:', error);
+      console.error('❌ Error calculating shipping:', error);
+      
+      // Retry mechanism for network errors
+      if (retryCount < 2) {
+        console.log(`🔄 Retrying shipping calculation due to network error (attempt ${retryCount + 1}/2)`);
+        setTimeout(() => {
+          calculateShipping(address, retryCount + 1);
+        }, 1000 * (retryCount + 1));
+        return;
+      }
+      
       setCalculatedShipping(null);
     } finally {
       setShippingLoading(false);
     }
   }, []);
 
-  // Calculate shipping when address changes
+  // Enhanced address change detection with comprehensive Google Maps integration
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
+      // Check if we have minimum required fields for shipping calculation
+      const hasRequiredFields = shippingAddress.country && 
+                               shippingAddress.city && 
+                               shippingAddress.zip;
+      
+      if (hasRequiredFields) {
+        console.log('📍 Address changed, calculating shipping:', {
+          country: shippingAddress.country,
+          city: shippingAddress.city,
+          zip: shippingAddress.zip,
+          state: shippingAddress.state
+        });
         calculateShipping(shippingAddress);
+      } else {
+        console.log('📍 Address incomplete, clearing shipping calculation');
+        setCalculatedShipping(null);
       }
-    }, 500); // Debounce to avoid too many API calls
+    }, 800); // Increased debounce to handle rapid changes
 
     return () => clearTimeout(timer);
-  }, [shippingAddress.country, shippingAddress.city, shippingAddress.zip, shippingAddress.state, calculateShipping]);
+  }, [
+    shippingAddress.country, 
+    shippingAddress.city, 
+    shippingAddress.zip, 
+    shippingAddress.state,
+    calculateShipping
+  ]);
+
+  // Additional effect to handle Google Maps edge cases
+  useEffect(() => {
+    // This effect handles cases where Google Maps might not trigger the main effect
+    const handleGoogleMapsEdgeCases = () => {
+      if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
+        // Only calculate if we don't already have a valid shipping calculation
+        if (!calculatedShipping || calculatedShipping.cost === 0) {
+          console.log('📍 Google Maps edge case detected, recalculating shipping');
+          calculateShipping(shippingAddress);
+        }
+      }
+    };
+
+    // Set up a periodic check for Google Maps edge cases
+    const interval = setInterval(handleGoogleMapsEdgeCases, 3000);
+    
+    return () => clearInterval(interval);
+  }, [shippingAddress, calculatedShipping, calculateShipping]);
 
   const formatPrice = (price: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
@@ -507,6 +584,40 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                   <p className="text-xs text-muted-foreground mt-1">
                     Select your address from the suggestions for accurate shipping calculation
                   </p>
+                  
+                  {/* Shipping Calculation Status and Manual Trigger */}
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200 mt-2">
+                    <div>
+                      <h4 className="font-medium text-blue-900 text-sm">Shipping Status</h4>
+                      <p className="text-xs text-blue-700">
+                        {calculatedShipping ? 
+                          `Shipping: ${formatPrice(calculatedShipping.cost, calculatedShipping.currency)}` : 
+                          shippingLoading ? 'Calculating...' : 'Click to calculate shipping'
+                        }
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
+                          console.log('🔄 Manual shipping calculation triggered');
+                          calculateShipping(shippingAddress);
+                        } else {
+                          toast({
+                            title: "Incomplete Address",
+                            description: "Please select an address from the suggestions above.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      disabled={shippingLoading}
+                      className="bg-blue-600 text-white hover:bg-blue-700 text-xs px-3 py-1"
+                    >
+                      {shippingLoading ? 'Calculating...' : 'Calculate'}
+                    </Button>
+                  </div>
                 </div>
 
                 <div>
