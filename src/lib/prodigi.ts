@@ -393,14 +393,14 @@ export class ProdigiClient {
   private getFallbackSku(frameSize: string, frameStyle: string, frameMaterial: string): string {
     // Use actual Prodigi SKUs as fallbacks instead of generating custom ones
     const fallbackMap: Record<string, string> = {
-      'small': 'GLOBAL-CAN-10x10',
-      'medium': 'GLOBAL-FAP-8X10', 
-      'large': 'GLOBAL-FAP-11X14',
-      'extra_large': 'GLOBAL-FAP-16X24'
+      'small': 'GLOBAL-FAP-8X10',     // 8x10 for small
+      'medium': 'GLOBAL-FAP-11X14',   // 11x14 for medium  
+      'large': 'GLOBAL-FAP-16X24',    // 16x24 for large
+      'extra_large': 'GLOBAL-FAP-20X30' // 20x30 for extra large
     };
     
     // Return a verified Prodigi SKU based on size
-    return fallbackMap[frameSize] || 'GLOBAL-FAP-8X10';
+    return fallbackMap[frameSize] || 'GLOBAL-FAP-11X14';
   }
 
 
@@ -410,16 +410,13 @@ export class ProdigiClient {
    */
   async generateFrameSku(frameSize: string, frameStyle: string, frameMaterial: string): Promise<string> {
     try {
-      // Try to get a dynamic SKU from Prodigi
-      const dynamicSku = await this.getProductSku(frameSize, frameStyle, frameMaterial);
-      if (dynamicSku && dynamicSku !== this.getFallbackSku(frameSize, frameStyle, frameMaterial)) {
-        console.log(`✅ Using dynamic SKU: ${dynamicSku}`);
-        return dynamicSku;
-      }
+      // For curated images, always use verified Prodigi SKUs to avoid SkuNotFound errors
+      console.log(`🔧 Generating SKU for curated image: ${frameSize}-${frameStyle}-${frameMaterial}`);
       
-      // If dynamic search fails, use fallback SKU
-      console.log(`⚠️ Dynamic search failed, using fallback SKU for: ${frameSize}-${frameStyle}-${frameMaterial}`);
-      return this.getFallbackSku(frameSize, frameStyle, frameMaterial);
+      // Use fallback SKU which contains verified Prodigi SKUs
+      const fallbackSku = this.getFallbackSku(frameSize, frameStyle, frameMaterial);
+      console.log(`✅ Using verified Prodigi SKU: ${fallbackSku}`);
+      return fallbackSku;
     } catch (error) {
       console.warn('Error generating frame SKU, using fallback:', error);
       return this.getFallbackSku(frameSize, frameStyle, frameMaterial);
