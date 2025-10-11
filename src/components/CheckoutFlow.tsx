@@ -142,26 +142,19 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     lng: number;
     formattedAddress: string;
   }) => {
-    setShippingAddress(prev => ({
-      ...prev,
-      address1: addressData.address1,
-      city: addressData.city,
-      state: addressData.state,
-      zip: addressData.zip,
-      country: addressData.countryCode,
-    }));
-    
-    // setAddressValidated(true); // Removed as it's not defined
-    
-    // Immediately calculate shipping for validated address
-    calculateShipping({
+    const newAddress = {
       ...shippingAddress,
       address1: addressData.address1,
       city: addressData.city,
       state: addressData.state,
       zip: addressData.zip,
       country: addressData.countryCode,
-    });
+    };
+    
+    setShippingAddress(newAddress);
+    
+    // Immediately calculate shipping for the new address
+    calculateShipping(newAddress);
   };
 
   // Calculate shipping costs when address changes
