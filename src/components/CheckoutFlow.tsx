@@ -200,7 +200,9 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
       // Get the session to access the token for authentication
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔐 Session status:', { hasSession: !!session, hasToken: !!session?.access_token });
       
+      console.log('🌐 Making API call to /api/cart/shipping...');
       const response = await fetch('/api/cart/shipping', {
         method: 'POST',
         headers: {
@@ -216,6 +218,12 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
           postalCode: address.zip,
           city: address.city,
         }),
+      });
+
+      console.log('📡 API Response received:', { 
+        status: response.status, 
+        statusText: response.statusText,
+        ok: response.ok 
       });
 
       if (response.ok) {
@@ -246,6 +254,11 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       }
     } catch (error) {
       console.error('❌ Error calculating shipping:', error);
+      console.error('❌ Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       
       // Retry mechanism for network errors
       if (retryCount < 2) {
@@ -258,6 +271,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       
       setCalculatedShipping(null);
     } finally {
+      console.log('🏁 Shipping calculation completed, setting loading to false');
       setShippingLoading(false);
     }
   }, []);
