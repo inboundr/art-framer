@@ -102,10 +102,11 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Load default address when component mounts
+  // Load default address when component mounts (without triggering shipping calculation)
   useEffect(() => {
     const defaultAddress = getDefaultAddress();
     if (defaultAddress) {
+      console.log('📍 Loading default address from cache:', defaultAddress);
       setShippingAddress({
         firstName: defaultAddress.firstName,
         lastName: defaultAddress.lastName,
@@ -117,16 +118,19 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         country: defaultAddress.country,
         phone: defaultAddress.phone,
       });
+      // Note: We don't trigger shipping calculation here to avoid automatic calculation
     }
   }, [getDefaultAddress]);
 
   useEffect(() => {
     if (user) {
+      console.log('📍 Loading user metadata:', user.user_metadata);
       setShippingAddress(prev => ({
         ...prev,
         firstName: user.user_metadata?.first_name || '',
         lastName: user.user_metadata?.last_name || '',
       }));
+      // Note: We don't trigger shipping calculation here to avoid automatic calculation
     }
   }, [user]);
 
@@ -142,6 +146,11 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     lng: number;
     formattedAddress: string;
   }) => {
+    console.log('📍 Google Places address selected by user:', addressData);
+    
+    // Mark address as manually modified by user
+    setAddressManuallyModified(true);
+    
     const newAddress = {
       ...shippingAddress,
       address1: addressData.address1,
@@ -247,8 +256,17 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     }
   }, []);
 
-  // Enhanced address change detection with comprehensive Google Maps integration
+  // Track if address has been manually modified by user
+  const [addressManuallyModified, setAddressManuallyModified] = useState(false);
+
+  // Enhanced address change detection - only trigger for user interactions
   useEffect(() => {
+    // Only calculate shipping if user has manually modified the address
+    if (!addressManuallyModified) {
+      console.log('📍 Address loaded from cache, skipping automatic shipping calculation');
+      return;
+    }
+
     const timer = setTimeout(() => {
       // Check if we have minimum required fields for shipping calculation
       const hasRequiredFields = shippingAddress.country && 
@@ -256,7 +274,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                                shippingAddress.zip;
       
       if (hasRequiredFields) {
-        console.log('📍 Address changed, calculating shipping:', {
+        console.log('📍 User-modified address detected, calculating shipping:', {
           country: shippingAddress.country,
           city: shippingAddress.city,
           zip: shippingAddress.zip,
@@ -275,13 +293,19 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     shippingAddress.city, 
     shippingAddress.zip, 
     shippingAddress.state,
-    calculateShipping
+    calculateShipping,
+    addressManuallyModified
   ]);
 
-  // Additional effect to handle Google Maps edge cases
+  // Additional effect to handle Google Maps edge cases (only for user interactions)
   useEffect(() => {
     // This effect handles cases where Google Maps might not trigger the main effect
     const handleGoogleMapsEdgeCases = () => {
+      // Only handle edge cases if user has manually modified the address
+      if (!addressManuallyModified) {
+        return;
+      }
+      
       if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
         // Only calculate if we don't already have a valid shipping calculation
         if (!calculatedShipping || calculatedShipping.cost === 0) {
@@ -295,7 +319,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     const interval = setInterval(handleGoogleMapsEdgeCases, 3000);
     
     return () => clearInterval(interval);
-  }, [shippingAddress, calculatedShipping, calculateShipping]);
+  }, [shippingAddress, calculatedShipping, calculateShipping, addressManuallyModified]);
 
   const formatPrice = (price: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
@@ -602,7 +626,9 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                       size="sm"
                       onClick={() => {
                         if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
-                          console.log('🔄 Manual shipping calculation triggered');
+                          console.log('🔄 Manual shipping calculation triggered by user');
+                          // Mark address as manually modified by user
+                          setAddressManuallyModified(true);
                           calculateShipping(shippingAddress);
                         } else {
                           toast({
