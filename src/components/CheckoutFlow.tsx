@@ -16,7 +16,8 @@ import {
   Lock,
   Clock,
   Package,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -157,9 +158,17 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     calculateShipping(newAddress);
   };
 
-  // Calculate shipping costs when address changes
-  const calculateShipping = useCallback(async (address: CheckoutShippingAddress) => {
+  // Enhanced shipping calculation with retry mechanism and validation
+  const calculateShipping = useCallback(async (address: CheckoutShippingAddress, retryCount = 0) => {
+    // Validate required fields
     if (!address.country || !address.city || !address.zip) {
+      setCalculatedShipping(null);
+      return;
+    }
+
+    // Additional validation for better address quality
+    if (address.zip.length < 3 || address.city.length < 2) {
+      console.log('Address validation failed: insufficient data');
       setCalculatedShipping(null);
       return;
     }
@@ -197,28 +206,88 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
           addressValidated: data.addressValidated || false,
           currency: data.currency || getDisplayCurrency(),
         });
+        console.log('✅ Shipping calculated successfully:', data);
       } else {
-        console.error('Failed to calculate shipping');
+        console.error('Failed to calculate shipping:', response.status, response.statusText);
+        
+        // Retry mechanism for failed requests
+        if (retryCount < 2 && (response.status >= 500 || response.status === 429)) {
+          console.log(`🔄 Retrying shipping calculation (attempt ${retryCount + 1}/2)`);
+          setTimeout(() => {
+            calculateShipping(address, retryCount + 1);
+          }, 1000 * (retryCount + 1)); // Exponential backoff
+          return;
+        }
+        
         setCalculatedShipping(null);
       }
     } catch (error) {
       console.error('Error calculating shipping:', error);
+      
+      // Retry mechanism for network errors
+      if (retryCount < 2) {
+        console.log(`🔄 Retrying shipping calculation due to network error (attempt ${retryCount + 1}/2)`);
+        setTimeout(() => {
+          calculateShipping(address, retryCount + 1);
+        }, 1000 * (retryCount + 1));
+        return;
+      }
+      
       setCalculatedShipping(null);
     } finally {
       setShippingLoading(false);
     }
   }, []);
 
-  // Calculate shipping when address changes
+  // Enhanced address change detection with comprehensive triggers
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
+      // Check if we have minimum required fields for shipping calculation
+      const hasRequiredFields = shippingAddress.country && 
+                               shippingAddress.city && 
+                               shippingAddress.zip;
+      
+      if (hasRequiredFields) {
+        console.log('📍 Address changed, calculating shipping:', {
+          country: shippingAddress.country,
+          city: shippingAddress.city,
+          zip: shippingAddress.zip,
+          state: shippingAddress.state
+        });
         calculateShipping(shippingAddress);
+      } else {
+        console.log('📍 Address incomplete, clearing shipping calculation');
+        setCalculatedShipping(null);
       }
-    }, 500); // Debounce to avoid too many API calls
+    }, 800); // Increased debounce to handle rapid typing
 
     return () => clearTimeout(timer);
-  }, [shippingAddress.country, shippingAddress.city, shippingAddress.zip, shippingAddress.state, calculateShipping]);
+  }, [
+    shippingAddress.country, 
+    shippingAddress.city, 
+    shippingAddress.zip, 
+    shippingAddress.state,
+    calculateShipping
+  ]);
+
+  // Additional effect to handle manual address input changes
+  useEffect(() => {
+    // This effect specifically handles manual input changes that might not trigger the main effect
+    const handleManualAddressChange = () => {
+      if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
+        // Only calculate if we don't already have a valid shipping calculation
+        if (!calculatedShipping || calculatedShipping.cost === 0) {
+          console.log('📍 Manual address change detected, recalculating shipping');
+          calculateShipping(shippingAddress);
+        }
+      }
+    };
+
+    // Set up a more frequent check for manual changes
+    const interval = setInterval(handleManualAddressChange, 2000);
+    
+    return () => clearInterval(interval);
+  }, [shippingAddress, calculatedShipping, calculateShipping]);
 
   const formatPrice = (price: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
@@ -517,6 +586,182 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                     value={shippingAddress.address2}
                     onChange={(e) => setShippingAddress(prev => ({ ...prev, address2: e.target.value }))}
                   />
+                </div>
+
+                {/* Manual Address Input Fields - Fallback for when Google Places doesn't work */}
+                <div className="space-y-4 border-t pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    <strong>Manual Address Entry:</strong> If the address autocomplete doesn't work, you can enter your address manually below.
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="manualCity">City *</Label>
+                      <Input
+                        id="manualCity"
+                        value={shippingAddress.city}
+                        onChange={(e) => {
+                          setShippingAddress(prev => ({ ...prev, city: e.target.value }));
+                          // Trigger shipping calculation on manual input
+                          setTimeout(() => {
+                            if (shippingAddress.country && e.target.value && shippingAddress.zip) {
+                              calculateShipping({
+                                ...shippingAddress,
+                                city: e.target.value
+                              });
+                            }
+                          }, 500);
+                        }}
+                        placeholder="Enter your city"
+                        className={errors.city ? 'border-red-500' : ''}
+                      />
+                      {errors.city && <p className="text-sm text-red-500 mt-1">{errors.city}</p>}
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="manualState">State/Province *</Label>
+                      <Input
+                        id="manualState"
+                        value={shippingAddress.state}
+                        onChange={(e) => {
+                          setShippingAddress(prev => ({ ...prev, state: e.target.value }));
+                          // Trigger shipping calculation on manual input
+                          setTimeout(() => {
+                            if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
+                              calculateShipping({
+                                ...shippingAddress,
+                                state: e.target.value
+                              });
+                            }
+                          }, 500);
+                        }}
+                        placeholder="Enter your state/province"
+                        className={errors.state ? 'border-red-500' : ''}
+                      />
+                      {errors.state && <p className="text-sm text-red-500 mt-1">{errors.state}</p>}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="manualZip">ZIP/Postal Code *</Label>
+                      <Input
+                        id="manualZip"
+                        value={shippingAddress.zip}
+                        onChange={(e) => {
+                          setShippingAddress(prev => ({ ...prev, zip: e.target.value }));
+                          // Trigger shipping calculation on manual input
+                          setTimeout(() => {
+                            if (shippingAddress.country && shippingAddress.city && e.target.value) {
+                              calculateShipping({
+                                ...shippingAddress,
+                                zip: e.target.value
+                              });
+                            }
+                          }, 500);
+                        }}
+                        placeholder="Enter your ZIP/postal code"
+                        className={errors.zip ? 'border-red-500' : ''}
+                      />
+                      {errors.zip && <p className="text-sm text-red-500 mt-1">{errors.zip}</p>}
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="manualCountry">Country *</Label>
+                      <select
+                        id="manualCountry"
+                        value={shippingAddress.country}
+                        onChange={(e) => {
+                          setShippingAddress(prev => ({ ...prev, country: e.target.value }));
+                          // Trigger shipping calculation on country change
+                          setTimeout(() => {
+                            if (e.target.value && shippingAddress.city && shippingAddress.zip) {
+                              calculateShipping({
+                                ...shippingAddress,
+                                country: e.target.value
+                              });
+                            }
+                          }, 500);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="AU">Australia</option>
+                        <option value="DE">Germany</option>
+                        <option value="FR">France</option>
+                        <option value="IT">Italy</option>
+                        <option value="ES">Spain</option>
+                        <option value="NL">Netherlands</option>
+                        <option value="BE">Belgium</option>
+                        <option value="AT">Austria</option>
+                        <option value="PT">Portugal</option>
+                        <option value="IE">Ireland</option>
+                        <option value="FI">Finland</option>
+                        <option value="LU">Luxembourg</option>
+                        <option value="JP">Japan</option>
+                        <option value="KR">South Korea</option>
+                        <option value="SG">Singapore</option>
+                        <option value="HK">Hong Kong</option>
+                        <option value="CH">Switzerland</option>
+                        <option value="SE">Sweden</option>
+                        <option value="NO">Norway</option>
+                        <option value="DK">Denmark</option>
+                        <option value="PL">Poland</option>
+                        <option value="CZ">Czech Republic</option>
+                        <option value="HU">Hungary</option>
+                        <option value="MX">Mexico</option>
+                        <option value="BR">Brazil</option>
+                        <option value="IN">India</option>
+                        <option value="NZ">New Zealand</option>
+                      </select>
+                      {errors.country && <p className="text-sm text-red-500 mt-1">{errors.country}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Manual Shipping Calculation Button */}
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div>
+                    <h4 className="font-medium text-blue-900">Shipping Calculation</h4>
+                    <p className="text-sm text-blue-700">
+                      {calculatedShipping ? 
+                        `Shipping: ${formatPrice(calculatedShipping.cost, calculatedShipping.currency)}` : 
+                        'Click to calculate shipping cost'
+                      }
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (shippingAddress.country && shippingAddress.city && shippingAddress.zip) {
+                        console.log('🔄 Manual shipping calculation triggered');
+                        calculateShipping(shippingAddress);
+                      } else {
+                        toast({
+                          title: "Incomplete Address",
+                          description: "Please fill in country, city, and ZIP code to calculate shipping.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    disabled={shippingLoading}
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    {shippingLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Calculating...
+                      </>
+                    ) : (
+                      <>
+                        <Truck className="h-4 w-4 mr-2" />
+                        Calculate Shipping
+                      </>
+                    )}
+                  </Button>
                 </div>
 
                 <div>
