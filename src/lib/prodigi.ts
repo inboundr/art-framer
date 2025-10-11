@@ -174,6 +174,15 @@ export class ProdigiClient {
       console.log(`🔍 Fetching fresh product data for SKU: ${sku}`);
       const response = await this.request<ProdigiProduct>(`/products/${sku}`);
       
+      console.log(`📦 Raw Prodigi API response for ${sku}:`, {
+        hasResponse: !!response,
+        responseKeys: response ? Object.keys(response) : [],
+        hasSku: !!response?.sku,
+        hasName: !!response?.name,
+        hasCategory: !!response?.category,
+        hasAttributes: !!response?.attributes
+      });
+      
       // Cache the result
       this.productCache.set(sku, response);
       this.cacheExpiry.set(sku, Date.now() + this.CACHE_DURATION);
@@ -200,9 +209,20 @@ export class ProdigiClient {
       for (const sku of knownSkus) {
         try {
           const product = await this.getProductDetails(sku);
-          // Only add valid products with required attributes
-          if (product && product.attributes && (!category || product.category === category)) {
+          console.log(`🔍 Product validation for ${sku}:`, {
+            hasProduct: !!product,
+            hasSku: !!product?.sku,
+            category: product?.category,
+            targetCategory: category,
+            categoryMatch: !category || product?.category === category
+          });
+          
+          // Only add valid products - be more lenient with validation
+          if (product && product.sku && (!category || product.category === category)) {
             products.push(product);
+            console.log(`✅ Added product ${sku} to results`);
+          } else {
+            console.log(`❌ Product ${sku} failed validation`);
           }
         } catch (error) {
           console.warn(`Failed to fetch product ${sku}:`, error);
@@ -371,45 +391,18 @@ export class ProdigiClient {
    * Uses only verified SKUs that exist in the Prodigi API
    */
   private getFallbackSku(frameSize: string, frameStyle: string, frameMaterial: string): string {
-    // Create a more specific fallback SKU that includes style and material
-    const sizeCode = this.getSizeCode(frameSize);
-    const styleCode = this.getStyleCode(frameStyle);
-    const materialCode = this.getMaterialCode(frameMaterial);
+    // Use actual Prodigi SKUs as fallbacks instead of generating custom ones
+    const fallbackMap: Record<string, string> = {
+      'small': 'GLOBAL-CAN-10x10',
+      'medium': 'GLOBAL-FAP-8X10', 
+      'large': 'GLOBAL-FAP-11X14',
+      'extra_large': 'GLOBAL-FAP-16X24'
+    };
     
-    // Generate a unique fallback SKU that won't conflict
-    return `FALLBACK-${sizeCode}-${styleCode}-${materialCode}`;
+    // Return a verified Prodigi SKU based on size
+    return fallbackMap[frameSize] || 'GLOBAL-FAP-8X10';
   }
 
-  private getSizeCode(size: string): string {
-    const sizeMap: Record<string, string> = {
-      'small': 'SM',
-      'medium': 'MED',
-      'large': 'LG',
-      'extra_large': 'XL',
-    };
-    return sizeMap[size] || 'MED';
-  }
-
-  private getStyleCode(style: string): string {
-    const styleMap: Record<string, string> = {
-      'black': 'BLK',
-      'white': 'WHT',
-      'natural': 'NAT',
-      'gold': 'GLD',
-      'silver': 'SLV',
-    };
-    return styleMap[style] || 'BLK';
-  }
-
-  private getMaterialCode(material: string): string {
-    const materialMap: Record<string, string> = {
-      'wood': 'WD',
-      'metal': 'MT',
-      'plastic': 'PL',
-      'bamboo': 'BM',
-    };
-    return materialMap[material] || 'WD';
-  }
 
   /**
    * Generate a proper SKU for frame products
