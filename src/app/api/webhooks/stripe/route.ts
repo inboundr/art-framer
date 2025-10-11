@@ -32,6 +32,16 @@ export async function POST(request: NextRequest) {
         await handleCheckoutSessionCompleted(session, supabase);
         break;
       }
+      case 'checkout.session.async_payment_succeeded': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await handleCheckoutSessionAsyncPaymentSucceeded(session, supabase);
+        break;
+      }
+      case 'checkout.session.async_payment_failed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await handleCheckoutSessionAsyncPaymentFailed(session, supabase);
+        break;
+      }
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         await handlePaymentIntentSucceeded(paymentIntent, supabase);
@@ -40,6 +50,16 @@ export async function POST(request: NextRequest) {
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         await handlePaymentIntentFailed(paymentIntent, supabase);
+        break;
+      }
+      case 'payment_intent.requires_action': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        await handlePaymentIntentRequiresAction(paymentIntent, supabase);
+        break;
+      }
+      case 'charge.dispute.created': {
+        const dispute = event.data.object as Stripe.Dispute;
+        await handleChargeDisputeCreated(dispute, supabase);
         break;
       }
       default:
@@ -301,6 +321,128 @@ async function handlePaymentIntentFailed(
     }
   } catch (error) {
     console.error('Error handling payment intent failed:', error);
+  }
+}
+
+async function handleCheckoutSessionAsyncPaymentSucceeded(
+  session: Stripe.Checkout.Session,
+  supabase: any
+) {
+  try {
+    console.log('🔄 Processing async payment succeeded:', {
+      sessionId: session.id,
+      paymentStatus: session.payment_status,
+      customerEmail: session.customer_email
+    });
+
+    // Update order status to paid
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        status: 'paid',
+        payment_status: 'paid',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_session_id', session.id);
+
+    if (updateError) {
+      console.error('Error updating order for async payment success:', updateError);
+    } else {
+      console.log('✅ Order updated for async payment success');
+    }
+  } catch (error) {
+    console.error('Error handling async payment succeeded:', error);
+  }
+}
+
+async function handleCheckoutSessionAsyncPaymentFailed(
+  session: Stripe.Checkout.Session,
+  supabase: any
+) {
+  try {
+    console.log('❌ Processing async payment failed:', {
+      sessionId: session.id,
+      paymentStatus: session.payment_status,
+      customerEmail: session.customer_email
+    });
+
+    // Update order status to cancelled
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        status: 'cancelled',
+        payment_status: 'failed',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_session_id', session.id);
+
+    if (updateError) {
+      console.error('Error updating order for async payment failure:', updateError);
+    } else {
+      console.log('✅ Order updated for async payment failure');
+    }
+  } catch (error) {
+    console.error('Error handling async payment failed:', error);
+  }
+}
+
+async function handlePaymentIntentRequiresAction(
+  paymentIntent: Stripe.PaymentIntent,
+  supabase: any
+) {
+  try {
+    console.log('🔐 Processing payment requires action:', paymentIntent.id);
+
+    // Update order status to pending action
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        status: 'pending',
+        payment_status: 'requires_action',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_payment_intent_id', paymentIntent.id);
+
+    if (updateError) {
+      console.error('Error updating order for requires action:', updateError);
+    } else {
+      console.log('✅ Order updated for requires action');
+    }
+  } catch (error) {
+    console.error('Error handling payment requires action:', error);
+  }
+}
+
+async function handleChargeDisputeCreated(
+  dispute: Stripe.Dispute,
+  supabase: any
+) {
+  try {
+    console.log('⚖️ Processing charge dispute created:', dispute.id);
+
+    // Update order status to disputed
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        status: 'disputed',
+        payment_status: 'disputed',
+        updated_at: new Date().toISOString(),
+        metadata: {
+          dispute_id: dispute.id,
+          dispute_reason: dispute.reason,
+          dispute_amount: dispute.amount,
+          dispute_currency: dispute.currency,
+        }
+      })
+      .eq('stripe_payment_intent_id', dispute.payment_intent);
+
+    if (updateError) {
+      console.error('Error updating order for dispute:', updateError);
+    } else {
+      console.log('✅ Order updated for dispute');
+    }
+  } catch (error) {
+    console.error('Error handling charge dispute:', error);
   }
 }
 
