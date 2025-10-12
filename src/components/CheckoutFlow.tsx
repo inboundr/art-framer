@@ -199,9 +199,21 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       });
 
       console.log('🔍 About to get session...');
-      // Get the session to access the token for authentication
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('🔐 Session status:', { hasSession: !!session, hasToken: !!session?.access_token });
+      // Get the session to access the token for authentication with timeout
+      let session;
+      try {
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session timeout')), 5000)
+        );
+        
+        const result = await Promise.race([sessionPromise, timeoutPromise]);
+        session = result.data.session;
+        console.log('🔐 Session retrieved successfully:', { hasSession: !!session, hasToken: !!session?.access_token });
+      } catch (sessionError) {
+        console.error('❌ Session retrieval failed:', sessionError);
+        session = null;
+      }
       
       console.log('🌐 Making API call to /api/cart/shipping...');
       const response = await fetch('/api/cart/shipping', {
