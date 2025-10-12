@@ -203,12 +203,12 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       let session;
       try {
         const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise<never>((_, reject) => 
           setTimeout(() => reject(new Error('Session timeout')), 5000)
         );
         
         const result = await Promise.race([sessionPromise, timeoutPromise]);
-        session = result.data.session;
+        session = (result as any).data.session;
         console.log('🔐 Session retrieved successfully:', { hasSession: !!session, hasToken: !!session?.access_token });
       } catch (sessionError) {
         console.error('❌ Session retrieval failed:', sessionError);
