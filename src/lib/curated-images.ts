@@ -45,6 +45,20 @@ export class CuratedImageAPI {
     console.log('🔍 CuratedImageAPI.getGallery called with:', { page, limit, filters });
     
     try {
+      // Check if supabase is available
+      if (!supabase || !supabase.from) {
+        console.warn('Supabase client not available, returning empty response');
+        return {
+          images: [],
+          pagination: {
+            page,
+            total_pages: 0,
+            total: 0,
+            has_more: false
+          }
+        };
+      }
+
       const offset = (page - 1) * limit;
       
       // Build query
@@ -112,6 +126,12 @@ export class CuratedImageAPI {
     console.log('🔍 CuratedImageAPI.getFeaturedImages called with limit:', limit);
     
     try {
+      // Check if supabase is available
+      if (!supabase || !supabase.from) {
+        console.warn('Supabase client not available, returning empty array');
+        return [];
+      }
+
       const { data: images, error } = await supabase
         .from('curated_images')
         .select('*')
@@ -177,7 +197,7 @@ export class CuratedImageAPI {
         throw new Error(`Failed to fetch categories: ${error.message}`);
       }
 
-      const uniqueCategories = [...new Set(categories?.map(c => c.category) || [])];
+      const uniqueCategories = [...new Set(categories?.map((c: any) => c.category) || [])] as string[];
       console.log('✅ Categories query successful:', { count: uniqueCategories.length });
       return uniqueCategories;
     } catch (error) {
@@ -201,8 +221,8 @@ export class CuratedImageAPI {
         throw new Error(`Failed to fetch tags: ${error.message}`);
       }
 
-      const allTags = images?.flatMap(img => img.tags || []) || [];
-      const uniqueTags = [...new Set(allTags)];
+      const allTags = images?.flatMap((img: any) => img.tags || []) || [];
+      const uniqueTags = [...new Set(allTags)] as string[];
       console.log('✅ Tags query successful:', { count: uniqueTags.length });
       return uniqueTags;
     } catch (error) {

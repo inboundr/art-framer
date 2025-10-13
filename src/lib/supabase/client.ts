@@ -1,9 +1,28 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Lazy initialization to prevent build-time errors
+let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null;
 
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = (() => {
+  if (supabaseInstance) {
+    return supabaseInstance;
+  }
+
+  // Check if we're in a build environment
+  if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+    // During build, return a mock client
+    return {} as any;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase environment variables not found, using mock client');
+    return {} as any;
+  }
+
+  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -73,7 +92,10 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
       'X-Client-Info': 'art-framer-web'
     }
   }
-})
+  });
+
+  return supabaseInstance;
+})();
 
 // Database types
 export type Database = {

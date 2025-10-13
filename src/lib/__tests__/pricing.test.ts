@@ -533,7 +533,7 @@ describe('Edge Cases and Stress Tests', () => {
 
   it('should handle maximum realistic order size', () => {
     const items: PricingItem[] = Array.from({ length: 100 }, (_, i) => ({
-      id: `123e4567-e89b-12d3-a456-42661417400${i.toString().padStart(1, '0')}`,
+      id: `123e4567-e89b-12d3-a456-${(i + 1).toString().padStart(12, '0')}`,
       sku: `FRAME-${i.toString().padStart(3, '0')}`,
       price: 29.99,
       quantity: 1,

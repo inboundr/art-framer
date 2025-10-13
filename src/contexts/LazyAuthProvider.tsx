@@ -106,7 +106,7 @@ export function LazyAuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       console.log('Auth state change:', event, session?.user?.email);
       
       if (!mounted) return;

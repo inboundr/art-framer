@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const { user, supabase } = authResult;
+    const { user } = authResult;
     console.log('Cart Shipping API: Authenticated user', { 
       userId: user.id, 
       userEmail: user.email 

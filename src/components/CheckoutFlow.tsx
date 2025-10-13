@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -107,7 +107,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     const defaultAddress = getDefaultAddress();
     if (defaultAddress) {
       console.log('📍 Loading default address from cache:', defaultAddress);
-      setShippingAddress({
+      setShippingAddress(prev => ({
+        ...prev,
         firstName: defaultAddress.firstName,
         lastName: defaultAddress.lastName,
         address1: defaultAddress.address1,
@@ -117,19 +118,32 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         zip: defaultAddress.zip,
         country: defaultAddress.country,
         phone: defaultAddress.phone,
-      });
+      }));
       // Note: We don't trigger shipping calculation here to avoid automatic calculation
     }
   }, [getDefaultAddress]);
 
+  // Use a ref to track if we've already loaded user metadata
+  const userMetadataLoadedRef = useRef(false);
+  
   useEffect(() => {
-    if (user) {
+    if ((user?.user_metadata?.first_name || user?.user_metadata?.last_name) && !userMetadataLoadedRef.current) {
       console.log('📍 Loading user metadata:', user.user_metadata);
-      setShippingAddress(prev => ({
-        ...prev,
-        firstName: user.user_metadata?.first_name || '',
-        lastName: user.user_metadata?.last_name || '',
-      }));
+      userMetadataLoadedRef.current = true;
+      setShippingAddress(prev => {
+        const newFirstName = user.user_metadata?.first_name || '';
+        const newLastName = user.user_metadata?.last_name || '';
+        
+        // Only update if the values are different to prevent infinite loops
+        if (prev.firstName !== newFirstName || prev.lastName !== newLastName) {
+          return {
+            ...prev,
+            firstName: newFirstName,
+            lastName: newLastName,
+          };
+        }
+        return prev;
+      });
       // Note: We don't trigger shipping calculation here to avoid automatic calculation
     }
   }, [user]);
@@ -166,18 +180,37 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     calculateShipping(newAddress);
   };
 
+  // Get currency based on shipping address - moved before calculateShipping to fix initialization bug
+  const getDisplayCurrency = () => {
+    if (!shippingAddress.country) return 'USD';
+    
+    const currencyMap: Record<string, string> = {
+      'US': 'USD', 'CA': 'CAD', 'GB': 'GBP', 'AU': 'AUD', 'DE': 'EUR', 'FR': 'EUR',
+      'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR', 'BE': 'EUR', 'AT': 'EUR', 'PT': 'EUR',
+      'IE': 'EUR', 'FI': 'EUR', 'LU': 'EUR', 'JP': 'JPY', 'KR': 'KRW', 'SG': 'SGD',
+      'HK': 'HKD', 'CH': 'CHF', 'SE': 'SEK', 'NO': 'NOK', 'DK': 'DKK', 'PL': 'PLN',
+      'CZ': 'CZK', 'HU': 'HUF', 'MX': 'MXN', 'BR': 'BRL', 'IN': 'INR', 'NZ': 'NZD',
+    };
+    
+    return currencyMap[shippingAddress.country.toUpperCase()] || 'USD';
+  };
+
   // Enhanced shipping calculation with comprehensive error handling and retry mechanism
   const calculateShipping = useCallback(async (address: CheckoutShippingAddress, retryCount = 0) => {
-    // Prevent multiple simultaneous calculations
-    if (shippingLoading) {
-      console.log('📍 Shipping calculation already in progress, skipping - current state:', { shippingLoading });
-      return;
-    }
+    // Enhanced race condition protection with atomic state update
+    setShippingLoading(prev => {
+      if (prev) {
+        console.log('📍 Shipping calculation already in progress, skipping - current state:', { shippingLoading: prev });
+        return prev; // Don't change state if already loading
+      }
+      return true; // Set to loading
+    });
 
-    // Enhanced validation
+    // Enhanced validation with proper error handling
     if (!address.country || !address.city || !address.zip) {
       console.log('📍 Address incomplete, clearing shipping calculation');
       setCalculatedShipping(null);
+      setShippingLoading(false);
       return;
     }
 
@@ -185,10 +218,10 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     if (address.zip.length < 3 || address.city.length < 2) {
       console.log('📍 Address validation failed: insufficient data');
       setCalculatedShipping(null);
+      setShippingLoading(false);
       return;
     }
-
-    setShippingLoading(true);
+    
     try {
       console.log('🚚 Calculating shipping for address:', {
         country: address.country,
@@ -199,7 +232,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       });
 
       console.log('🔍 About to get session...');
-      // Get the session to access the token for authentication with timeout
+      // Get the session to access the token for authentication with proper timeout handling
       let session;
       try {
         const sessionPromise = supabase.auth.getSession();
@@ -208,7 +241,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         );
         
         const result = await Promise.race([sessionPromise, timeoutPromise]);
-        session = (result as any).data.session;
+        session = result?.data?.session || null;
         console.log('🔐 Session retrieved successfully:', { hasSession: !!session, hasToken: !!session?.access_token });
       } catch (sessionError) {
         console.error('❌ Session retrieval failed:', sessionError);
@@ -241,7 +274,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
       if (response.ok) {
         const data = await response.json();
-        setCalculatedShipping({
+        // Use atomic state update to prevent race conditions
+        setCalculatedShipping(prev => ({
           cost: data.shippingCost || 0,
           estimatedDays: data.estimatedDays || 7,
           serviceName: data.serviceName || 'Standard Shipping',
@@ -249,15 +283,16 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
           provider: data.provider || 'unknown',
           addressValidated: data.addressValidated || false,
           currency: data.currency || getDisplayCurrency(),
-        });
+        }));
         console.log('✅ Shipping calculated successfully:', data);
       } else {
         console.error('❌ Failed to calculate shipping:', response.status, response.statusText);
         
-        // Retry mechanism for failed requests
+        // Retry mechanism for failed requests with proper error handling
         if (retryCount < 2 && (response.status >= 500 || response.status === 429)) {
           console.log(`🔄 Retrying shipping calculation (attempt ${retryCount + 1}/2)`);
-          setTimeout(() => {
+          // Use ref to store timeout ID for proper cleanup
+          retryTimeoutRef.current = setTimeout(() => {
             calculateShipping(address, retryCount + 1);
           }, 1000 * (retryCount + 1)); // Exponential backoff
           return;
@@ -273,10 +308,10 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         stack: error instanceof Error ? error.stack : undefined
       });
       
-      // Retry mechanism for network errors
+      // Retry mechanism for network errors with proper error handling
       if (retryCount < 2) {
         console.log(`🔄 Retrying shipping calculation due to network error (attempt ${retryCount + 1}/2)`);
-        setTimeout(() => {
+        retryTimeoutRef.current = setTimeout(() => {
           calculateShipping(address, retryCount + 1);
         }, 1000 * (retryCount + 1));
         return;
@@ -287,14 +322,31 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       console.log('🏁 Shipping calculation completed, setting loading to false');
       setShippingLoading(false);
     }
-  }, []);
+  }, [getDisplayCurrency]);
 
   // Track if address has been manually modified by user
   const [addressManuallyModified, setAddressManuallyModified] = useState(false);
   
-  // Debounce mechanism to prevent rapid-fire calculations
-  const [calculationTimeout, setCalculationTimeout] = useState<NodeJS.Timeout | null>(null);
+  // Use refs to store timeout IDs for proper cleanup
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const calculateShippingRef = useRef<typeof calculateShipping | null>(null);
 
+  // Store the function in ref to avoid circular dependencies
+  calculateShippingRef.current = calculateShipping;
+  
+  // Cleanup timeouts on component unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
+  
   // Enhanced address change detection - only trigger for user interactions
   useEffect(() => {
     // Only calculate shipping if user has manually modified the address
@@ -304,11 +356,11 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     }
 
     // Clear any existing timeout
-    if (calculationTimeout) {
-      clearTimeout(calculationTimeout);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
 
-    const timer = setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       // Check if we have minimum required fields for shipping calculation
       const hasRequiredFields = shippingAddress.country && 
                                shippingAddress.city && 
@@ -321,18 +373,16 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
           zip: shippingAddress.zip,
           state: shippingAddress.state
         });
-        calculateShipping(shippingAddress);
+        calculateShippingRef.current?.(shippingAddress);
       } else {
         console.log('📍 Address incomplete, clearing shipping calculation');
         setCalculatedShipping(null);
       }
     }, 1000); // Increased debounce to 1 second to prevent rapid calculations
 
-    setCalculationTimeout(timer);
-
     return () => {
-      if (timer) {
-        clearTimeout(timer);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
   }, [
@@ -340,9 +390,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     shippingAddress.city, 
     shippingAddress.zip, 
     shippingAddress.state,
-    calculateShipping,
-    addressManuallyModified,
-    calculationTimeout
+    addressManuallyModified
   ]);
 
   // Additional effect to handle Google Maps edge cases (only for user interactions)
@@ -358,7 +406,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         // Only calculate if we don't already have a valid shipping calculation AND we're not currently loading
         if (!calculatedShipping && !shippingLoading) {
           console.log('📍 Google Maps edge case detected, recalculating shipping');
-          calculateShipping(shippingAddress);
+          calculateShippingRef.current?.(shippingAddress);
         }
       }
     };
@@ -367,7 +415,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     const interval = setInterval(handleGoogleMapsEdgeCases, 5000); // Increased interval to 5 seconds
     
     return () => clearInterval(interval);
-  }, [shippingAddress, calculatedShipping, calculateShipping, addressManuallyModified, shippingLoading]);
+  }, [shippingAddress, calculatedShipping, addressManuallyModified, shippingLoading]);
 
   const formatPrice = (price: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
@@ -376,20 +424,6 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     }).format(price);
   };
 
-  // Get currency based on shipping address
-  const getDisplayCurrency = () => {
-    if (!shippingAddress.country) return 'USD';
-    
-    const currencyMap: Record<string, string> = {
-      'US': 'USD', 'CA': 'CAD', 'GB': 'GBP', 'AU': 'AUD', 'DE': 'EUR', 'FR': 'EUR',
-      'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR', 'BE': 'EUR', 'AT': 'EUR', 'PT': 'EUR',
-      'IE': 'EUR', 'FI': 'EUR', 'LU': 'EUR', 'JP': 'JPY', 'KR': 'KRW', 'SG': 'SGD',
-      'HK': 'HKD', 'CH': 'CHF', 'SE': 'SEK', 'NO': 'NOK', 'DK': 'DKK', 'PL': 'PLN',
-      'CZ': 'CZK', 'HU': 'HUF', 'MX': 'MXN', 'BR': 'BRL', 'IN': 'INR', 'NZ': 'NZD',
-    };
-    
-    return currencyMap[shippingAddress.country.toUpperCase()] || 'USD';
-  };
 
   const getFrameSizeLabel = (size: string) => {
     const labels = {

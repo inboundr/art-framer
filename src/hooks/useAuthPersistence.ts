@@ -139,7 +139,7 @@ export function useAuthPersistence() {
     initializeAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       if (!mounted) return;
       
       console.log('🔐 Auth state change:', event, session?.user?.email);

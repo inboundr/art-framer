@@ -61,7 +61,7 @@ export class SupabaseImageAPI {
         const has_more = page < total_pages;
 
         // Transform simple images to match expected format
-        const images = simpleImages?.map(img => ({
+        const images = simpleImages?.map((img: any) => ({
           ...img,
           user_id: 'anonymous',
           profiles: null,

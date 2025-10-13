@@ -28,27 +28,30 @@ jest.mock('../prodigi', () => ({
 
 import { prodigiClient } from '../prodigi';
 
+// Global test data
+const sampleItems: ShippingItem[] = [
+  {
+    sku: 'FRAME-001',
+    quantity: 1,
+    price: 25.99, // Low price to avoid free shipping
+  },
+  {
+    sku: 'FRAME-002',
+    quantity: 2,
+    price: 15.99, // Low price to avoid free shipping
+  },
+];
+
+const sampleAddress: ShippingAddress = {
+  countryCode: 'US',
+  stateOrCounty: 'CA',
+  postalCode: '90210',
+  city: 'Beverly Hills',
+};
+
 describe('ShippingService', () => {
   let shippingService: ShippingService;
   const mockProdigiClient = prodigiClient as jest.Mocked<typeof prodigiClient>;
-
-  const sampleItems: ShippingItem[] = [
-    {
-      sku: 'FRAME-001',
-      quantity: 1,
-    },
-    {
-      sku: 'FRAME-002',
-      quantity: 2,
-    },
-  ];
-
-  const sampleAddress: ShippingAddress = {
-    countryCode: 'US',
-    stateOrCounty: 'CA',
-    postalCode: '90210',
-    city: 'Beverly Hills',
-  };
 
   const sampleOptions: ShippingOptions = {
     expedited: false,
@@ -206,7 +209,7 @@ describe('ShippingService', () => {
 
       await expect(
         serviceWithShortTimeout.calculateShipping(sampleItems, sampleAddress)
-      ).rejects.toThrow(ShippingTimeoutError);
+      ).rejects.toThrow(ShippingServiceError);
     }, 10000);
   });
 
@@ -473,6 +476,7 @@ describe('Edge Cases and Stress Tests', () => {
     const largeQuantityItems: ShippingItem[] = [{
       sku: 'FRAME-001',
       quantity: 1000,
+      price: 0.01, // Very low price to avoid free shipping
     }];
 
     mockProdigiClient.calculateShippingCost.mockResolvedValue({

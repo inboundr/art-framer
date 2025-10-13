@@ -14,9 +14,10 @@ jest.mock('next/navigation', () => ({
   useSearchParams: jest.fn(() => new URLSearchParams()),
 }))
 
-// Mock auth context
-jest.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({
+// Mock LazyAuthProvider
+jest.mock('@/contexts/LazyAuthProvider', () => ({
+  LazyAuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  useLazyAuth: () => ({
     user: null,
     profile: null,
     loading: false,
@@ -24,7 +25,6 @@ jest.mock('@/contexts/AuthContext', () => ({
     signOut: jest.fn(),
     updateProfile: jest.fn(),
   }),
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
 // Mock cart context
@@ -38,6 +38,24 @@ jest.mock('@/contexts/CartContext', () => ({
     loading: false,
   }),
   CartProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}))
+
+// Mock GenerationProvider
+jest.mock('@/contexts/GenerationContext', () => ({
+  GenerationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  useGeneration: () => ({
+    isGenerating: false,
+    generateImage: jest.fn(),
+    cancelGeneration: jest.fn(),
+  }),
+}))
+
+// Mock TooltipProvider
+jest.mock('@/components/ui/tooltip', () => ({
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Tooltip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  TooltipContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
 // Mock Supabase hooks

@@ -443,6 +443,19 @@ export class ShippingService {
       'prodigi'
     );
 
+    // Validate response data
+    if (typeof result.cost !== 'number' || isNaN(result.cost) || result.cost < 0) {
+      throw new ShippingValidationError('Invalid cost in shipping response');
+    }
+    
+    if (!result.currency || typeof result.currency !== 'string') {
+      throw new ShippingValidationError('Invalid currency in shipping response');
+    }
+    
+    if (typeof result.estimatedDays !== 'number' || isNaN(result.estimatedDays) || result.estimatedDays < 0) {
+      throw new ShippingValidationError('Invalid estimated days in shipping response');
+    }
+
     return {
       carrier: 'Prodigi',
       service: result.serviceName,
@@ -608,6 +621,19 @@ export class ShippingService {
    */
   async validateShippingAddress(address: ShippingAddress): Promise<boolean> {
     try {
+      // Validate address format
+      if (!address.countryCode || address.countryCode.length !== 2) {
+        throw new ShippingValidationError('Country code must be 2 characters');
+      }
+      
+      if (!address.postalCode || address.postalCode.length < 3) {
+        throw new ShippingValidationError('Postal code is required and must be at least 3 characters');
+      }
+      
+      if (!address.city || address.city.length < 2) {
+        throw new ShippingValidationError('City is required and must be at least 2 characters');
+      }
+      
       this.validateShippingRequest([{ sku: 'TEST', quantity: 1 }], address, {
         expedited: false,
         insurance: false,
