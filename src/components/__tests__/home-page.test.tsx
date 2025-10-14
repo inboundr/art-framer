@@ -75,6 +75,10 @@ jest.mock('../CuratedImageGallery', () => ({
                   title: 'Test Image 1'
                 }));
               }
+              // For authenticated users, just log (no localStorage)
+              if (user) {
+                console.log('Authenticated user clicked buy button');
+              }
             }}
           >
             Buy as Frame
@@ -92,6 +96,10 @@ jest.mock('../CuratedImageGallery', () => ({
                   image_url: '/test-image-2.jpg',
                   title: 'Test Image 2'
                 }));
+              }
+              // For authenticated users, just log (no localStorage)
+              if (user) {
+                console.log('Authenticated user clicked buy button');
               }
             }}
           >
