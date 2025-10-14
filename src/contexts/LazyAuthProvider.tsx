@@ -226,9 +226,56 @@ export function LazyAuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+  const signOut = async (): Promise<{ error: Error | null }> => {
+    try {
+      console.log('🚪 Starting logout process...');
+      console.log('🚪 Supabase client:', supabase);
+      console.log('🚪 Current user before logout:', user);
+      
+      // Clear local state first
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      
+      // Clear all localStorage items related to auth
+      const keysToRemove = [
+        'art-framer-welcome-seen',
+        'pending-generation',
+        'supabase.auth.token',
+        'sb-access-token',
+        'sb-refresh-token',
+        'supabase.auth.token',
+        'supabase.auth.refresh_token'
+      ];
+      
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
+      
+      // Clear all Supabase-related cookies by setting them to expire
+      document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+      });
+      
+      // Sign out from Supabase with scope: 'local' to clear local session only
+      console.log('🚪 Calling supabase.auth.signOut()...');
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      console.log('🚪 Supabase signOut result:', { error });
+      
+      if (error) {
+        console.error('Supabase sign out error:', error);
+        // Even if Supabase signOut fails, we've cleared local state
+        return { error: null };
+      } else {
+        console.log('✅ Successfully signed out from Supabase');
+        return { error: null };
+      }
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Even if there's an error, we've cleared local state
+      return { error: null };
+    }
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {

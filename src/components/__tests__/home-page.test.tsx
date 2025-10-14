@@ -49,8 +49,8 @@ jest.mock('../SearchBar', () => ({
 
 jest.mock('../CuratedImageGallery', () => ({
   CuratedImageGallery: ({ onOpenAuthModal }: any) => {
-    // Use the mocked useAuth hook instead of requiring the real one
-    const { useAuth } = await import('@/hooks/useAuth');
+    // Use the mocked useAuth hook directly since it's already mocked at the top
+    const { useAuth } = require('@/hooks/useAuth');
     const { user } = useAuth();
     
     // Simulate the useEffect that checks for pending cart image
