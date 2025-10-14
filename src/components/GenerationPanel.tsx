@@ -8,6 +8,7 @@ import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { saveGeneratedImageToSupabase } from '@/lib/utils/saveGeneratedImage';
 import { useAuth } from '@/hooks/useAuth';
 import { useGeneration } from '@/contexts/GenerationContext';
+import { RobustImage } from '@/components/RobustImage';
 
 interface GenerationPanelProps {
   isOpen: boolean;
@@ -375,17 +376,25 @@ export function GenerationPanel({
                         className="h-[100px] sm:h-[153px] self-stretch rounded bg-dark-tertiary cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => handleImageClick(image)}
                       >
-                        {image.isLoaded ? (
-                          <img 
-                            src={image.url} 
-                            alt={`Generated image ${index + 1}`}
-                            className="w-full h-full object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <div className="w-6 h-6 border-2 border-gray-light border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        )}
+                        <RobustImage
+                          src={image.url}
+                          alt={`Generated image ${index + 1}`}
+                          className="w-full h-full"
+                          imageClassName="rounded"
+                          loadOptions={{
+                            maxRetries: 3,
+                            retryDelay: 1000,
+                            timeout: 10000,
+                            useProxy: true,
+                            enableCache: true
+                          }}
+                          onLoad={(result) => {
+                            console.log(`✅ Image ${index + 1} loaded successfully:`, result);
+                          }}
+                          onError={(error) => {
+                            console.error(`❌ Image ${index + 1} failed to load:`, error);
+                          }}
+                        />
                       </div>
                     </div>
                   </div>

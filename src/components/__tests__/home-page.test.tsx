@@ -7,7 +7,7 @@ import { PublicLayout } from '../PublicLayout';
 import { SearchBar } from '../SearchBar';
 import { CuratedImageGallery } from '../CuratedImageGallery';
 import { NotificationBar } from '../NotificationBar';
-import { LazyAuthProvider } from '@/contexts/LazyAuthProvider';
+import { RobustAuthProvider } from '@/contexts/RobustAuthProvider';
 import { CartProvider } from '@/contexts/CartContext';
 import { GenerationProvider } from '@/contexts/GenerationContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -168,7 +168,7 @@ describe('Home Page - Production Ready Tests', () => {
 
   // Test wrapper with all required context providers
   const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-    <LazyAuthProvider>
+    <RobustAuthProvider>
       <CartProvider>
         <GenerationProvider>
           <TooltipProvider>
@@ -176,7 +176,7 @@ describe('Home Page - Production Ready Tests', () => {
           </TooltipProvider>
         </GenerationProvider>
       </CartProvider>
-    </LazyAuthProvider>
+    </RobustAuthProvider>
   );
 
   beforeEach(() => {

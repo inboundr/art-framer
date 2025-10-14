@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { LazyAuthProvider, useLazyAuth } from '../LazyAuthProvider';
+import { RobustAuthProvider, useRobustAuth } from '../RobustAuthProvider';
 import { supabase } from '../../lib/supabase/client';
 
 // Mock Supabase client
@@ -68,7 +68,7 @@ describe('Logout Functionality - Basic Tests', () => {
   });
 
   const TestComponent = () => {
-    const { signOut, user, profile, session } = useLazyAuth();
+        const { signOut, user, profile, session } = useRobustAuth();
     const [result, setResult] = React.useState(null);
     const [state, setState] = React.useState({ user, profile, session });
     
@@ -93,9 +93,9 @@ describe('Logout Functionality - Basic Tests', () => {
   };
 
   const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-    <LazyAuthProvider>
+    <RobustAuthProvider>
       {children}
-    </LazyAuthProvider>
+    </RobustAuthProvider>
   );
 
   describe('Basic Logout Functionality', () => {

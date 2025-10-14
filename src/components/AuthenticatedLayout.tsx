@@ -9,14 +9,14 @@ import { NotificationBar } from './NotificationBar';
 import { AuthModal } from './AuthModal';
 import { WelcomeModal } from './WelcomeModal';
 import { StylesOnboardingModal } from './StylesOnboardingModal';
-import { useLazyAuth } from '@/contexts/LazyAuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
 }
 
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
-  const { user, profile, updateProfile } = useLazyAuth();
+  const { user, profile, updateProfile } = useAuth();
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);

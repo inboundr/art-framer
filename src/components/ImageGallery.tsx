@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useGallery, useImageInteractions } from '@/hooks/useSupabaseGallery';
 import { Image } from '@/lib/supabase/images';
 import { useDynamicLayoutSafe, useDynamicAnimationsSafe, useDynamicThemeSafe, useIntersectionAnimationSafe } from '@/hooks/useDynamicHooksSafe';
+import { RobustImage } from '@/components/RobustImage';
 
 interface ImageCardProps {
   image: Image;
@@ -138,11 +139,24 @@ function ImageCard({ image, onLike, onUnlike, isLiked = false, isInteracting = f
             </div>
             
             {/* Actual Image */}
-            <img 
+            <RobustImage
               src={image.image_url || '/placeholder.svg'}
               alt={image.prompt}
-              className="w-full h-full object-cover absolute top-0 left-0"
-              loading="lazy"
+              className="absolute top-0 left-0 w-full h-full"
+              imageClassName="object-cover"
+              loadOptions={{
+                maxRetries: 3,
+                retryDelay: 1000,
+                timeout: 10000,
+                useProxy: true,
+                enableCache: true
+              }}
+              onLoad={(result) => {
+                console.log(`✅ Gallery image loaded successfully:`, result);
+              }}
+              onError={(error) => {
+                console.error(`❌ Gallery image failed to load:`, error);
+              }}
             />
           </div>
         </div>

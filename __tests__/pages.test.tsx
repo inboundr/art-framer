@@ -14,13 +14,29 @@ jest.mock('next/navigation', () => ({
   useSearchParams: jest.fn(() => new URLSearchParams()),
 }))
 
-// Mock LazyAuthProvider
-jest.mock('@/contexts/LazyAuthProvider', () => ({
-  LazyAuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  useLazyAuth: () => ({
+// Mock RobustAuthProvider
+jest.mock('@/contexts/RobustAuthProvider', () => ({
+  RobustAuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  useRobustAuth: () => ({
     user: null,
     profile: null,
+    session: null,
     loading: false,
+    isInitialized: true,
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+    updateProfile: jest.fn(),
+  }),
+}))
+
+// Mock useAuth hook (alias for useRobustAuth)
+jest.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: null,
+    profile: null,
+    session: null,
+    loading: false,
+    isInitialized: true,
     signIn: jest.fn(),
     signOut: jest.fn(),
     updateProfile: jest.fn(),
