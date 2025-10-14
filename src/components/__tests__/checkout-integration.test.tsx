@@ -213,9 +213,74 @@ describe('Checkout Integration Tests', () => {
       await user.type(googlePlacesInput, '123 Test St');
       await user.tab();
 
-      // Should handle error gracefully
+      // Should handle error gracefully and show error toast
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalled();
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: "Error calculating shipping",
+            variant: "destructive"
+          })
+        );
+      });
+    });
+
+    it('handles API 500 errors', async () => {
+      const user = userEvent.setup();
+      render(<CheckoutFlow />);
+
+      // Mock 500 error response
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error'
+      });
+
+      // Use Google Places for address input
+      const googlePlacesInput = screen.getByTestId('google-places-input');
+      await user.type(googlePlacesInput, '123 Test St');
+      await user.tab();
+
+      // Should handle error gracefully
+      await waitFor(() => {
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: "Error calculating shipping",
+            variant: "destructive"
+          })
+        );
+      });
+    });
+
+    it('handles duplicate SKU errors', async () => {
+      const user = userEvent.setup();
+      render(<CheckoutFlow />);
+
+      // Mock duplicate SKU error
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        json: () => Promise.resolve({
+          error: 'Failed to create product',
+          details: 'duplicate key value violates unique constraint "products_sku_key"',
+          code: '23505'
+        })
+      });
+
+      const googlePlacesInput = screen.getByTestId('google-places-input');
+      await user.type(googlePlacesInput, '123 Test St');
+      await user.tab();
+
+      // Should show appropriate error message
+      await waitFor(() => {
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: "Error creating product",
+            description: expect.stringContaining("duplicate"),
+            variant: "destructive"
+          })
+        );
       });
     });
 
@@ -274,7 +339,8 @@ describe('Checkout Integration Tests', () => {
         removeFromCart: jest.fn(),
         updateQuantity: jest.fn(),
         clearCart: jest.fn(),
-        refreshCart: jest.fn()
+        refreshCart: jest.fn(),
+        loading: false // Add loading state
       });
 
       render(<CheckoutFlow />);
@@ -285,15 +351,36 @@ describe('Checkout Integration Tests', () => {
       const largeCartData = {
         cartItems: Array(100).fill(null).map((_, i) => ({
           id: `item-${i}`,
-          productId: `prod-${i}`,
-          name: `Product ${i}`,
+          user_id: 'user-1',
+          product_id: `prod-${i}`,
           quantity: 1,
-          imageUrl: `test-${i}.jpg`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
           products: {
+            id: `prod-${i}`,
+            user_id: 'user-1',
+            image_id: `img-${i}`,
             frame_size: 'medium',
+            frame_style: 'black',
+            frame_material: 'wood',
             price: 29.99,
-            frameStyle: 'black',
-            frameMaterial: 'wood'
+            cost: 19.99,
+            weight_grams: 500,
+            dimensions_cm: {
+              width: 30,
+              height: 40,
+              depth: 2
+            },
+            status: 'active',
+            sku: `sku-${i}`,
+            images: {
+              id: `img-${i}`,
+              user_id: 'user-1',
+              image_url: `test-${i}.jpg`,
+              thumbnail_url: `test-${i}.jpg`,
+              prompt: 'Test prompt',
+              created_at: new Date().toISOString()
+            }
           }
         })),
         totals: {
@@ -311,7 +398,8 @@ describe('Checkout Integration Tests', () => {
         removeFromCart: jest.fn(),
         updateQuantity: jest.fn(),
         clearCart: jest.fn(),
-        refreshCart: jest.fn()
+        refreshCart: jest.fn(),
+        loading: false
       });
 
       render(<CheckoutFlow />);

@@ -288,6 +288,28 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       } else {
         console.error('❌ Failed to calculate shipping:', response.status, response.statusText);
         
+        // Handle different error types
+        if (response.status === 500) {
+          toast({
+            title: "Error calculating shipping",
+            description: "Internal server error. Please try again.",
+            variant: "destructive"
+          });
+        } else if (response.status === 400) {
+          const errorData = await response.json();
+          toast({
+            title: "Error creating product",
+            description: errorData.details,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error calculating shipping",
+            description: "Please check your address and try again.",
+            variant: "destructive"
+          });
+        }
+        
         // Retry mechanism for failed requests with proper error handling
         if (retryCount < 2 && (response.status >= 500 || response.status === 429)) {
           console.log(`🔄 Retrying shipping calculation (attempt ${retryCount + 1}/2)`);
@@ -308,6 +330,13 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         stack: error instanceof Error ? error.stack : undefined
       });
       
+      // Show error toast
+      toast({
+        title: "Error calculating shipping",
+        description: error instanceof Error ? error.message : "Network error occurred",
+        variant: "destructive"
+      });
+
       // Retry mechanism for network errors with proper error handling
       if (retryCount < 2) {
         console.log(`🔄 Retrying shipping calculation due to network error (attempt ${retryCount + 1}/2)`);

@@ -128,7 +128,21 @@ export function CreationsModal({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create product');
+        console.error('API Error:', errorData);
+        
+        // Provide more specific error messages
+        if (response.status === 401) {
+          throw new Error('Please log in to add items to your cart');
+        } else if (response.status === 404) {
+          throw new Error('Image not found or no longer available');
+        } else if (response.status === 500) {
+          if (errorData.code === '23505') {
+            throw new Error('This product already exists in your cart');
+          }
+          throw new Error(errorData.details || errorData.error || 'Failed to create product');
+        } else {
+          throw new Error(errorData.error || 'Failed to create product');
+        }
       }
 
       const data = await response.json();

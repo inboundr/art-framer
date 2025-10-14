@@ -176,8 +176,53 @@ export async function POST(request: NextRequest) {
 
     if (productError) {
       console.error('Error creating product:', productError);
+      
+      // Handle specific database constraint violations
+      if (productError.code === '23505') {
+        // Duplicate key violation - product already exists
+        console.log('🔄 Product already exists, finding existing product...');
+        
+        // Try to find the existing product
+        const { data: existingProduct, error: findError } = await (serviceSupabase as any)
+          .from('products')
+          .select(`
+            id,
+            image_id,
+            frame_size,
+            frame_style,
+            frame_material,
+            price,
+            cost,
+            dimensions_cm,
+            sku,
+            status,
+            created_at
+          `)
+          .eq('image_id', tempImage.id)
+          .eq('frame_size', validatedData.frameSize)
+          .eq('frame_style', validatedData.frameStyle)
+          .eq('frame_material', validatedData.frameMaterial)
+          .single();
+          
+        if (existingProduct) {
+          console.log('✅ Found existing product, returning it for quantity increment');
+          return NextResponse.json({
+            product: existingProduct,
+            message: 'Product already exists - use for quantity increment'
+          });
+        }
+        
+        if (findError) {
+          console.error('Error finding existing product:', findError);
+        }
+      }
+      
       return NextResponse.json(
-        { error: 'Failed to create product' },
+        { 
+          error: 'Failed to create product',
+          details: productError.message,
+          code: productError.code
+        },
         { status: 500 }
       );
     }
