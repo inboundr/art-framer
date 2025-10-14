@@ -391,16 +391,36 @@ export class ProdigiClient {
    * Uses only verified SKUs that exist in the Prodigi API
    */
   private getFallbackSku(frameSize: string, frameStyle: string, frameMaterial: string): string {
-    // Use actual Prodigi SKUs as fallbacks instead of generating custom ones
-    const fallbackMap: Record<string, string> = {
-      'small': 'GLOBAL-FAP-8X10',     // 8x10 for small
-      'medium': 'GLOBAL-FAP-11X14',   // 11x14 for medium  
-      'large': 'GLOBAL-FAP-16X24',    // 16x24 for large
-      'extra_large': 'GLOBAL-FAP-20X30' // 20x30 for extra large
+    // Generate unique SKUs for each frame combination to avoid duplicate key errors
+    // Format: PRODIGI-{SIZE}-{STYLE}-{MATERIAL}
+    const sizeMap: Record<string, string> = {
+      'small': '8X10',
+      'medium': '11X14', 
+      'large': '16X24',
+      'extra_large': '20X30'
     };
     
-    // Return a verified Prodigi SKU based on size
-    return fallbackMap[frameSize] || 'GLOBAL-FAP-11X14';
+    const styleMap: Record<string, string> = {
+      'black': 'B',
+      'white': 'W',
+      'natural': 'N',
+      'gold': 'G',
+      'silver': 'S'
+    };
+    
+    const materialMap: Record<string, string> = {
+      'wood': 'W',
+      'metal': 'M',
+      'plastic': 'P',
+      'bamboo': 'B'
+    };
+    
+    const size = sizeMap[frameSize] || '11X14';
+    const style = styleMap[frameStyle] || 'B';
+    const material = materialMap[frameMaterial] || 'W';
+    
+    // Create unique SKU: PRODIGI-8X10-B-W (example)
+    return `PRODIGI-${size}-${style}-${material}`;
   }
 
 
