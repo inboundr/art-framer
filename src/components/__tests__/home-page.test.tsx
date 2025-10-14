@@ -74,9 +74,8 @@ jest.mock('../CuratedImageGallery', () => ({
                   image_url: '/test-image-1.jpg',
                   title: 'Test Image 1'
                 }));
-              }
-              // For authenticated users, just log (no localStorage)
-              if (user) {
+              } else {
+                // For authenticated users, just log (no localStorage)
                 console.log('Authenticated user clicked buy button');
               }
             }}
