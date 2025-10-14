@@ -244,7 +244,7 @@ export function RobustAuthProvider({ children }: { children: React.ReactNode }) 
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       console.log('🔄 Auth state change:', event, session?.user?.email);
       
       if (!mountedRef.current) return;

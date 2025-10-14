@@ -155,3 +155,20 @@ beforeAll(() => {
 afterAll(() => {
   console.error = originalError
 })
+
+// Clean up after each test to prevent test interference
+afterEach(() => {
+  // Clear all mocks
+  jest.clearAllMocks()
+  
+  // Reset fetch mock
+  if (global.fetch && global.fetch.mockClear) {
+    global.fetch.mockClear()
+  }
+  
+  // Clear localStorage and sessionStorage
+  if (typeof window !== 'undefined') {
+    window.localStorage.clear()
+    window.sessionStorage.clear()
+  }
+})

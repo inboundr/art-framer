@@ -309,10 +309,10 @@ describe('Checkout Integration Tests', () => {
       const user = userEvent.setup();
       render(<CheckoutFlow />);
 
-      // Mock slow API response
+      // Mock slow API response that times out
       (global.fetch as jest.Mock).mockImplementation(() => 
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Request timeout')), 100)
+          setTimeout(() => reject(new Error('Request timeout')), 50)
         )
       );
 
@@ -324,7 +324,7 @@ describe('Checkout Integration Tests', () => {
       // Should handle timeout gracefully
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalled();
-      });
+      }, { timeout: 200 });
     });
   });
 

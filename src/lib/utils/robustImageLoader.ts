@@ -1,3 +1,5 @@
+import { useState, useCallback } from 'react';
+
 /**
  * Robust Image Loading System with Retry Logic and Error Handling
  * 

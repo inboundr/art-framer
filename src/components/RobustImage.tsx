@@ -127,7 +127,7 @@ export function RobustImage({
       try {
         onLoadingChange?.(true);
         
-        const result = await loadImage(src, (state) => {
+        const result = await loadImage(src, (state: any) => {
           setLoadState(state);
         });
 
@@ -294,7 +294,7 @@ export function useRobustImages(urls: string[], options: Parameters<typeof useRo
 
   const loadAllImages = useCallback(async () => {
     try {
-      const results = await loadImages(urls, (index, state) => {
+      const results = await loadImages(urls, (index: any, state: any) => {
         setImages(prev => prev.map((img, i) => 
           i === index ? { ...img, state } : img
         ));
