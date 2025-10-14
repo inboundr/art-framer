@@ -77,6 +77,10 @@ export function GooglePlacesAutocomplete({
       try {
         console.log('🗺️ Initializing Google Places Autocomplete');
         
+        // For now, keep using the deprecated Autocomplete but add a warning
+        // TODO: Migrate to PlaceAutocompleteElement when stable
+        console.warn('⚠️ Using deprecated google.maps.places.Autocomplete. Consider migrating to PlaceAutocompleteElement.');
+        
         autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
           types: ['address'],
           componentRestrictions: { 

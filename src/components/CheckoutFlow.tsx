@@ -148,8 +148,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     }
   }, [user]);
 
-  // Handle Google Places address selection
-  const handleGoogleAddressSelect = (addressData: {
+  // Handle Google Places address selection with debounce
+  const handleGoogleAddressSelect = useCallback((addressData: {
     address1: string;
     city: string;
     state: string;
@@ -176,9 +176,16 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     
     setShippingAddress(newAddress);
     
-    // Immediately calculate shipping for the new address
-    calculateShipping(newAddress);
-  };
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    // Debounce the shipping calculation to prevent rapid successive calls
+    timeoutRef.current = setTimeout(() => {
+      calculateShipping(newAddress);
+    }, 500); // 500ms debounce
+  }, [shippingAddress]);
 
   // Get currency based on shipping address - moved before calculateShipping to fix initialization bug
   const getDisplayCurrency = () => {
@@ -205,6 +212,9 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       }
       return true; // Set to loading
     });
+    
+    // Add a small delay to prevent rapid successive calls
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     // Enhanced validation with proper error handling
     if (!address.country || !address.city || !address.zip) {
@@ -237,7 +247,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       try {
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Session timeout')), 5000)
+          setTimeout(() => reject(new Error('Session timeout')), 10000) // Increased timeout to 10 seconds
         );
         
         const result = await Promise.race([sessionPromise, timeoutPromise]);
@@ -245,7 +255,15 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         console.log('🔐 Session retrieved successfully:', { hasSession: !!session, hasToken: !!session?.access_token });
       } catch (sessionError) {
         console.error('❌ Session retrieval failed:', sessionError);
-        session = null;
+        // Try to refresh the session if it failed
+        try {
+          const refreshResult = await supabase.auth.refreshSession();
+          session = refreshResult?.data?.session || null;
+          console.log('🔄 Session refreshed:', { hasSession: !!session, hasToken: !!session?.access_token });
+        } catch (refreshError) {
+          console.error('❌ Session refresh failed:', refreshError);
+          session = null;
+        }
       }
       
       console.log('🌐 Making API call to /api/cart/shipping...');
