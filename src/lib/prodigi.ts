@@ -390,9 +390,9 @@ export class ProdigiClient {
    * Fallback SKU mapping when dynamic search fails
    * Uses only verified SKUs that exist in the Prodigi API
    */
-  private getFallbackSku(frameSize: string, frameStyle: string, frameMaterial: string): string {
+  private getFallbackSku(frameSize: string, frameStyle: string, frameMaterial: string, imageId?: string): string {
     // Generate unique SKUs for each frame combination to avoid duplicate key errors
-    // Format: PRODIGI-{SIZE}-{STYLE}-{MATERIAL}
+    // Format: PRODIGI-{SIZE}-{STYLE}-{MATERIAL}-{IMAGE_ID}
     const sizeMap: Record<string, string> = {
       'small': '8X10',
       'medium': '11X14', 
@@ -419,8 +419,10 @@ export class ProdigiClient {
     const style = styleMap[frameStyle] || 'B';
     const material = materialMap[frameMaterial] || 'W';
     
-    // Create unique SKU: PRODIGI-8X10-B-W (example)
-    return `PRODIGI-${size}-${style}-${material}`;
+    // Create unique SKU: PRODIGI-8X10-B-W-{IMAGE_ID} (example)
+    // If no imageId provided, use timestamp for uniqueness
+    const uniqueId = imageId ? imageId.substring(0, 8) : Date.now().toString(36);
+    return `PRODIGI-${size}-${style}-${material}-${uniqueId}`;
   }
 
 
@@ -428,13 +430,13 @@ export class ProdigiClient {
    * Generate a proper SKU for frame products
    * This creates a consistent SKU format that matches Prodigi's expectations
    */
-  async generateFrameSku(frameSize: string, frameStyle: string, frameMaterial: string): Promise<string> {
+  async generateFrameSku(frameSize: string, frameStyle: string, frameMaterial: string, imageId?: string): Promise<string> {
     try {
       // For curated images, always use verified Prodigi SKUs to avoid SkuNotFound errors
-      console.log(`🔧 Generating SKU for curated image: ${frameSize}-${frameStyle}-${frameMaterial}`);
+      console.log(`🔧 Generating SKU for curated image: ${frameSize}-${frameStyle}-${frameMaterial}${imageId ? ` (image: ${imageId})` : ''}`);
       
       // Use fallback SKU which contains verified Prodigi SKUs
-      const fallbackSku = this.getFallbackSku(frameSize, frameStyle, frameMaterial);
+      const fallbackSku = this.getFallbackSku(frameSize, frameStyle, frameMaterial, imageId);
       console.log(`✅ Using verified Prodigi SKU: ${fallbackSku}`);
       return fallbackSku;
     } catch (error) {

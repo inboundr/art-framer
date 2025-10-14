@@ -142,7 +142,8 @@ export async function POST(request: NextRequest) {
     const sku = await prodigiClient.generateFrameSku(
       validatedData.frameSize,
       validatedData.frameStyle,
-      validatedData.frameMaterial
+      validatedData.frameMaterial,
+      tempImage.id // Pass the image ID to make SKU unique
     );
 
     // Create product using service client to bypass RLS
