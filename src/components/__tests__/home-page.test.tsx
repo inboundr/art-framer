@@ -50,7 +50,7 @@ jest.mock('../SearchBar', () => ({
 jest.mock('../CuratedImageGallery', () => ({
   CuratedImageGallery: ({ onOpenAuthModal }: any) => {
     // Use the mocked useAuth hook directly since it's already mocked at the top
-    const { useAuth } = jest.requireActual('@/hooks/useAuth');
+    const { useAuth } = require('@/hooks/useAuth');
     const { user } = useAuth();
     
     // Simulate the useEffect that checks for pending cart image
@@ -674,8 +674,10 @@ describe('Home Page - Production Ready Tests', () => {
         </TestWrapper>
       );
       
-      // Should handle the pending cart image
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('pending-cart-image');
+      // Wait for the useEffect to run and check for pending cart image
+      await waitFor(() => {
+        expect(localStorageMock.getItem).toHaveBeenCalledWith('pending-cart-image');
+      });
     });
   });
 

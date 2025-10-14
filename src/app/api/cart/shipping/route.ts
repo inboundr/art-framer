@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { supabase as supabaseClient } from '@/lib/supabase/client';
 import { z } from 'zod';
 import type { ShippingItem } from '@/lib/shipping';
 
@@ -27,12 +26,25 @@ async function authenticateUser(request: NextRequest) {
     const token = authHeader.substring(7);
     console.log('Cart Shipping API: Trying Authorization header authentication');
     
-    // Use the imported supabase client
-    const { data: { user: clientUser }, error: clientError } = await supabaseClient.auth.getUser(token);
+    // Create a new client with the token
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseWithToken = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+    
+    const { data: { user: clientUser }, error: clientError } = await supabaseWithToken.auth.getUser();
     
     if (clientUser && !clientError) {
       console.log('Cart Shipping API: Authenticated via Authorization header');
-      return { user: clientUser, supabase: supabaseClient };
+      return { user: clientUser, supabase: supabaseWithToken };
     }
   }
   

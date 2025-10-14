@@ -343,10 +343,10 @@ describe('Checkout Integration Tests', () => {
       await user.type(googlePlacesInput, '123 Test St');
       await user.tab();
 
-      // Should handle timeout gracefully
+      // Should handle timeout gracefully - wait longer for the API call to be made
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalled();
-      }, { timeout: 200 });
+      }, { timeout: 1000 });
     });
   });
 

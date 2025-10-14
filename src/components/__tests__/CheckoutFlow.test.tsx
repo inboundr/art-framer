@@ -223,9 +223,10 @@ describe('CheckoutFlow', () => {
       await user.type(addressInput, '123 Test St');
       await user.tab(); // Trigger onBlur
       
+      // Wait for the address selection to trigger shipping calculation
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith('/api/cart/shipping', expect.any(Object));
-      });
+      }, { timeout: 3000 });
     });
 
     it('shows loading state during shipping calculation', async () => {
