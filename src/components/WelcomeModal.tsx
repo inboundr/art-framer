@@ -28,8 +28,8 @@ export function WelcomeModal({ isOpen, onClose, onStartCreating }: WelcomeModalP
     },
     {
       icon: <Globe className="w-5 h-5 text-primary" />,
-      title: "Generations are public by default",
-      description: "You can generate in private or delete individual images with Art Framer Plus."
+      title: "Your generations are private",
+      description: "All your generated images are private to you. The home page shows curated public images for inspiration."
     },
     {
       icon: <Zap className="w-5 h-5 text-pink-primary" />,

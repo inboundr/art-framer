@@ -332,13 +332,6 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
 
           {/* Options Row */}
           <div className="flex items-center gap-2 flex-wrap justify-center w-full">
-            {/* Public Dropdown */}
-            <button className="flex items-center gap-1 px-3 py-2 rounded-md bg-dark-tertiary text-gray-light text-sm hover:bg-gray-border transition-colors">
-              <span>Public</span>
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </button>
 
             {/* Aspect Ratio */}
             <div className="relative">

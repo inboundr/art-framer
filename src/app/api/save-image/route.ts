@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
         model: mapModel(model),
         image_url: publicUrl,
         status: 'completed' as const,
-        is_public: true,
+        is_public: false,
         metadata: {
           style: style,
           color: color,

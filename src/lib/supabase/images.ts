@@ -301,7 +301,7 @@ export class SupabaseImageAPI {
         color: metadata.color,
         image_url: publicUrl,
         status: 'completed',
-        is_public: true,
+        is_public: false,
       })
       .select()
       .single();

@@ -150,9 +150,9 @@ const faqData: FAQItem[] = [
   {
     id: '16',
     question: 'Is my artwork private?',
-    answer: 'By default, your generated images are public and can be viewed by others. With Art Framer Plus, you can generate private images and have full control over your content visibility.',
+    answer: 'Your generated images are private to you and can only be viewed by you. The images shown on the home page are curated public images for inspiration.',
     category: 'Privacy',
-    tags: ['privacy', 'public', 'private', 'visibility']
+    tags: ['privacy', 'visibility']
   },
   {
     id: '17',

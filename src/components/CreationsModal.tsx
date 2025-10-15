@@ -392,17 +392,8 @@ export function CreationsModal({
                 </Button>
               </div>
               
-              {/* Public/Private Toggle and Retry */}
+              {/* Retry Button */}
               <div className="flex items-center gap-3 mb-6">
-                <div className="flex h-9 bg-background rounded-full p-0.5 shadow-inner">
-                  <button className="flex h-8 px-4 items-center justify-center rounded-full bg-secondary shadow-sm">
-                    <span className="text-foreground text-sm font-medium">Public</span>
-                  </button>
-                  <button className="flex h-8 px-4 items-center justify-center rounded-full hover:bg-secondary/50 transition-colors">
-                    <span className="text-muted-foreground text-sm font-medium">Private</span>
-                  </button>
-                </div>
-                
                 <button className="flex h-9 px-4 items-center justify-center rounded-md border border-border hover:bg-background/50 transition-colors">
                   <span className="text-foreground text-sm font-medium">Retry</span>
                 </button>

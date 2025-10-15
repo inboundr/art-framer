@@ -92,7 +92,6 @@ describe('SearchBar', () => {
     it('should render all control buttons', () => {
       render(<SearchBar onOpenGenerationPanel={mockOnOpenGenerationPanel} />);
       
-      expect(screen.getByText('Public')).toBeInTheDocument();
       expect(screen.getByText('1:1')).toBeInTheDocument();
       expect(screen.getByText('3.0 Default x4')).toBeInTheDocument();
       expect(screen.getByText('MP On')).toBeInTheDocument();
