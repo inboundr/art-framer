@@ -1,9 +1,9 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useGeneration } from '@/contexts/GenerationContext';
+import { useCart } from '@/hooks/useCart';
 import { SidebarAvatar } from './SidebarAvatar';
 import { ProfilePopup } from './ProfilePopup';
-import { CartButton } from './CartButton';
 // Temporarily commented out to resolve bundler issues
 // import { ThemeToggle } from './DynamicThemeProvider';
 import { useState, useRef } from 'react';
@@ -117,6 +117,7 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
   const pathname = usePathname();
   const { user, profile, signOut } = useAuth();
   const { activeGenerations } = useGeneration();
+  const { totals } = useCart();
   const [profilePopupOpen, setProfilePopupOpen] = useState(false);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -232,31 +233,32 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
             />
             
             {/* Cart Button for Mobile - Always visible */}
-            <div className="flex w-full">
-              <div className="flex w-full h-12 px-4 items-center gap-3 rounded-lg hover:bg-white/5 transition-colors">
-                <div className="flex items-center justify-center w-6 h-6">
-                  <CartButton 
-                    onCartClick={() => {
-                      if (!user) {
-                        // Show auth modal for non-authenticated users
-                        if (onOpenAuthModal) {
-                          onOpenAuthModal();
-                          if (isMobile && onClose) {
-                            onClose();
-                          }
-                        }
-                      } else {
-                        // Navigate to cart for authenticated users
-                        handleNavClick('/cart');
-                      }
-                    }}
-                  />
-                </div>
-                <span className="text-gray-text text-sm font-medium">
-                  Cart
-                </span>
-              </div>
-            </div>
+            <NavItem
+              isMobile={true}
+              icon={
+                <svg width="22" height="22" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[22px] h-[22px]">
+                  <path d="M3.46094 9.61035H18.8609V7.41035C18.8609 6.53514 18.5133 5.69577 17.8944 5.0769C17.2755 4.45803 16.4362 4.11035 15.5609 4.11035H6.76094C5.88572 4.11035 5.04636 4.45803 4.42749 5.0769C3.80862 5.69577 3.46094 6.53514 3.46094 7.41035V16.2104C3.46094 17.0856 3.80862 17.9249 4.42749 18.5438C5.04636 19.1627 5.88572 19.5104 6.76094 19.5104H8.96094V4.11035" stroke="#AAAAB1" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15.5656 12.9106L16.3906 15.3856L18.8656 16.2106L16.3906 17.0356L15.5656 19.5106L14.7406 17.0356L12.2656 16.2106L14.7406 15.3856L15.5656 12.9106Z" fill="#AAAAB1" stroke="#AAAAB1" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              }
+              label="Cart"
+              active={pathname === '/cart'}
+              badge={totals.itemCount || 0}
+              onClick={() => {
+                if (!user) {
+                  // Show auth modal for non-authenticated users
+                  if (onOpenAuthModal) {
+                    onOpenAuthModal('/cart');
+                    if (isMobile && onClose) {
+                      onClose();
+                    }
+                  }
+                } else {
+                  // Navigate to cart for authenticated users
+                  handleNavClick('/cart');
+                }
+              }}
+            />
             
 
             
@@ -446,52 +448,28 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
             /> */}
             
             {/* Cart Button - Always visible */}
-            <div className="flex pt-1 flex-col items-start">
-              <div 
-                className="flex w-16 h-16 flex-col justify-center items-center gap-1 rounded hover:bg-white/5 transition-colors relative cursor-pointer touch-manipulation"
-                onClick={() => {
-                  if (!user) {
-                    // Show auth modal for non-authenticated users with redirect path
-                    if (onOpenAuthModal) {
-                      onOpenAuthModal('/cart');
-                    }
-                  } else {
-                    // Navigate to cart for authenticated users
-                    handleNavClick('/cart');
+            <NavItem
+              icon={
+                <svg width="22" height="22" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[22px] h-[22px]">
+                  <path d="M3.46094 9.61035H18.8609V7.41035C18.8609 6.53514 18.5133 5.69577 17.8944 5.0769C17.2755 4.45803 16.4362 4.11035 15.5609 4.11035H6.76094C5.88572 4.11035 5.04636 4.45803 4.42749 5.0769C3.80862 5.69577 3.46094 6.53514 3.46094 7.41035V16.2104C3.46094 17.0856 3.80862 17.9249 4.42749 18.5438C5.04636 19.1627 5.88572 19.5104 6.76094 19.5104H8.96094V4.11035" stroke="#AAAAB1" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15.5656 12.9106L16.3906 15.3856L18.8656 16.2106L16.3906 17.0356L15.5656 19.5106L14.7406 17.0356L12.2656 16.2106L14.7406 15.3856L15.5656 12.9106Z" fill="#AAAAB1" stroke="#AAAAB1" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              }
+              label="Cart"
+              active={pathname === '/cart'}
+              badge={totals.itemCount || 0}
+              onClick={() => {
+                if (!user) {
+                  // Show auth modal for non-authenticated users with redirect path
+                  if (onOpenAuthModal) {
+                    onOpenAuthModal('/cart');
                   }
-                }}
-                onTouchEnd={(e) => {
-                  // Prevent double-tap zoom on mobile
-                  e.preventDefault();
-                  if (!user) {
-                    if (onOpenAuthModal) {
-                      onOpenAuthModal('/cart');
-                    }
-                  } else {
-                    handleNavClick('/cart');
-                  }
-                }}
-                style={{
-                  // Ensure minimum touch target size for mobile
-                  minHeight: '44px',
-                  minWidth: '44px',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-              >
-                <div className="flex p-2 justify-center items-center rounded-md">
-                  <CartButton 
-                    onCartClick={() => {
-                      // This will be handled by the parent div click
-                    }}
-                  />
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-gray-text text-center text-[11px] font-semibold leading-5 tracking-[-0.55px]">
-                    Cart
-                  </span>
-                </div>
-              </div>
-            </div>
+                } else {
+                  // Navigate to cart for authenticated users
+                  handleNavClick('/cart');
+                }
+              }}
+            />
             
 
           </div>

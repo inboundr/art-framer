@@ -376,6 +376,11 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
                   onClose={() => setModelDropdownOpen(false)}
                   onSelect={handleModelSelect}
                   triggerRef={modelButtonRef}
+                  currentValues={{
+                    images: modelSettings.images,
+                    model: modelSettings.model,
+                    speed: modelSettings.speed
+                  }}
                 />
               )}
             </div>

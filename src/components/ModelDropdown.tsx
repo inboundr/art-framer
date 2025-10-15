@@ -19,8 +19,13 @@ interface RenderSpeedOption {
 interface ModelDropdownProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (option: { value: string; label: string }) => void;
+  onSelect: (option: { value: string; label: string; type: string }) => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
+  currentValues?: {
+    images: string;
+    model: string;
+    speed: string;
+  };
 }
 
 const numberOfImagesOptions = [
@@ -48,12 +53,22 @@ export function ModelDropdown({
   isOpen, 
   onClose, 
   onSelect, 
-  triggerRef 
+  triggerRef,
+  currentValues
 }: ModelDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [selectedImages, setSelectedImages] = useState('4');
-  const [selectedModel, setSelectedModel] = useState('3.0-latest');
-  const [selectedSpeed, setSelectedSpeed] = useState('default');
+  const [selectedImages, setSelectedImages] = useState(currentValues?.images || '4');
+  const [selectedModel, setSelectedModel] = useState(currentValues?.model || '3.0-latest');
+  const [selectedSpeed, setSelectedSpeed] = useState(currentValues?.speed || 'default');
+
+  // Update local state when currentValues prop changes
+  useEffect(() => {
+    if (currentValues) {
+      setSelectedImages(currentValues.images);
+      setSelectedModel(currentValues.model);
+      setSelectedSpeed(currentValues.speed);
+    }
+  }, [currentValues]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -82,19 +97,19 @@ export function ModelDropdown({
 
   const handleImageSelect = (imageCount: string) => {
     setSelectedImages(imageCount);
-    onSelect({ value: imageCount, label: `${imageCount} Images` });
+    onSelect({ value: imageCount, label: `${imageCount} Images`, type: 'images' });
   };
 
   const handleModelSelect = (modelId: string) => {
     setSelectedModel(modelId);
     const model = modelOptions.find(m => m.id === modelId);
-    onSelect({ value: modelId, label: model?.name || modelId });
+    onSelect({ value: modelId, label: model?.name || modelId, type: 'model' });
   };
 
   const handleSpeedSelect = (speedId: string) => {
     setSelectedSpeed(speedId);
     const speed = renderSpeedOptions.find(s => s.id === speedId);
-    onSelect({ value: speedId, label: speed?.name || speedId });
+    onSelect({ value: speedId, label: speed?.name || speedId, type: 'speed' });
   };
 
   return (
