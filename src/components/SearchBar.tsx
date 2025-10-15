@@ -401,6 +401,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
                   onClose={() => setMagicPromptDropdownOpen(false)}
                   onSelect={handleMagicPromptSelect}
                   triggerRef={magicPromptButtonRef}
+                  currentValue={magicPromptSetting}
                 />
               )}
             </div>
@@ -448,6 +449,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
                   onClose={() => setStyleDropdownOpen(false)}
                   onSelect={handleStyleSelect}
                   triggerRef={styleButtonRef}
+                  currentValue={styleSetting}
                 />
               )}
             </div>

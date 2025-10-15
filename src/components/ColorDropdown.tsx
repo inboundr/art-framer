@@ -11,7 +11,7 @@ interface ColorPalette {
 interface ColorDropdownProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (option: { value: string; label: string }) => void;
+  onSelect: (option: { value: string; label: string; type: string }) => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
   selectedValue?: string;
 }
@@ -103,16 +103,16 @@ export function ColorDropdown({
 
   const handlePaletteSelect = (paletteId: string) => {
     setSelectedPalette(paletteId);
-    onSelect({ value: paletteId, label: predefinedPalettes.find(p => p.id === paletteId)?.name || paletteId });
+    onSelect({ value: paletteId, label: predefinedPalettes.find(p => p.id === paletteId)?.name || paletteId, type: 'palette' });
   };
 
   const handleCustomPaletteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCustomPaletteCode(e.target.value);
-    onSelect({ value: e.target.value, label: 'Custom Palette' });
+    onSelect({ value: e.target.value, label: 'Custom Palette', type: 'palette' });
   };
 
   const handleAddCustomPalette = () => {
-    onSelect({ value: 'add', label: 'Add Custom Palette' });
+    onSelect({ value: 'add', label: 'Add Custom Palette', type: 'palette' });
   };
 
   return (

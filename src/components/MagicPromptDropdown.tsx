@@ -7,6 +7,7 @@ interface MagicPromptDropdownProps {
   onClose: () => void;
   onSelect: (option: string) => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
+  currentValue?: string;
 }
 
 const magicPromptOptions = [
@@ -19,10 +20,18 @@ export function MagicPromptDropdown({
   isOpen, 
   onClose, 
   onSelect, 
-  triggerRef 
+  triggerRef,
+  currentValue
 }: MagicPromptDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [selectedOption, setSelectedOption] = useState('on');
+  const [selectedOption, setSelectedOption] = useState(currentValue || 'on');
+
+  // Update local state when currentValue prop changes
+  useEffect(() => {
+    if (currentValue) {
+      setSelectedOption(currentValue);
+    }
+  }, [currentValue]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

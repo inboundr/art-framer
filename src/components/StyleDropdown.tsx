@@ -14,6 +14,7 @@ interface StyleDropdownProps {
   onClose: () => void;
   onSelect: (option: { value: string; label: string }) => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
+  currentValue?: string;
 }
 
 const predefinedStyles: StyleOption[] = [
@@ -28,11 +29,19 @@ export function StyleDropdown({
   isOpen, 
   onClose, 
   onSelect, 
-  triggerRef 
+  triggerRef,
+  currentValue
 }: StyleDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [selectedStyle, setSelectedStyle] = useState('auto');
+  const [selectedStyle, setSelectedStyle] = useState(currentValue || 'auto');
   const [styleCode, setStyleCode] = useState('');
+
+  // Update local state when currentValue prop changes
+  useEffect(() => {
+    if (currentValue) {
+      setSelectedStyle(currentValue);
+    }
+  }, [currentValue]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
