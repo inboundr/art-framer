@@ -229,7 +229,10 @@ export class ProdigiClient {
     try {
       const alternatives = await this.findAlternativeSkus(failedSku);
       
-      for (const alternativeSku of alternatives) {
+      // Sort alternatives to try the most likely ones first
+      const sortedAlternatives = this.prioritizeAlternatives(alternatives, failedSku);
+      
+      for (const alternativeSku of sortedAlternatives) {
         try {
           console.log(`🔍 Trying alternative SKU: ${alternativeSku}`);
           const product = await this.request<ProdigiProduct>(`/products/${alternativeSku}`);
@@ -253,54 +256,136 @@ export class ProdigiClient {
   }
 
   /**
+   * Prioritize alternatives based on likelihood of success
+   */
+  private prioritizeAlternatives(alternatives: string[], failedSku: string): string[] {
+    // Extract size from failed SKU for prioritization
+    const skuParts = failedSku.split('-');
+    const failedSize = skuParts.length >= 2 ? skuParts[1] : '';
+    
+    return alternatives.sort((a, b) => {
+      // Prioritize known working patterns first
+      const knownPatterns = ['GLOBAL-CAN-', 'GLOBAL-CFPM-', 'GLOBAL-FAP-', 'GLOBAL-FRA-CAN-'];
+      const aIsKnown = knownPatterns.some(pattern => a.startsWith(pattern));
+      const bIsKnown = knownPatterns.some(pattern => b.startsWith(pattern));
+      
+      if (aIsKnown && !bIsKnown) return -1;
+      if (!aIsKnown && bIsKnown) return 1;
+      
+      // Then prioritize by size similarity
+      const aHasSize = a.includes(failedSize);
+      const bHasSize = b.includes(failedSize);
+      
+      if (aHasSize && !bHasSize) return -1;
+      if (!aHasSize && bHasSize) return 1;
+      
+      // Finally, prioritize shorter SKUs (more likely to be real)
+      return a.length - b.length;
+    });
+  }
+
+  /**
    * Find alternative SKUs based on the failed SKU pattern
    */
   private async findAlternativeSkus(failedSku: string): Promise<string[]> {
     const alternatives: string[] = [];
     
-    // First, try to discover working SKUs through Prodigi's search API
+    // First, try to discover working SKUs through Prodigi's search API with multiple strategies
     try {
       console.log(`🔍 Attempting to discover working SKUs through Prodigi search API`);
-      const discoveredProducts = await this.searchProducts({});
-      const discoveredSkus = discoveredProducts.map(p => p.sku);
-      alternatives.push(...discoveredSkus);
-      console.log(`✅ Discovered ${discoveredSkus.length} SKUs from Prodigi API`);
+      
+      // Try multiple search strategies
+      const searchStrategies = [
+        { search: 'frame', limit: 50 },
+        { search: 'canvas', limit: 50 },
+        { search: 'print', limit: 50 },
+        { search: 'art', limit: 50 },
+        { category: 'frame', limit: 50 },
+        { category: 'canvas', limit: 50 },
+        { limit: 100 } // Get any products
+      ];
+      
+      for (const strategy of searchStrategies) {
+        try {
+          const discoveredProducts = await this.searchProducts(strategy);
+          const discoveredSkus = discoveredProducts.map(p => p.sku);
+          alternatives.push(...discoveredSkus);
+          console.log(`✅ Discovered ${discoveredSkus.length} SKUs using strategy:`, strategy);
+          
+          // If we found some products, break early
+          if (discoveredSkus.length > 0) {
+            break;
+          }
+        } catch (strategyError) {
+          console.log(`⚠️ Search strategy failed:`, strategy, strategyError);
+          continue;
+        }
+      }
+      
+      console.log(`✅ Total discovered SKUs: ${alternatives.length}`);
     } catch (searchError) {
-      console.log(`⚠️ Could not discover SKUs through search API, using pattern-based alternatives:`, searchError);
+      console.log(`⚠️ All search strategies failed, using fallback approach:`, searchError);
     }
     
-    // Extract components from the failed SKU for pattern-based alternatives
+    // If we still don't have alternatives, try some known working patterns
+    if (alternatives.length === 0) {
+      console.log(`🔄 No SKUs discovered through search, trying known working patterns`);
+      
+      // Try some known working SKU patterns based on common Prodigi formats
+      const knownPatterns = [
+        'GLOBAL-CAN-10x10',
+        'GLOBAL-CFPM-16X20',
+        'GLOBAL-FAP-16X24',
+        'GLOBAL-FRA-CAN-30X40',
+        'GLOBAL-FAP-8X10',
+        'GLOBAL-FAP-11X14',
+        'GLOBAL-FRAME-8X10',
+        'GLOBAL-FRAME-11X14',
+        'GLOBAL-FRAME-16X20',
+        'GLOBAL-PRINT-8X10',
+        'GLOBAL-PRINT-11X14',
+        'GLOBAL-PRINT-16X20'
+      ];
+      
+      alternatives.push(...knownPatterns);
+      console.log(`📋 Added ${knownPatterns.length} known working patterns as fallback`);
+    }
+    
+    // Extract components from the failed SKU for pattern-based alternatives (as last resort)
     const skuParts = failedSku.split('-');
     if (skuParts.length >= 4) {
       const [, size, style, material] = skuParts;
       
-      // Try different variations of the same combination
-      const variations = [
-        // Try with different size formats
-        `GLOBAL-${size}-${style}-${material}`,
-        `GLOBAL-CAN-${size}`,
-        `GLOBAL-CFPM-${size}`,
-        `GLOBAL-FAP-${size}`,
-        `GLOBAL-FRA-CAN-${size}`,
+      // Only add pattern-based alternatives if we don't have many alternatives yet
+      if (alternatives.length < 10) {
+        const variations = [
+          // Try with different size formats
+          `GLOBAL-${size}-${style}-${material}`,
+          `GLOBAL-CAN-${size}`,
+          `GLOBAL-CFPM-${size}`,
+          `GLOBAL-FAP-${size}`,
+          `GLOBAL-FRA-CAN-${size}`,
+          
+          // Try with different style/material combinations
+          `GLOBAL-${size}-B-W`, // Black Wood
+          `GLOBAL-${size}-W-W`, // White Wood
+          `GLOBAL-${size}-B-M`, // Black Metal
+          
+          // Try generic frame products
+          `GLOBAL-FRAME-${size}`,
+          `GLOBAL-PRINT-${size}`,
+        ];
         
-        // Try with different style/material combinations
-        `GLOBAL-${size}-B-W`, // Black Wood
-        `GLOBAL-${size}-W-W`, // White Wood
-        `GLOBAL-${size}-B-M`, // Black Metal
-        
-        // Try generic frame products
-        `GLOBAL-FRAME-${size}`,
-        `GLOBAL-PRINT-${size}`,
-      ];
-      
-      alternatives.push(...variations);
+        alternatives.push(...variations);
+        console.log(`🔧 Added ${variations.length} pattern-based alternatives`);
+      }
     }
     
-    // The algorithm will learn working SKUs dynamically through trial and error
-    // No hardcoded fallbacks - let the system discover what works
-    
     // Remove duplicates and the original failed SKU
-    return [...new Set(alternatives)].filter(sku => sku !== failedSku);
+    const uniqueAlternatives = [...new Set(alternatives)].filter(sku => sku !== failedSku);
+    console.log(`📊 Total unique alternatives: ${uniqueAlternatives.length}`);
+    
+    return uniqueAlternatives;
   }
 
   /**
