@@ -115,10 +115,12 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
                        currentAspectRatio.value === '2:3' ? '2x3' : '1x1',
           numberOfImages: parseInt(modelSettings.images) as 1 | 2 | 3 | 4,
           model: modelSettings.model === '3.0-latest' ? 'V_3' : 
-                 modelSettings.model === '2.0-latest' ? 'V_2' : 
-                 modelSettings.model === '1.0-latest' ? 'V_1' : 'V_3',
+                 modelSettings.model === '3.0-march26' ? 'V_3' : 
+                 modelSettings.model === '2.0' ? 'V_2' : 
+                 modelSettings.model === '2a' ? 'V_2' : 
+                 modelSettings.model === '1.0' ? 'V_1' : 'V_3',
           renderSpeed: modelSettings.speed === 'default' ? 'BALANCED' : 
-                      modelSettings.speed === 'fast' ? 'TURBO' : 
+                      modelSettings.speed === 'turbo' ? 'TURBO' : 
                       modelSettings.speed === 'quality' ? 'QUALITY' : 'BALANCED',
           style: styleSetting === 'auto' ? 'AUTO' : 
                  styleSetting === 'realistic' ? 'REALISTIC' : 
@@ -151,10 +153,12 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
                      currentAspectRatio.value === '2:3' ? '2x3' : '1x1',
         numberOfImages: parseInt(modelSettings.images) as 1 | 2 | 3 | 4,
         model: modelSettings.model === '3.0-latest' ? 'V_3' : 
-               modelSettings.model === '2.0-latest' ? 'V_2' : 
-               modelSettings.model === '1.0-latest' ? 'V_1' : 'V_3',
+               modelSettings.model === '3.0-march26' ? 'V_3' : 
+               modelSettings.model === '2.0' ? 'V_2' : 
+               modelSettings.model === '2a' ? 'V_2' : 
+               modelSettings.model === '1.0' ? 'V_1' : 'V_3',
         renderSpeed: modelSettings.speed === 'default' ? 'BALANCED' : 
-                    modelSettings.speed === 'fast' ? 'TURBO' : 
+                    modelSettings.speed === 'turbo' ? 'TURBO' : 
                     modelSettings.speed === 'quality' ? 'QUALITY' : 'BALANCED',
         style: styleSetting === 'auto' ? 'AUTO' : 
                styleSetting === 'realistic' ? 'REALISTIC' : 

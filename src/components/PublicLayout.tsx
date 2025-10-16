@@ -71,13 +71,21 @@ export function PublicLayout({ children }: PublicLayoutProps) {
     }
   }, [user, pendingGenerationRequest]);
 
-  const handleOpenGenerationPanel = (prompt?: string) => {
+  const handleOpenGenerationPanel = (prompt?: string, settings?: {
+    aspectRatio: string;
+    numberOfImages: number;
+    model: string;
+    renderSpeed: string;
+    style: string;
+    color: string;
+    referenceImages: string[];
+  }) => {
     if (!user) {
       // Store the generation request and show auth modal
       if (prompt) {
         setPendingGenerationRequest({
           prompt,
-          settings: generationSettings,
+          settings: settings || generationSettings,
         });
       }
       setAuthModalVisible(true);
@@ -87,6 +95,12 @@ export function PublicLayout({ children }: PublicLayoutProps) {
     if (prompt) {
       setCurrentPrompt(prompt);
     }
+    
+    // Update generation settings if provided
+    if (settings) {
+      setGenerationSettings(settings);
+    }
+    
     setGenerationPanelVisible(true);
   };
 

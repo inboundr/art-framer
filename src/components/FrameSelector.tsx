@@ -137,6 +137,37 @@ export function FrameSelector({
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Get available options based on current selections
+  const getAvailableSizes = () => {
+    const availableSizes = new Set<string>();
+    FRAME_OPTIONS.forEach(frame => {
+      if (frame.style === selectedStyle && frame.material === selectedMaterial) {
+        availableSizes.add(frame.size);
+      }
+    });
+    return Array.from(availableSizes);
+  };
+
+  const getAvailableStyles = () => {
+    const availableStyles = new Set<string>();
+    FRAME_OPTIONS.forEach(frame => {
+      if (frame.size === selectedSize && frame.material === selectedMaterial) {
+        availableStyles.add(frame.style);
+      }
+    });
+    return Array.from(availableStyles);
+  };
+
+  const getAvailableMaterials = () => {
+    const availableMaterials = new Set<string>();
+    FRAME_OPTIONS.forEach(frame => {
+      if (frame.size === selectedSize && frame.style === selectedStyle) {
+        availableMaterials.add(frame.material);
+      }
+    });
+    return Array.from(availableMaterials);
+  };
+
   useEffect(() => {
     // Filter frames based on selected criteria
     const filtered = FRAME_OPTIONS.filter(frame => 
@@ -151,6 +182,28 @@ export function FrameSelector({
       onFrameSelect(filtered[0]);
     }
   }, [selectedSize, selectedStyle, selectedMaterial, onFrameSelect]);
+
+  // Auto-adjust selections when options become unavailable
+  useEffect(() => {
+    const availableSizes = getAvailableSizes();
+    const availableStyles = getAvailableStyles();
+    const availableMaterials = getAvailableMaterials();
+
+    // If current size is not available, select the first available size
+    if (!availableSizes.includes(selectedSize) && availableSizes.length > 0) {
+      setSelectedSize(availableSizes[0]);
+    }
+
+    // If current style is not available, select the first available style
+    if (!availableStyles.includes(selectedStyle) && availableStyles.length > 0) {
+      setSelectedStyle(availableStyles[0]);
+    }
+
+    // If current material is not available, select the first available material
+    if (!availableMaterials.includes(selectedMaterial) && availableMaterials.length > 0) {
+      setSelectedMaterial(availableMaterials[0]);
+    }
+  }, [selectedSize, selectedStyle, selectedMaterial]);
 
   const handleAddToCart = (frame: FrameOption) => {
     if (!user) {
@@ -221,7 +274,7 @@ export function FrameSelector({
     return sizes[size as keyof typeof sizes] || sizes.medium;
   };
 
-  const currentFrame = filteredFrames[0];
+  const currentFrame = selectedFrame || filteredFrames[0];
   const previewSize = getPreviewSize(selectedSize);
 
   return (
@@ -237,6 +290,7 @@ export function FrameSelector({
                 size="sm"
                 onClick={() => setPreviewScale(Math.max(0.5, previewScale - 0.1))}
                 disabled={previewScale <= 0.5}
+                aria-label="Zoom out"
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
@@ -248,6 +302,7 @@ export function FrameSelector({
                 size="sm"
                 onClick={() => setPreviewScale(Math.min(2, previewScale + 0.1))}
                 disabled={previewScale >= 2}
+                aria-label="Zoom in"
               >
                 <ZoomIn className="h-4 w-4" />
               </Button>
@@ -255,6 +310,7 @@ export function FrameSelector({
                 variant="outline"
                 size="sm"
                 onClick={() => setPreviewRotation((prev) => (prev + 90) % 360)}
+                aria-label="Rotate"
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
@@ -366,6 +422,21 @@ export function FrameSelector({
 
       {/* Right Side - Configuration Options */}
       <div className="space-y-6">
+        {/* Selection Guide */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-white text-xs font-bold">i</span>
+            </div>
+            <div>
+              <h4 className="font-semibold text-blue-900 mb-1">How to choose your frame</h4>
+              <p className="text-blue-700 text-sm">
+                Select your preferred size, style, and material. Options will automatically update 
+                to show only available combinations. Unavailable options are grayed out.
+              </p>
+            </div>
+          </div>
+        </div>
         {/* Frame Size Selection */}
         <Card className="border-0 shadow-lg">
           <CardHeader className="pb-4">
@@ -377,28 +448,51 @@ export function FrameSelector({
           <CardContent>
             <RadioGroup value={selectedSize} onValueChange={setSelectedSize}>
               <div className="grid grid-cols-2 gap-3">
-                {['small', 'medium', 'large', 'extra_large'].map((size) => (
-                  <div key={size} className="relative">
-                    <RadioGroupItem value={size} id={size} className="sr-only" />
-                    <Label 
-                      htmlFor={size} 
-                      className={`flex flex-col items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                        selectedSize === size 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-border hover:border-border/80'
-                      }`}
-                    >
-                      <div className={`text-sm font-medium mb-1 ${
-                        selectedSize === size ? 'text-blue-700' : 'text-foreground'
-                      }`}>{getSizeLabel(size)}</div>
-                      <div className={`text-xs ${
-                        selectedSize === size ? 'text-blue-600' : 'text-muted-foreground'
-                      }`}>
-                        {FRAME_OPTIONS.find(f => f.size === size && f.style === 'black' && f.material === 'wood')?.dimensions.width}&quot; × {FRAME_OPTIONS.find(f => f.size === size && f.style === 'black' && f.material === 'wood')?.dimensions.height}&quot;
-                      </div>
-                    </Label>
-                  </div>
-                ))}
+                {['small', 'medium', 'large', 'extra_large'].map((size) => {
+                  const isAvailable = getAvailableSizes().includes(size);
+                  const frameOption = FRAME_OPTIONS.find(f => f.size === size && f.style === selectedStyle && f.material === selectedMaterial);
+                  
+                  return (
+                    <div key={size} className="relative">
+                      <RadioGroupItem 
+                        value={size} 
+                        id={size} 
+                        className="sr-only" 
+                        disabled={!isAvailable}
+                      />
+                      <Label 
+                        htmlFor={size} 
+                        className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all duration-200 ${
+                          !isAvailable 
+                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50' 
+                            : selectedSize === size 
+                              ? 'border-blue-500 bg-blue-50 cursor-pointer' 
+                              : 'border-border hover:border-border/80 cursor-pointer'
+                        }`}
+                      >
+                        <div className={`text-sm font-medium mb-1 ${
+                          !isAvailable 
+                            ? 'text-gray-400' 
+                            : selectedSize === size 
+                              ? 'text-blue-700' 
+                              : 'text-foreground'
+                        }`}>{getSizeLabel(size)}</div>
+                        <div className={`text-xs ${
+                          !isAvailable 
+                            ? 'text-gray-400' 
+                            : selectedSize === size 
+                              ? 'text-blue-600' 
+                              : 'text-muted-foreground'
+                        }`}>
+                          {frameOption ? `${frameOption.dimensions.width}" × ${frameOption.dimensions.height}"` : 'Not available'}
+                        </div>
+                        {!isAvailable && (
+                          <div className="text-xs text-red-500 mt-1">Unavailable</div>
+                        )}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
             </RadioGroup>
           </CardContent>
@@ -415,27 +509,49 @@ export function FrameSelector({
           <CardContent>
             <RadioGroup value={selectedStyle} onValueChange={setSelectedStyle}>
               <div className="grid grid-cols-3 gap-3">
-                {['black', 'white', 'natural', 'gold', 'silver'].map((style) => (
-                  <div key={style} className="relative">
-                    <RadioGroupItem value={style} id={style} className="sr-only" />
-                    <Label 
-                      htmlFor={style} 
-                      className={`flex flex-col items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                        selectedStyle === style 
-                          ? 'border-purple-500 bg-purple-50' 
-                          : 'border-border hover:border-border/80'
-                      }`}
-                    >
-                      <div 
-                        className="w-8 h-8 rounded-full border-2 border-border mb-2"
-                        style={{ backgroundColor: getFrameColor(style) }}
+                {['black', 'white', 'natural', 'gold', 'silver'].map((style) => {
+                  const isAvailable = getAvailableStyles().includes(style);
+                  
+                  return (
+                    <div key={style} className="relative">
+                      <RadioGroupItem 
+                        value={style} 
+                        id={style} 
+                        className="sr-only" 
+                        disabled={!isAvailable}
                       />
-                      <div className={`text-sm font-medium ${
-                        selectedStyle === style ? 'text-purple-700' : 'text-foreground'
-                      }`}>{getStyleLabel(style)}</div>
-                    </Label>
-                  </div>
-                ))}
+                      <Label 
+                        htmlFor={style} 
+                        className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all duration-200 ${
+                          !isAvailable 
+                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50' 
+                            : selectedStyle === style 
+                              ? 'border-purple-500 bg-purple-50 cursor-pointer' 
+                              : 'border-border hover:border-border/80 cursor-pointer'
+                        }`}
+                      >
+                        <div 
+                          className={`w-8 h-8 rounded-full border-2 mb-2 ${
+                            !isAvailable ? 'border-gray-300' : 'border-border'
+                          }`}
+                          style={{ 
+                            backgroundColor: isAvailable ? getFrameColor(style) : '#e5e7eb'
+                          }}
+                        />
+                        <div className={`text-sm font-medium ${
+                          !isAvailable 
+                            ? 'text-gray-400' 
+                            : selectedStyle === style 
+                              ? 'text-purple-700' 
+                              : 'text-foreground'
+                        }`}>{getStyleLabel(style)}</div>
+                        {!isAvailable && (
+                          <div className="text-xs text-red-500 mt-1">Unavailable</div>
+                        )}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
             </RadioGroup>
           </CardContent>
@@ -452,23 +568,41 @@ export function FrameSelector({
           <CardContent>
             <RadioGroup value={selectedMaterial} onValueChange={setSelectedMaterial}>
               <div className="grid grid-cols-2 gap-3">
-                {['wood', 'metal', 'plastic', 'bamboo'].map((material) => (
-                  <div key={material} className="relative">
-                    <RadioGroupItem value={material} id={material} className="sr-only" />
-                    <Label 
-                      htmlFor={material} 
-                      className={`flex items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                        selectedMaterial === material 
-                          ? 'border-green-500 bg-green-50' 
-                          : 'border-border hover:border-border/80'
-                      }`}
-                    >
-                      <div className={`text-sm font-medium ${
-                        selectedMaterial === material ? 'text-green-700' : 'text-foreground'
-                      }`}>{getMaterialLabel(material)}</div>
-                    </Label>
-                  </div>
-                ))}
+                {['wood', 'metal', 'plastic', 'bamboo'].map((material) => {
+                  const isAvailable = getAvailableMaterials().includes(material);
+                  
+                  return (
+                    <div key={material} className="relative">
+                      <RadioGroupItem 
+                        value={material} 
+                        id={material} 
+                        className="sr-only" 
+                        disabled={!isAvailable}
+                      />
+                      <Label 
+                        htmlFor={material} 
+                        className={`flex items-center justify-center p-4 rounded-lg border-2 transition-all duration-200 ${
+                          !isAvailable 
+                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50' 
+                            : selectedMaterial === material 
+                              ? 'border-green-500 bg-green-50 cursor-pointer' 
+                              : 'border-border hover:border-border/80 cursor-pointer'
+                        }`}
+                      >
+                        <div className={`text-sm font-medium ${
+                          !isAvailable 
+                            ? 'text-gray-400' 
+                            : selectedMaterial === material 
+                              ? 'text-green-700' 
+                              : 'text-foreground'
+                        }`}>{getMaterialLabel(material)}</div>
+                        {!isAvailable && (
+                          <div className="text-xs text-red-500 ml-2">Unavailable</div>
+                        )}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
             </RadioGroup>
           </CardContent>
