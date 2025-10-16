@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { supabase as supabaseClient } from "@/lib/supabase/client";
 import { z } from "zod";
 import Stripe from "stripe";
 import type { PricingItem } from "@/lib/pricing";
@@ -103,7 +102,9 @@ export async function POST(request: NextRequest) {
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
         console.log('Checkout API: Trying Authorization header authentication');
-        const { data: headerAuth, error: headerError } = await supabaseClient.auth.getUser(token);
+        // Use service client to verify the token
+        const serviceSupabase = createServiceClient();
+        const { data: headerAuth, error: headerError } = await serviceSupabase.auth.getUser(token);
         if (!headerError && headerAuth.user) {
           console.log('Checkout API: Authenticated via Authorization header');
           user = headerAuth.user;
