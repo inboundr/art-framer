@@ -77,6 +77,10 @@ export class ProdigiClient {
   private productCache: Map<string, ProdigiProduct> = new Map();
   private cacheExpiry: Map<string, number> = new Map();
   private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+  
+  // Track failed SKUs to avoid repeated 404 errors
+  private failedSkus: Set<string> = new Set();
+  private alternativeSkus: Map<string, string> = new Map();
 
   constructor(apiKey: string, environment: 'sandbox' | 'production' = 'sandbox') {
     this.apiKey = apiKey;
@@ -161,9 +165,15 @@ export class ProdigiClient {
   }
 
   /**
-   * Get product details with caching
+   * Get product details with caching and intelligent fallback
    */
   async getProductDetails(sku: string): Promise<ProdigiProduct> {
+    // Check if this SKU has failed before
+    if (this.failedSkus.has(sku)) {
+      console.log(`⚠️ SKU ${sku} previously failed, trying alternative approach`);
+      return this.tryAlternativeSku(sku);
+    }
+
     // Check cache first
     if (this.isCacheValid(sku)) {
       console.log(`📦 Using cached product data for SKU: ${sku}`);
@@ -190,8 +200,107 @@ export class ProdigiClient {
       return response;
     } catch (error) {
       console.error('Error fetching Prodigi product details:', error);
+      
+      // If it's a 404 error, mark this SKU as failed and try alternatives
+      if (error instanceof Error && error.message.includes('404')) {
+        console.log(`❌ SKU ${sku} not found (404), marking as failed and trying alternatives`);
+        this.failedSkus.add(sku);
+        return this.tryAlternativeSku(sku);
+      }
+      
       throw error;
     }
+  }
+
+  /**
+   * Try alternative SKU approaches when a SKU fails
+   */
+  private async tryAlternativeSku(failedSku: string): Promise<ProdigiProduct> {
+    console.log(`🔄 Trying alternative approaches for failed SKU: ${failedSku}`);
+    
+    // Check if we already have an alternative for this SKU
+    if (this.alternativeSkus.has(failedSku)) {
+      const alternativeSku = this.alternativeSkus.get(failedSku)!;
+      console.log(`📋 Using cached alternative SKU: ${alternativeSku}`);
+      return this.getProductDetails(alternativeSku);
+    }
+    
+    // Try to find a working alternative by searching for similar products
+    try {
+      const alternatives = await this.findAlternativeSkus(failedSku);
+      
+      for (const alternativeSku of alternatives) {
+        try {
+          console.log(`🔍 Trying alternative SKU: ${alternativeSku}`);
+          const product = await this.request<ProdigiProduct>(`/products/${alternativeSku}`);
+          
+          // Cache this alternative for future use
+          this.alternativeSkus.set(failedSku, alternativeSku);
+          console.log(`✅ Found working alternative: ${alternativeSku} for ${failedSku}`);
+          
+          return product;
+        } catch (altError) {
+          console.log(`❌ Alternative SKU ${alternativeSku} also failed, trying next...`);
+          continue;
+        }
+      }
+    } catch (searchError) {
+      console.log(`⚠️ Could not find alternatives for ${failedSku}:`, searchError);
+    }
+    
+    // If all alternatives fail, throw the original error
+    throw new Error(`No working alternatives found for SKU: ${failedSku}`);
+  }
+
+  /**
+   * Find alternative SKUs based on the failed SKU pattern
+   */
+  private async findAlternativeSkus(failedSku: string): Promise<string[]> {
+    const alternatives: string[] = [];
+    
+    // First, try to discover working SKUs through Prodigi's search API
+    try {
+      console.log(`🔍 Attempting to discover working SKUs through Prodigi search API`);
+      const discoveredProducts = await this.searchProducts({});
+      const discoveredSkus = discoveredProducts.map(p => p.sku);
+      alternatives.push(...discoveredSkus);
+      console.log(`✅ Discovered ${discoveredSkus.length} SKUs from Prodigi API`);
+    } catch (searchError) {
+      console.log(`⚠️ Could not discover SKUs through search API, using pattern-based alternatives:`, searchError);
+    }
+    
+    // Extract components from the failed SKU for pattern-based alternatives
+    const skuParts = failedSku.split('-');
+    if (skuParts.length >= 4) {
+      const [, size, style, material] = skuParts;
+      
+      // Try different variations of the same combination
+      const variations = [
+        // Try with different size formats
+        `GLOBAL-${size}-${style}-${material}`,
+        `GLOBAL-CAN-${size}`,
+        `GLOBAL-CFPM-${size}`,
+        `GLOBAL-FAP-${size}`,
+        `GLOBAL-FRA-CAN-${size}`,
+        
+        // Try with different style/material combinations
+        `GLOBAL-${size}-B-W`, // Black Wood
+        `GLOBAL-${size}-W-W`, // White Wood
+        `GLOBAL-${size}-B-M`, // Black Metal
+        
+        // Try generic frame products
+        `GLOBAL-FRAME-${size}`,
+        `GLOBAL-PRINT-${size}`,
+      ];
+      
+      alternatives.push(...variations);
+    }
+    
+    // The algorithm will learn working SKUs dynamically through trial and error
+    // No hardcoded fallbacks - let the system discover what works
+    
+    // Remove duplicates and the original failed SKU
+    return [...new Set(alternatives)].filter(sku => sku !== failedSku);
   }
 
   /**
@@ -432,13 +541,21 @@ export class ProdigiClient {
    */
   async generateFrameSku(frameSize: string, frameStyle: string, frameMaterial: string, imageId?: string): Promise<string> {
     try {
-      // For curated images, always use verified Prodigi SKUs to avoid SkuNotFound errors
       console.log(`🔧 Generating SKU for curated image: ${frameSize}-${frameStyle}-${frameMaterial}${imageId ? ` (image: ${imageId})` : ''}`);
       
-      // Use fallback SKU which contains verified Prodigi SKUs
-      const fallbackSku = this.getFallbackSku(frameSize, frameStyle, frameMaterial, imageId);
-      console.log(`✅ Using verified Prodigi SKU: ${fallbackSku}`);
-      return fallbackSku;
+      // First try to find a dynamic match
+      try {
+        const dynamicSku = await this.getProductSku(frameSize, frameStyle, frameMaterial);
+        console.log(`✅ Found dynamic Prodigi SKU: ${dynamicSku}`);
+        return dynamicSku;
+      } catch (dynamicError) {
+        console.log(`⚠️ Dynamic SKU search failed, using generated SKU:`, dynamicError);
+      }
+      
+      // Fallback to generated SKU
+      const generatedSku = this.getFallbackSku(frameSize, frameStyle, frameMaterial, imageId);
+      console.log(`✅ Using generated Prodigi SKU: ${generatedSku}`);
+      return generatedSku;
     } catch (error) {
       console.warn('Error generating frame SKU, using fallback:', error);
       return this.getFallbackSku(frameSize, frameStyle, frameMaterial);
