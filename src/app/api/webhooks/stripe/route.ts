@@ -210,7 +210,7 @@ async function handleCheckoutSessionCompleted(
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
     // Retrieve stored shipping address from our database
-    const { data: storedAddressData, error: addressError } = await supabase
+    const { data: storedAddressData, error: addressError } = await (supabase as any)
       .from('stripe_session_addresses')
       .select('shipping_address')
       .eq('stripe_session_id', session.id)
@@ -220,7 +220,10 @@ async function handleCheckoutSessionCompleted(
     if (addressError || !storedAddressData) {
       console.warn('⚠️ No stored address found for session, using fallback:', {
         sessionId: session.id,
-        error: addressError?.message
+        error: addressError?.message,
+        errorCode: addressError?.code,
+        errorDetails: addressError?.details,
+        hasStoredData: !!storedAddressData
       });
       shippingAddress = {
         line1: 'Address not provided',
@@ -232,6 +235,10 @@ async function handleCheckoutSessionCompleted(
       };
     } else {
       const storedAddress = storedAddressData.shipping_address as any;
+      console.log('✅ Retrieved stored address:', {
+        sessionId: session.id,
+        address: storedAddress
+      });
       shippingAddress = {
         line1: storedAddress.address1 || 'Address not provided',
         line2: storedAddress.address2 || null,
@@ -300,7 +307,7 @@ async function handleCheckoutSessionCompleted(
       total_price: item.products.price * item.quantity,
     }));
 
-    const { error: orderItemsError } = await supabase
+    const { error: orderItemsError } = await (supabase as any)
       .from('order_items')
       .insert(orderItems);
 
