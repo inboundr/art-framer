@@ -229,12 +229,9 @@ describe('ProdigiClient - Improved Algorithm (Simple Tests)', () => {
     it('should generate SKUs with correct format', async () => {
       const sku = await client.generateFrameSku('medium', 'black', 'wood', 'mgtumnv0');
       
-      expect(sku).toMatch(/^PRODIGI-/);
-      expect(sku).toContain('11X14'); // medium size
-      expect(sku).toContain('B'); // black style
-      expect(sku).toContain('W'); // wood material
-      // The SKU should end with either the image ID or a timestamp-based ID
-      expect(sku).toMatch(/PRODIGI-11X14-B-W-.+/);
+      // Should return a known working SKU (GLOBAL-*) instead of fake PRODIGI-* SKUs
+      expect(sku).toMatch(/^GLOBAL-/);
+      expect(sku).toContain('11X14'); // medium size should map to 11X14
     });
 
     it('should generate different SKUs for different inputs', async () => {
@@ -242,21 +239,19 @@ describe('ProdigiClient - Improved Algorithm (Simple Tests)', () => {
       const sku2 = await client.generateFrameSku('large', 'white', 'metal', 'abc123');
       
       expect(sku1).not.toBe(sku2);
-      expect(sku1).toContain('11X14'); // medium
-      expect(sku2).toContain('16X24'); // large
-      expect(sku1).toContain('B'); // black
-      expect(sku2).toContain('W'); // white
+      expect(sku1).toContain('11X14'); // medium should map to 11X14
+      expect(sku2).toContain('16X24'); // large should map to 16X24
+      // Both should be known working GLOBAL-* SKUs
+      expect(sku1).toMatch(/^GLOBAL-/);
+      expect(sku2).toMatch(/^GLOBAL-/);
     });
 
     it('should handle missing image ID', async () => {
       const sku = await client.generateFrameSku('medium', 'black', 'wood');
       
-      expect(sku).toMatch(/^PRODIGI-/);
-      expect(sku).toContain('11X14');
-      expect(sku).toContain('B');
-      expect(sku).toContain('W');
-      // Should have some unique identifier even without image ID
-      expect(sku.split('-')).toHaveLength(5);
+      // Should return a known working SKU (GLOBAL-*) instead of fake PRODIGI-* SKUs
+      expect(sku).toMatch(/^GLOBAL-/);
+      expect(sku).toContain('11X14'); // medium size should map to 11X14
     });
   });
 
