@@ -186,33 +186,8 @@ export async function POST(request: NextRequest) {
 
     const { defaultPricingCalculator } = await import('@/lib/pricing');
     const { defaultShippingService } = await import('@/lib/shipping');
-    
-    // Import Prodigi client to generate fresh SKUs
-    const { prodigiClient } = await import('@/lib/prodigi');
-    
-    // Generate fresh SKUs for all cart items
-    const cartItemsWithFreshSkus = await Promise.all(
-      cartItems.map(async (item: any) => {
-        const freshSku = await prodigiClient.generateFrameSku(
-          item.products.frame_size,
-          item.products.frame_style,
-          item.products.frame_material,
-          item.products.image_id
-        );
-        
-        console.log(`🔄 Regenerated SKU for checkout: ${item.products.sku} -> ${freshSku}`);
-        
-        return {
-          ...item,
-          products: {
-            ...item.products,
-            sku: freshSku
-          }
-        };
-      })
-    );
 
-    const pricingItems: PricingItem[] = cartItemsWithFreshSkus.map((item: any) => ({
+    const pricingItems: PricingItem[] = cartItems.map((item: any) => ({
       id: item.id,
       sku: item.products.sku,
       price: item.products.price,
@@ -220,7 +195,7 @@ export async function POST(request: NextRequest) {
       name: item.products.name || `${item.products.frame_size} ${item.products.frame_style} Frame`,
     }));
 
-    const shippingItems: ShippingItem[] = cartItemsWithFreshSkus.map((item: any) => ({
+    const shippingItems: ShippingItem[] = cartItems.map((item: any) => ({
       sku: item.products.sku,
       quantity: item.quantity,
     }));

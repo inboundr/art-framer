@@ -122,38 +122,12 @@ export async function POST(request: NextRequest) {
 
     // Use enhanced shipping service
     const { defaultShippingService } = await import('@/lib/shipping');
-    const { prodigiClient } = await import('@/lib/prodigi');
     
-    // Generate fresh SKUs using our improved algorithm instead of using stored ones
-    const shippingItems: ShippingItem[] = await Promise.all(
-      cartItems.map(async (item: { 
-        products: { 
-          sku: string; 
-          price: number; 
-          frame_size: string; 
-          frame_style: string; 
-          frame_material: string;
-          image_id?: string;
-        }; 
-        quantity: number 
-      }) => {
-        // Generate a fresh SKU using our improved algorithm
-        const freshSku = await prodigiClient.generateFrameSku(
-          item.products.frame_size,
-          item.products.frame_style,
-          item.products.frame_material,
-          item.products.image_id
-        );
-        
-        console.log(`🔄 Regenerated SKU for shipping: ${item.products.sku} -> ${freshSku}`);
-        
-        return {
-          sku: freshSku,
-          quantity: item.quantity,
-          price: item.products.price,
-        };
-      })
-    );
+    const shippingItems: ShippingItem[] = cartItems.map((item: { products: { sku: string; price: number }; quantity: number }) => ({
+      sku: item.products.sku,
+      quantity: item.quantity,
+      price: item.products.price,
+    }));
 
     // Calculate shipping cost using GUARANTEED calculation
     const shippingCalculation = await defaultShippingService.calculateShippingGuaranteed(

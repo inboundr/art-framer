@@ -182,22 +182,43 @@ export class ProdigiClient {
 
     try {
       console.log(`🔍 Fetching fresh product data for SKU: ${sku}`);
-      const response = await this.request<ProdigiProduct>(`/products/${sku}`);
+      const response = await this.request<any>(`/products/${sku}`);
       
       console.log(`📦 Raw Prodigi API response for ${sku}:`, {
         hasResponse: !!response,
         responseKeys: response ? Object.keys(response) : [],
-        hasSku: !!response?.sku,
-        hasName: !!response?.name,
-        hasCategory: !!response?.category,
-        hasAttributes: !!response?.attributes
+        hasProduct: !!response?.product,
+        hasSku: !!response?.product?.sku,
+        hasName: !!response?.product?.name,
+        hasCategory: !!response?.product?.category,
+        hasAttributes: !!response?.product?.attributes
       });
       
+      // Extract the actual product data from the nested response
+      const productData = response?.product;
+      if (!productData) {
+        throw new Error(`No product data found in response for SKU: ${sku}`);
+      }
+      
+      // Map the Prodigi API response to our ProdigiProduct interface
+      const product: ProdigiProduct = {
+        sku: productData.sku || sku, // Use the SKU from the request if not in response
+        name: productData.name || `Product ${sku}`,
+        description: productData.description || '',
+        price: productData.price || 0,
+        currency: productData.currency || 'USD',
+        dimensions: productData.dimensions || { width: 0, height: 0 },
+        weight: productData.weight || 0,
+        category: productData.category || 'unknown',
+        attributes: productData.attributes || {},
+        images: productData.images || []
+      };
+      
       // Cache the result
-      this.productCache.set(sku, response);
+      this.productCache.set(sku, product);
       this.cacheExpiry.set(sku, Date.now() + this.CACHE_DURATION);
       
-      return response;
+      return product;
     } catch (error) {
       console.error('Error fetching Prodigi product details:', error);
       
@@ -235,7 +256,27 @@ export class ProdigiClient {
       for (const alternativeSku of sortedAlternatives) {
         try {
           console.log(`🔍 Trying alternative SKU: ${alternativeSku}`);
-          const product = await this.request<ProdigiProduct>(`/products/${alternativeSku}`);
+          const response = await this.request<any>(`/products/${alternativeSku}`);
+          
+          // Extract the actual product data from the nested response
+          const productData = response?.product;
+          if (!productData) {
+            throw new Error(`No product data found in response for SKU: ${alternativeSku}`);
+          }
+          
+          // Map the Prodigi API response to our ProdigiProduct interface
+          const product: ProdigiProduct = {
+            sku: productData.sku || alternativeSku,
+            name: productData.name || `Product ${alternativeSku}`,
+            description: productData.description || '',
+            price: productData.price || 0,
+            currency: productData.currency || 'USD',
+            dimensions: productData.dimensions || { width: 0, height: 0 },
+            weight: productData.weight || 0,
+            category: productData.category || 'unknown',
+            attributes: productData.attributes || {},
+            images: productData.images || []
+          };
           
           // Cache this alternative for future use
           this.alternativeSkus.set(failedSku, alternativeSku);
