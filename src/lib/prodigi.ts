@@ -701,8 +701,10 @@ export class ProdigiClient {
         knownSkus = await this.getKnownProductSkus();
         const sizeBasedSku = this.selectBestKnownSku(frameSize, knownSkus);
         if (sizeBasedSku) {
-          console.log(`✅ Using known working Prodigi SKU: ${sizeBasedSku}`);
-          return sizeBasedSku;
+          // Make the SKU unique by appending image ID if provided
+          const uniqueSku = imageId ? `${sizeBasedSku}-${imageId.substring(0, 8)}` : sizeBasedSku;
+          console.log(`✅ Using known working Prodigi SKU: ${uniqueSku}`);
+          return uniqueSku;
         }
       } catch (knownSkuError) {
         console.log(`⚠️ Known SKU selection failed:`, knownSkuError);
@@ -728,8 +730,10 @@ export class ProdigiClient {
       // PRIORITY 3: Final fallback to any known working SKU (use cached list)
       if (knownSkus.length > 0) {
         const fallbackSku = knownSkus[0]; // Use the first available known SKU
-        console.log(`✅ Using fallback known working Prodigi SKU: ${fallbackSku}`);
-        return fallbackSku;
+        // Make the SKU unique by appending image ID if provided
+        const uniqueFallbackSku = imageId ? `${fallbackSku}-${imageId.substring(0, 8)}` : fallbackSku;
+        console.log(`✅ Using fallback known working Prodigi SKU: ${uniqueFallbackSku}`);
+        return uniqueFallbackSku;
       }
       
       // LAST RESORT: Generated SKU (this will likely fail in production)
