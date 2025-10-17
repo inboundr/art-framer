@@ -392,36 +392,6 @@ export function CreationsModal({
                 </Button>
               </div>
               
-              {/* Retry Button */}
-              <div className="flex items-center gap-3 mb-6">
-                <button className="flex h-9 px-4 items-center justify-center rounded-md border border-border hover:bg-background/50 transition-colors">
-                  <span className="text-foreground text-sm font-medium">Retry</span>
-                </button>
-              </div>
-              
-              {/* Edit Image Section */}
-              <div className="mb-6">
-                <h3 className="text-foreground text-sm font-semibold mb-3">Edit image</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  <button className="flex h-10 items-center justify-center rounded-md border border-border hover:bg-background/50 transition-colors">
-                    <span className="text-muted-foreground text-sm font-semibold">Magic fill</span>
-                  </button>
-                  <button className="flex h-10 items-center justify-center rounded-md border border-border hover:bg-background/50 transition-colors">
-                    <span className="text-muted-foreground text-sm font-semibold">Remix</span>
-                  </button>
-                  <button className="flex h-10 items-center justify-center rounded-md border border-border hover:bg-background/50 transition-colors">
-                    <span className="text-muted-foreground text-sm font-semibold">Upscale</span>
-                  </button>
-                </div>
-              </div>
-              
-              {/* Prompt Section */}
-              <div className="flex-1">
-                <h3 className="text-foreground text-sm font-semibold mb-3">Prompt</h3>
-                <div className="text-muted-foreground text-sm leading-relaxed break-words">
-                  {promptText}
-                </div>
-              </div>
             </div>
           </div>
         </div>
