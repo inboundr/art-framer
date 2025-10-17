@@ -209,22 +209,44 @@ async function handleCheckoutSessionCompleted(
     // Generate unique order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
-    // Extract shipping address from Stripe session
-    const stripeSession = session as any; // Cast to access shipping_details
-    const shippingAddress = stripeSession.shipping_details?.address || {
-      line1: 'Address not provided',
-      line2: null,
-      city: 'Unknown',
-      state: 'Unknown',
-      postal_code: '00000',
-      country: session.currency?.toUpperCase() === 'CAD' ? 'CA' : 'US'
-    };
+    // Retrieve stored shipping address from our database
+    const { data: storedAddressData, error: addressError } = await supabase
+      .from('stripe_session_addresses')
+      .select('shipping_address')
+      .eq('stripe_session_id', session.id)
+      .single();
 
-    console.log('🏠 Shipping address from Stripe session:', {
-      hasShippingDetails: !!stripeSession.shipping_details,
-      hasAddress: !!stripeSession.shipping_details?.address,
-      address: stripeSession.shipping_details?.address,
-      fallbackUsed: !stripeSession.shipping_details?.address
+    let shippingAddress;
+    if (addressError || !storedAddressData) {
+      console.warn('⚠️ No stored address found for session, using fallback:', {
+        sessionId: session.id,
+        error: addressError?.message
+      });
+      shippingAddress = {
+        line1: 'Address not provided',
+        line2: null,
+        city: 'Unknown',
+        state: 'Unknown',
+        postal_code: '00000',
+        country: session.currency?.toUpperCase() === 'CAD' ? 'CA' : 'US'
+      };
+    } else {
+      const storedAddress = storedAddressData.shipping_address as any;
+      shippingAddress = {
+        line1: storedAddress.address1 || 'Address not provided',
+        line2: storedAddress.address2 || null,
+        city: storedAddress.city || 'Unknown',
+        state: storedAddress.state || 'Unknown',
+        postal_code: storedAddress.zip || '00000',
+        country: storedAddress.country || 'US'
+      };
+    }
+
+    console.log('🏠 Shipping address retrieved:', {
+      sessionId: session.id,
+      hasStoredAddress: !!storedAddressData,
+      address: shippingAddress,
+      fallbackUsed: !storedAddressData
     });
 
     // Prepare billing address with fallback
