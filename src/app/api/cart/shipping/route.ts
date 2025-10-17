@@ -122,12 +122,61 @@ export async function POST(request: NextRequest) {
 
     // Use enhanced shipping service
     const { defaultShippingService } = await import('@/lib/shipping');
+    const { ProdigiClient } = await import('@/lib/prodigi');
     
-    const shippingItems: ShippingItem[] = cartItems.map((item: { products: { sku: string; price: number }; quantity: number }) => ({
-      sku: item.products.sku,
-      quantity: item.quantity,
-      price: item.products.price,
-    }));
+    // Initialize Prodigi client for SKU regeneration
+    const prodigiApiKey = process.env.PRODIGI_API_KEY;
+    const prodigiEnvironment = process.env.PRODIGI_ENVIRONMENT as 'sandbox' | 'production' || 'production';
+    
+    if (!prodigiApiKey) {
+      console.warn('⚠️ Prodigi API key not configured, using stored SKUs');
+    }
+    
+    const prodigiClient = prodigiApiKey ? new ProdigiClient(prodigiApiKey, prodigiEnvironment) : null;
+    
+    // Generate fresh SKUs using our improved algorithm instead of using stored ones
+    const shippingItems: ShippingItem[] = await Promise.all(
+      cartItems.map(async (item: { 
+        products: { 
+          sku: string; 
+          price: number; 
+          frame_size: string; 
+          frame_style: string; 
+          frame_material: string;
+          image_id?: string;
+        }; 
+        quantity: number 
+      }) => {
+        // Try to generate a fresh SKU using our improved algorithm
+        if (prodigiClient) {
+          try {
+            const freshSku = await prodigiClient.generateFrameSku(
+              item.products.frame_size,
+              item.products.frame_style,
+              item.products.frame_material,
+              item.products.image_id
+            );
+            
+            console.log(`🔄 Regenerated SKU for shipping: ${item.products.sku} -> ${freshSku}`);
+            
+            return {
+              sku: freshSku,
+              quantity: item.quantity,
+              price: item.products.price,
+            };
+          } catch (error) {
+            console.warn(`⚠️ Failed to regenerate SKU for ${item.products.sku}, using stored SKU:`, error);
+          }
+        }
+        
+        // Fallback to stored SKU if regeneration fails
+        return {
+          sku: item.products.sku,
+          quantity: item.quantity,
+          price: item.products.price,
+        };
+      })
+    );
 
     // Calculate shipping cost using GUARANTEED calculation
     const shippingCalculation = await defaultShippingService.calculateShippingGuaranteed(

@@ -186,17 +186,57 @@ export async function POST(request: NextRequest) {
 
     const { defaultPricingCalculator } = await import('@/lib/pricing');
     const { defaultShippingService } = await import('@/lib/shipping');
+    const { ProdigiClient } = await import('@/lib/prodigi');
 
-    const pricingItems: PricingItem[] = cartItems.map((item: any) => ({
+    // Initialize Prodigi client for SKU regeneration
+    const prodigiApiKey = process.env.PRODIGI_API_KEY;
+    const prodigiEnvironment = process.env.PRODIGI_ENVIRONMENT as 'sandbox' | 'production' || 'production';
+    
+    if (!prodigiApiKey) {
+      console.warn('⚠️ Prodigi API key not configured, using stored SKUs');
+    }
+    
+    const prodigiClient = prodigiApiKey ? new ProdigiClient(prodigiApiKey, prodigiEnvironment) : null;
+
+    // Generate fresh SKUs using our improved algorithm
+    const processedItems = await Promise.all(
+      cartItems.map(async (item: any) => {
+        let finalSku = item.products.sku;
+        
+        // Try to generate a fresh SKU using our improved algorithm
+        if (prodigiClient) {
+          try {
+            const freshSku = await prodigiClient.generateFrameSku(
+              item.products.frame_size,
+              item.products.frame_style,
+              item.products.frame_material,
+              item.products.image_id
+            );
+            
+            console.log(`🔄 Regenerated SKU for checkout: ${item.products.sku} -> ${freshSku}`);
+            finalSku = freshSku;
+          } catch (error) {
+            console.warn(`⚠️ Failed to regenerate SKU for ${item.products.sku}, using stored SKU:`, error);
+          }
+        }
+        
+        return {
+          ...item,
+          finalSku
+        };
+      })
+    );
+
+    const pricingItems: PricingItem[] = processedItems.map((item: any) => ({
       id: item.id,
-      sku: item.products.sku,
+      sku: item.finalSku,
       price: item.products.price,
       quantity: item.quantity,
       name: item.products.name || `${item.products.frame_size} ${item.products.frame_style} Frame`,
     }));
 
-    const shippingItems: ShippingItem[] = cartItems.map((item: any) => ({
-      sku: item.products.sku,
+    const shippingItems: ShippingItem[] = processedItems.map((item: any) => ({
+      sku: item.finalSku,
       quantity: item.quantity,
     }));
 
