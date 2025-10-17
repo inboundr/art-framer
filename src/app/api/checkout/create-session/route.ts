@@ -14,7 +14,17 @@ const stripe = new Stripe(stripeSecretKey, {
 const CreateCheckoutSessionSchema = z.object({
   cartItemIds: z.array(z.string().uuid()).min(1),
   shippingAddress: z.object({
-    countryCode: z.string().min(2).max(2),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    address1: z.string().optional(),
+    address2: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    zip: z.string().optional(),
+    country: z.string().min(2).max(2),
+    phone: z.string().optional(),
+    // Keep backward compatibility
+    countryCode: z.string().min(2).max(2).optional(),
     stateOrCounty: z.string().optional(),
     postalCode: z.string().optional(),
   }),
@@ -246,11 +256,22 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
     }));
 
+    // Use the new country field or fall back to countryCode for backward compatibility
+    const countryCode = validatedData.shippingAddress.country || validatedData.shippingAddress.countryCode || 'US';
+
     let shippingResult;
     try {
+      // Create a compatible address object for the shipping service
+      const shippingAddress = {
+        countryCode: countryCode,
+        stateOrCounty: validatedData.shippingAddress.state || validatedData.shippingAddress.stateOrCounty,
+        postalCode: validatedData.shippingAddress.zip || validatedData.shippingAddress.postalCode,
+        city: validatedData.shippingAddress.city,
+      };
+      
       const shippingCalculation = await defaultShippingService.calculateShipping(
         shippingItems,
-        validatedData.shippingAddress
+        shippingAddress
       );
       shippingResult = {
         cost: shippingCalculation.recommended.cost,
@@ -268,9 +289,25 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const currency = getCurrencyForCountry(validatedData.shippingAddress.countryCode);
+    const currency = getCurrencyForCountry(countryCode);
     const pricingResult = defaultPricingCalculator.calculateTotal(pricingItems, shippingResult);
     const { subtotal, taxAmount, shippingAmount, total } = pricingResult;
+
+    // Prepare shipping address for Stripe
+    const stripeShippingAddress = {
+      name: `${validatedData.shippingAddress.firstName || ''} ${validatedData.shippingAddress.lastName || ''}`.trim() || undefined,
+      line1: validatedData.shippingAddress.address1 || undefined,
+      line2: validatedData.shippingAddress.address2 || undefined,
+      city: validatedData.shippingAddress.city || undefined,
+      state: validatedData.shippingAddress.state || undefined,
+      postal_code: validatedData.shippingAddress.zip || undefined,
+      country: countryCode,
+    };
+
+    // Remove undefined values
+    const cleanShippingAddress = Object.fromEntries(
+      Object.entries(stripeShippingAddress).filter(([_, value]) => value !== undefined)
+    );
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -279,6 +316,10 @@ export async function POST(request: NextRequest) {
       shipping_address_collection: {
         allowed_countries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'IE', 'FI', 'LU', 'JP', 'KR', 'SG', 'HK', 'CH', 'SE', 'NO', 'DK', 'PL', 'CZ', 'HU', 'MX', 'BR', 'IN', 'NZ'],
       },
+      // Prefill shipping address if we have the data
+      ...(Object.keys(cleanShippingAddress).length > 0 && {
+        shipping_address: cleanShippingAddress,
+      }),
       line_items: [
         ...cartItems.map((item: any) => ({
           price_data: {

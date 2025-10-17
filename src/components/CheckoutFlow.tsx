@@ -581,6 +581,16 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         body: JSON.stringify({
           cartItemIds: cartItems.map(item => item.id),
           shippingAddress: {
+            firstName: shippingAddress.firstName,
+            lastName: shippingAddress.lastName,
+            address1: shippingAddress.address1,
+            address2: shippingAddress.address2,
+            city: shippingAddress.city,
+            state: shippingAddress.state,
+            zip: shippingAddress.zip,
+            country: shippingAddress.country,
+            phone: shippingAddress.phone,
+            // Keep backward compatibility
             countryCode: shippingAddress.country,
             stateOrCounty: shippingAddress.state,
             postalCode: shippingAddress.zip,
