@@ -118,25 +118,35 @@ export async function retrievePaymentIntent(paymentIntentId: string) {
   }
 }
 
-export async function constructWebhookEvent(payload: string | Buffer, signature: string) {
+export async function constructWebhookEvent(payload: any, signature: string) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder_for_build';
   
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     console.warn('⚠️ STRIPE_WEBHOOK_SECRET is not set, using placeholder for build');
   }
 
+  // Convert to Buffer if needed
+  let processedPayload: string | Buffer;
+  if (payload instanceof ArrayBuffer) {
+    processedPayload = Buffer.from(payload);
+  } else if (payload instanceof Uint8Array) {
+    processedPayload = Buffer.from(payload);
+  } else {
+    processedPayload = payload;
+  }
+
   console.log('🔍 Webhook signature verification details:', {
     hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
     webhookSecretLength: webhookSecret.length,
     payloadType: typeof payload,
-    payloadLength: payload instanceof Buffer ? payload.length : payload.length,
+    payloadLength: processedPayload instanceof Buffer ? processedPayload.length : (processedPayload as string).length,
     signatureLength: signature.length,
     signaturePrefix: signature.substring(0, 20) + '...'
   });
 
   try {
     const event = stripe.webhooks.constructEvent(
-      payload,
+      processedPayload,
       signature,
       webhookSecret
     );
@@ -149,9 +159,9 @@ export async function constructWebhookEvent(payload: string | Buffer, signature:
       type: error instanceof Error ? error.constructor.name : typeof error,
       webhookSecret: webhookSecret.substring(0, 10) + '...',
       signature: signature.substring(0, 20) + '...',
-      payloadPreview: payload instanceof Buffer ? 
-        payload.toString('utf8', 0, 100) + '...' : 
-        (payload as string).substring(0, 100) + '...'
+      payloadPreview: processedPayload instanceof Buffer ? 
+        processedPayload.toString('utf8', 0, 100) + '...' : 
+        (processedPayload as string).substring(0, 100) + '...'
     });
     throw error;
   }

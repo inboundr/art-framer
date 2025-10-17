@@ -7,9 +7,34 @@ import Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the raw request body as a Buffer to preserve exact formatting
-    const body = await request.arrayBuffer();
-    const bodyBuffer = Buffer.from(body);
+    // Try to get the raw request body using the body stream
+    const chunks: Uint8Array[] = [];
+    const reader = request.body?.getReader();
+    
+    if (!reader) {
+      console.error('❌ No request body reader available');
+      return NextResponse.json(
+        { error: 'No request body available' },
+        { status: 400 }
+      );
+    }
+
+    // Read the entire body as raw bytes
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+
+    // Combine all chunks into a single Uint8Array
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const body = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      body.set(chunk, offset);
+      offset += chunk.length;
+    }
+
     const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
@@ -23,12 +48,13 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Webhook signature verification:', {
       hasSignature: !!signature,
       signatureLength: signature.length,
-      bodyLength: bodyBuffer.length,
-      bodyType: typeof bodyBuffer,
-      signatureHeader: signature.substring(0, 50) + '...'
+      bodyLength: body.length,
+      bodyType: 'Uint8Array',
+      signatureHeader: signature.substring(0, 50) + '...',
+      bodyPreview: new TextDecoder().decode(body.slice(0, 100)) + '...'
     });
 
-    const event = await constructWebhookEvent(bodyBuffer, signature);
+    const event = await constructWebhookEvent(body, signature);
     const supabase = await createClient();
 
     console.log('🔍 Webhook received:', {

@@ -117,18 +117,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if product already exists for this curated image and frame combination
-    const { data: existingProduct } = await (serviceSupabase as any)
+    const { data: existingProducts, error: existingProductError } = await (serviceSupabase as any)
       .from('products')
       .select('id')
       .eq('image_id', tempImage.id)
       .eq('frame_size', validatedData.frameSize)
       .eq('frame_style', validatedData.frameStyle)
-      .eq('frame_material', validatedData.frameMaterial)
-      .single();
+      .eq('frame_material', validatedData.frameMaterial);
 
-    if (existingProduct) {
+    if (existingProductError) {
+      console.error('Error checking for existing product:', existingProductError);
+    }
+
+    if (existingProducts && existingProducts.length > 0) {
       return NextResponse.json({
-        product: existingProduct,
+        product: existingProducts[0],
         message: 'Product already exists'
       });
     }
@@ -184,7 +187,7 @@ export async function POST(request: NextRequest) {
         console.log('🔄 Product already exists, finding existing product...');
         
         // Try to find the existing product
-        const { data: existingProduct, error: findError } = await (serviceSupabase as any)
+        const { data: existingProducts, error: findError } = await (serviceSupabase as any)
           .from('products')
           .select(`
             id,
@@ -202,13 +205,12 @@ export async function POST(request: NextRequest) {
           .eq('image_id', tempImage.id)
           .eq('frame_size', validatedData.frameSize)
           .eq('frame_style', validatedData.frameStyle)
-          .eq('frame_material', validatedData.frameMaterial)
-          .single();
+          .eq('frame_material', validatedData.frameMaterial);
           
-        if (existingProduct) {
+        if (existingProducts && existingProducts.length > 0) {
           console.log('✅ Found existing product, returning it for quantity increment');
           return NextResponse.json({
-            product: existingProduct,
+            product: existingProducts[0],
             message: 'Product already exists - use for quantity increment'
           });
         }

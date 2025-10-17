@@ -695,8 +695,10 @@ export class ProdigiClient {
       console.log(`🔧 Generating SKU for curated image: ${frameSize}-${frameStyle}-${frameMaterial}${imageId ? ` (image: ${imageId})` : ''}`);
       
       // PRIORITY 1: Use known working SKUs first (most reliable)
+      // Cache the known SKUs to avoid multiple API calls
+      let knownSkus: string[] = [];
       try {
-        const knownSkus = await this.getKnownProductSkus();
+        knownSkus = await this.getKnownProductSkus();
         const sizeBasedSku = this.selectBestKnownSku(frameSize, knownSkus);
         if (sizeBasedSku) {
           console.log(`✅ Using known working Prodigi SKU: ${sizeBasedSku}`);
@@ -723,16 +725,11 @@ export class ProdigiClient {
         console.log(`⚠️ Dynamic SKU search failed:`, dynamicError);
       }
       
-      // PRIORITY 3: Final fallback to any known working SKU
-      try {
-        const knownSkus = await this.getKnownProductSkus();
-        if (knownSkus.length > 0) {
-          const fallbackSku = knownSkus[0]; // Use the first available known SKU
-          console.log(`✅ Using fallback known working Prodigi SKU: ${fallbackSku}`);
-          return fallbackSku;
-        }
-      } catch (fallbackError) {
-        console.log(`⚠️ Fallback SKU selection failed:`, fallbackError);
+      // PRIORITY 3: Final fallback to any known working SKU (use cached list)
+      if (knownSkus.length > 0) {
+        const fallbackSku = knownSkus[0]; // Use the first available known SKU
+        console.log(`✅ Using fallback known working Prodigi SKU: ${fallbackSku}`);
+        return fallbackSku;
       }
       
       // LAST RESORT: Generated SKU (this will likely fail in production)
