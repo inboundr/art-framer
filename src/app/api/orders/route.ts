@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { supabase as supabaseClient } from "@/lib/supabase/client";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const GetOrdersSchema = z.object({
@@ -40,11 +39,13 @@ async function authenticateUser(request: NextRequest) {
     const token = authHeader.substring(7);
     console.log('Orders API: Trying Authorization header authentication');
     
-    const { data: { user: clientUser }, error: clientError } = await supabaseClient.auth.getUser(token);
+    // Use service client to verify the token
+    const serviceSupabase = createServiceClient();
+    const { data: { user: clientUser }, error: clientError } = await serviceSupabase.auth.getUser(token);
     
     if (clientUser && !clientError) {
       console.log('Orders API: Authenticated via Authorization header');
-      return { user: clientUser, supabase: supabaseClient };
+      return { user: clientUser, supabase: serviceSupabase };
     }
   }
   

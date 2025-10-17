@@ -276,6 +276,9 @@ export async function POST(request: NextRequest) {
       payment_method_types: ['card'],
       mode: 'payment',
       customer_email: user.email,
+      shipping_address_collection: {
+        allowed_countries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'IE', 'FI', 'LU', 'JP', 'KR', 'SG', 'HK', 'CH', 'SE', 'NO', 'DK', 'PL', 'CZ', 'HU', 'MX', 'BR', 'IN', 'NZ'],
+      },
       line_items: [
         ...cartItems.map((item: any) => ({
           price_data: {

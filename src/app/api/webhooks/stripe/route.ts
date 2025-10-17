@@ -209,6 +209,27 @@ async function handleCheckoutSessionCompleted(
     // Generate unique order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
+    // Extract shipping address from Stripe session
+    const stripeSession = session as any; // Cast to access shipping_details
+    const shippingAddress = stripeSession.shipping_details?.address || {
+      line1: 'Address not provided',
+      line2: null,
+      city: 'Unknown',
+      state: 'Unknown',
+      postal_code: '00000',
+      country: session.currency?.toUpperCase() === 'CAD' ? 'CA' : 'US'
+    };
+
+    console.log('🏠 Shipping address from Stripe session:', {
+      hasShippingDetails: !!stripeSession.shipping_details,
+      hasAddress: !!stripeSession.shipping_details?.address,
+      address: stripeSession.shipping_details?.address,
+      fallbackUsed: !stripeSession.shipping_details?.address
+    });
+
+    // Prepare billing address with fallback
+    const billingAddress = session.customer_details?.address || shippingAddress;
+
     // Create order
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -222,8 +243,8 @@ async function handleCheckoutSessionCompleted(
         customer_email: session.customer_email,
         customer_name: session.customer_details?.name,
         customer_phone: session.customer_details?.phone,
-        shipping_address: (session as any).shipping_details?.address,
-        billing_address: session.customer_details?.address,
+        shipping_address: shippingAddress,
+        billing_address: billingAddress,
         subtotal: parseFloat(session.metadata?.subtotal || '0'),
         tax_amount: parseFloat(session.metadata?.taxAmount || '0'),
         shipping_amount: parseFloat(session.metadata?.shippingAmount || '0'),
