@@ -66,11 +66,19 @@ export function AppLayout({ children }: AppLayoutProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Check if user should see welcome modal
+  // Check if user should see welcome modal (only on second login)
   useEffect(() => {
-    if (user && !localStorage.getItem('art-framer-welcome-seen')) {
-      // Show welcome modal for existing users who haven't seen it
-      setWelcomeModalVisible(true);
+    if (user) {
+      const loginCount = parseInt(localStorage.getItem('art-framer-login-count') || '0');
+      const hasSeenWelcome = localStorage.getItem('art-framer-welcome-seen');
+      
+      // Increment login count
+      localStorage.setItem('art-framer-login-count', (loginCount + 1).toString());
+      
+      // Show welcome modal only on second login and if not seen before
+      if (loginCount === 1 && !hasSeenWelcome) {
+        setWelcomeModalVisible(true);
+      }
     }
   }, [user]);
 
