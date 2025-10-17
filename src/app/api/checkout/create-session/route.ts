@@ -213,16 +213,22 @@ export async function POST(request: NextRequest) {
               item.products.image_id
             );
             
-            console.log(`🔄 Regenerated SKU for checkout: ${item.products.sku} -> ${freshSku}`);
-            finalSku = freshSku;
+            // Extract base Prodigi SKU for API calls (remove image ID suffix)
+            const baseProdigiSku = prodigiClient.extractBaseProdigiSku(freshSku);
+            
+            console.log(`🔄 Regenerated SKU for checkout: ${item.products.sku} -> ${freshSku} (using base: ${baseProdigiSku})`);
+            finalSku = baseProdigiSku; // Use base SKU for Prodigi API calls
           } catch (error) {
             console.warn(`⚠️ Failed to regenerate SKU for ${item.products.sku}, using stored SKU:`, error);
           }
         }
         
+        // Extract base Prodigi SKU for API calls (remove image ID suffix if present)
+        const baseFinalSku = prodigiClient ? prodigiClient.extractBaseProdigiSku(finalSku) : finalSku;
+        
         return {
           ...item,
-          finalSku
+          finalSku: baseFinalSku // Use base SKU for Prodigi API calls
         };
       })
     );

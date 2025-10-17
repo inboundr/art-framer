@@ -157,10 +157,13 @@ export async function POST(request: NextRequest) {
               item.products.image_id
             );
             
-            console.log(`🔄 Regenerated SKU for shipping: ${item.products.sku} -> ${freshSku}`);
+            // Extract base Prodigi SKU for API calls (remove image ID suffix)
+            const baseProdigiSku = prodigiClient.extractBaseProdigiSku(freshSku);
+            
+            console.log(`🔄 Regenerated SKU for shipping: ${item.products.sku} -> ${freshSku} (using base: ${baseProdigiSku})`);
             
             return {
-              sku: freshSku,
+              sku: baseProdigiSku, // Use base SKU for Prodigi API calls
               quantity: item.quantity,
               price: item.products.price,
             };
@@ -170,8 +173,11 @@ export async function POST(request: NextRequest) {
         }
         
         // Fallback to stored SKU if regeneration fails
+        // Extract base Prodigi SKU for API calls (remove image ID suffix if present)
+        const baseStoredSku = prodigiClient ? prodigiClient.extractBaseProdigiSku(item.products.sku) : item.products.sku;
+        
         return {
-          sku: item.products.sku,
+          sku: baseStoredSku, // Use base SKU for Prodigi API calls
           quantity: item.quantity,
           price: item.products.price,
         };

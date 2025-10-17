@@ -687,6 +687,16 @@ export class ProdigiClient {
 
 
   /**
+   * Extract the base Prodigi SKU from a unique SKU (removes image ID suffix)
+   * This is used when we need to call Prodigi APIs with the original SKU
+   */
+  extractBaseProdigiSku(uniqueSku: string): string {
+    // If the SKU has a dash followed by 8 characters (image ID), remove it
+    const match = uniqueSku.match(/^(.+)-[a-f0-9]{8}$/);
+    return match ? match[1] : uniqueSku;
+  }
+
+  /**
    * Generate a proper SKU for frame products
    * This creates a consistent SKU format that matches Prodigi's expectations
    */
