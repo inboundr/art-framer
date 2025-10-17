@@ -253,6 +253,32 @@ export type Database = {
           updated_at?: string
         }
       }
+      stripe_session_addresses: {
+        Row: {
+          id: string
+          stripe_session_id: string
+          user_id: string
+          shipping_address: Record<string, unknown>
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          stripe_session_id: string
+          user_id: string
+          shipping_address: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          stripe_session_id?: string
+          user_id?: string
+          shipping_address?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

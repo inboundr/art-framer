@@ -293,22 +293,6 @@ export async function POST(request: NextRequest) {
     const pricingResult = defaultPricingCalculator.calculateTotal(pricingItems, shippingResult);
     const { subtotal, taxAmount, shippingAmount, total } = pricingResult;
 
-    // Prepare shipping address for Stripe
-    const stripeShippingAddress = {
-      name: `${validatedData.shippingAddress.firstName || ''} ${validatedData.shippingAddress.lastName || ''}`.trim() || undefined,
-      line1: validatedData.shippingAddress.address1 || undefined,
-      line2: validatedData.shippingAddress.address2 || undefined,
-      city: validatedData.shippingAddress.city || undefined,
-      state: validatedData.shippingAddress.state || undefined,
-      postal_code: validatedData.shippingAddress.zip || undefined,
-      country: countryCode,
-    };
-
-    // Remove undefined values
-    const cleanShippingAddress = Object.fromEntries(
-      Object.entries(stripeShippingAddress).filter(([_, value]) => value !== undefined)
-    );
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -316,10 +300,6 @@ export async function POST(request: NextRequest) {
       shipping_address_collection: {
         allowed_countries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'IE', 'FI', 'LU', 'JP', 'KR', 'SG', 'HK', 'CH', 'SE', 'NO', 'DK', 'PL', 'CZ', 'HU', 'MX', 'BR', 'IN', 'NZ'],
       },
-      // Prefill shipping address if we have the data
-      ...(Object.keys(cleanShippingAddress).length > 0 && {
-        shipping_address: cleanShippingAddress,
-      }),
       line_items: [
         ...cartItems.map((item: any) => ({
           price_data: {
@@ -374,6 +354,38 @@ export async function POST(request: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cart`,
     });
+
+    // Store shipping address with Stripe session ID for later retrieval
+    try {
+      const { error: addressError } = await (supabase as any)
+        .from('stripe_session_addresses')
+        .insert({
+          stripe_session_id: session.id,
+          user_id: user.id,
+          shipping_address: {
+            firstName: validatedData.shippingAddress.firstName || '',
+            lastName: validatedData.shippingAddress.lastName || '',
+            address1: validatedData.shippingAddress.address1 || '',
+            address2: validatedData.shippingAddress.address2 || '',
+            city: validatedData.shippingAddress.city || '',
+            state: validatedData.shippingAddress.state || '',
+            zip: validatedData.shippingAddress.zip || '',
+            country: countryCode,
+            phone: validatedData.shippingAddress.phone || '',
+          },
+          created_at: new Date().toISOString(),
+        });
+
+      if (addressError) {
+        console.error('Error storing shipping address:', addressError);
+        // Don't fail the checkout if address storage fails
+      } else {
+        console.log('✅ Shipping address stored for session:', session.id);
+      }
+    } catch (error) {
+      console.error('Error storing shipping address:', error);
+      // Don't fail the checkout if address storage fails
+    }
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

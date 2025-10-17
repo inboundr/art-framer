@@ -13,6 +13,8 @@ function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [authChecked, setAuthChecked] = useState(false);
+  const [storedAddress, setStoredAddress] = useState<any>(null);
+  const [addressLoading, setAddressLoading] = useState(false);
 
   // Enhanced authentication handling for post-redirect scenarios
   useEffect(() => {
@@ -50,6 +52,31 @@ function CheckoutSuccessContent() {
 
     handleAuthRestoration();
   }, [isInitialized, isAuthenticated, restoreSession]);
+
+  // Retrieve stored shipping address when authenticated and session ID is available
+  useEffect(() => {
+    const retrieveStoredAddress = async () => {
+      if (!isAuthenticated || !sessionId || addressLoading) return;
+
+      setAddressLoading(true);
+      try {
+        const response = await fetch(`/api/checkout/retrieve-address?sessionId=${sessionId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setStoredAddress(data.shippingAddress);
+          console.log('✅ Retrieved stored shipping address:', data.shippingAddress);
+        } else {
+          console.log('⚠️ Could not retrieve stored address:', response.status);
+        }
+      } catch (error) {
+        console.error('Error retrieving stored address:', error);
+      } finally {
+        setAddressLoading(false);
+      }
+    };
+
+    retrieveStoredAddress();
+  }, [isAuthenticated, sessionId, addressLoading]);
 
   // Show loading state while checking authentication
   if (!isInitialized || !authChecked) {
@@ -120,6 +147,43 @@ function CheckoutSuccessContent() {
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   You&apos;ll receive a confirmation email shortly with tracking information.
+                </p>
+              </div>
+            )}
+
+            {storedAddress && (
+              <div className="bg-muted rounded-lg p-4 border border-border">
+                <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-pink-primary" />
+                  Shipping Address
+                </h4>
+                <div className="text-sm text-foreground space-y-1">
+                  {storedAddress.firstName && storedAddress.lastName && (
+                    <p><strong>Name:</strong> {storedAddress.firstName} {storedAddress.lastName}</p>
+                  )}
+                  {storedAddress.address1 && (
+                    <p><strong>Address:</strong> {storedAddress.address1}</p>
+                  )}
+                  {storedAddress.address2 && (
+                    <p className="ml-4">{storedAddress.address2}</p>
+                  )}
+                  {storedAddress.city && storedAddress.state && storedAddress.zip && (
+                    <p><strong>City:</strong> {storedAddress.city}, {storedAddress.state} {storedAddress.zip}</p>
+                  )}
+                  {storedAddress.country && (
+                    <p><strong>Country:</strong> {storedAddress.country}</p>
+                  )}
+                  {storedAddress.phone && (
+                    <p><strong>Phone:</strong> {storedAddress.phone}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {addressLoading && (
+              <div className="bg-muted rounded-lg p-4 border border-border">
+                <p className="text-sm text-muted-foreground">
+                  Loading shipping address...
                 </p>
               </div>
             )}
