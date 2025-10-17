@@ -109,15 +109,15 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       console.log('📍 Loading default address from cache:', defaultAddress);
       setShippingAddress(prev => ({
         ...prev,
-        firstName: defaultAddress.firstName,
-        lastName: defaultAddress.lastName,
-        address1: defaultAddress.address1,
+        firstName: defaultAddress.firstName || '',
+        lastName: defaultAddress.lastName || '',
+        address1: defaultAddress.address1 || '',
         address2: defaultAddress.address2 || '',
-        city: defaultAddress.city,
-        state: defaultAddress.state,
-        zip: defaultAddress.zip,
-        country: defaultAddress.country,
-        phone: defaultAddress.phone,
+        city: defaultAddress.city || '',
+        state: defaultAddress.state || '',
+        zip: defaultAddress.zip || '',
+        country: defaultAddress.country || 'US',
+        phone: defaultAddress.phone || '',
       }));
       // Note: We don't trigger shipping calculation here to avoid automatic calculation
     }
@@ -165,30 +165,32 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     // Mark address as manually modified by user
     setAddressManuallyModified(true);
     
-    const newAddress = {
-      ...shippingAddress,
-      address1: addressData.address1,
-      city: addressData.city,
-      state: addressData.state,
-      zip: addressData.zip,
-      country: addressData.countryCode,
-    };
-    
-    setShippingAddress(newAddress);
-    
-    // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    // Debounce the shipping calculation to prevent rapid successive calls
-    timeoutRef.current = setTimeout(() => {
-      calculateShipping(newAddress);
-    }, 500); // 500ms debounce
-  }, [shippingAddress]);
+    setShippingAddress(prev => {
+      const newAddress = {
+        ...prev,
+        address1: addressData.address1,
+        city: addressData.city,
+        state: addressData.state,
+        zip: addressData.zip,
+        country: addressData.countryCode,
+      };
+      
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      // Debounce the shipping calculation to prevent rapid successive calls
+      timeoutRef.current = setTimeout(() => {
+        calculateShipping(newAddress);
+      }, 500); // 500ms debounce
+      
+      return newAddress;
+    });
+  }, []);
 
   // Get currency based on shipping address - moved before calculateShipping to fix initialization bug
-  const getDisplayCurrency = () => {
+  const getDisplayCurrency = useCallback(() => {
     if (!shippingAddress.country) return 'USD';
     
     const currencyMap: Record<string, string> = {
@@ -200,7 +202,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     };
     
     return currencyMap[shippingAddress.country.toUpperCase()] || 'USD';
-  };
+  }, [shippingAddress.country]);
 
   // Enhanced shipping calculation with comprehensive error handling and retry mechanism
   const calculateShipping = useCallback(async (address: CheckoutShippingAddress, retryCount = 0) => {
