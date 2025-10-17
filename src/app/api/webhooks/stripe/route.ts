@@ -7,17 +7,28 @@ import Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.text();
+    // Get the raw request body as a Buffer to preserve exact formatting
+    const body = await request.arrayBuffer();
+    const bodyBuffer = Buffer.from(body);
     const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
+      console.error('❌ Missing stripe-signature header');
       return NextResponse.json(
         { error: 'Missing stripe-signature header' },
         { status: 400 }
       );
     }
 
-    const event = await constructWebhookEvent(body, signature);
+    console.log('🔍 Webhook signature verification:', {
+      hasSignature: !!signature,
+      signatureLength: signature.length,
+      bodyLength: bodyBuffer.length,
+      bodyType: typeof bodyBuffer,
+      signatureHeader: signature.substring(0, 50) + '...'
+    });
+
+    const event = await constructWebhookEvent(bodyBuffer, signature);
     const supabase = await createClient();
 
     console.log('🔍 Webhook received:', {

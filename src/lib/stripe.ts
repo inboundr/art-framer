@@ -122,8 +122,17 @@ export async function constructWebhookEvent(payload: string | Buffer, signature:
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder_for_build';
   
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.warn('STRIPE_WEBHOOK_SECRET is not set, using placeholder for build');
+    console.warn('⚠️ STRIPE_WEBHOOK_SECRET is not set, using placeholder for build');
   }
+
+  console.log('🔍 Webhook signature verification details:', {
+    hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
+    webhookSecretLength: webhookSecret.length,
+    payloadType: typeof payload,
+    payloadLength: payload instanceof Buffer ? payload.length : payload.length,
+    signatureLength: signature.length,
+    signaturePrefix: signature.substring(0, 20) + '...'
+  });
 
   try {
     const event = stripe.webhooks.constructEvent(
@@ -131,9 +140,19 @@ export async function constructWebhookEvent(payload: string | Buffer, signature:
       signature,
       webhookSecret
     );
+    
+    console.log('✅ Webhook signature verification successful');
     return event;
   } catch (error) {
-    console.error('Error constructing webhook event:', error);
+    console.error('❌ Error constructing webhook event:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      webhookSecret: webhookSecret.substring(0, 10) + '...',
+      signature: signature.substring(0, 20) + '...',
+      payloadPreview: payload instanceof Buffer ? 
+        payload.toString('utf8', 0, 100) + '...' : 
+        (payload as string).substring(0, 100) + '...'
+    });
     throw error;
   }
 }
