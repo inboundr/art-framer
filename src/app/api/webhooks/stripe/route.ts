@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { constructWebhookEvent } from "@/lib/stripe";
 import { prodigiClient } from "@/lib/prodigi";
 import { orderRetryManager } from "@/lib/orderRetry";
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     });
 
     const event = await constructWebhookEvent(body, signature);
-    const supabase = await createClient();
+    const supabase = await createServiceClient();
 
     console.log('🔍 Webhook received:', {
       type: event.type,
@@ -139,6 +139,18 @@ async function handleCheckoutSessionCompleted(
 
     console.log('🛒 Processing cart items:', { userId, cartItemIds });
 
+    // First, let's check if cart items exist at all for this user
+    const { data: allUserCartItems, error: allCartError } = await supabase
+      .from('cart_items')
+      .select('id, user_id, product_id, quantity')
+      .eq('user_id', userId);
+
+    console.log('🔍 All cart items for user:', { 
+      count: allUserCartItems?.length || 0, 
+      items: allUserCartItems?.map((item: any) => ({ id: item.id, productId: item.product_id, quantity: item.quantity })) || [],
+      error: allCartError 
+    });
+
     // Fetch cart items
     const { data: cartItems, error: cartItemsError } = await supabase
       .from('cart_items')
@@ -167,6 +179,16 @@ async function handleCheckoutSessionCompleted(
     }
 
     console.log('✅ Cart items fetched:', { count: cartItems.length, items: cartItems.map((item: any) => ({ id: item.id, productId: item.product_id })) });
+
+    // If no cart items found, we can't create the order
+    if (cartItems.length === 0) {
+      console.error('❌ No cart items found for order creation:', {
+        userId,
+        cartItemIds,
+        allUserCartItems: allUserCartItems?.length || 0
+      });
+      return;
+    }
 
     // Check if order already exists (idempotency protection)
     const { data: existingOrder } = await supabase
