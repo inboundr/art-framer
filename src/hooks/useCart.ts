@@ -91,7 +91,30 @@ export function useCart(): UseCartReturn {
 
       const response = await fetch('/api/cart');
       if (!response.ok) {
-        throw new Error('Failed to fetch cart');
+        if (response.status === 401) {
+          // User not authenticated - this is expected, don't show as error
+          setCartItems([]);
+          setTotals({
+            subtotal: 0,
+            taxAmount: 0,
+            shippingAmount: 0,
+            total: 0,
+            itemCount: 0,
+          });
+          return;
+        }
+        
+        const errorText = await response.text();
+        let errorMessage = 'Failed to fetch cart';
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Failed to fetch cart (${response.status})`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -104,8 +127,11 @@ export function useCart(): UseCartReturn {
         itemCount: 0,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error fetching cart:', err);
+      // Only set error for non-authentication issues
+      if (err instanceof Error && !err.message.includes('401')) {
+        setError(err.message);
+        console.error('Error fetching cart:', err);
+      }
     } finally {
       setLoading(false);
     }
@@ -141,8 +167,21 @@ export function useCart(): UseCartReturn {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add to cart');
+        if (response.status === 401) {
+          throw new Error('Please sign in to add items to your cart');
+        }
+        
+        const errorText = await response.text();
+        let errorMessage = 'Failed to add to cart';
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Failed to add to cart (${response.status})`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

@@ -1,7 +1,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useGeneration } from '@/contexts/GenerationContext';
-import { useCart } from '@/hooks/useCart';
+import { useCart } from '@/contexts/CartContext';
 import { SidebarAvatar } from './SidebarAvatar';
 import { ProfilePopup } from './ProfilePopup';
 // Temporarily commented out to resolve bundler issues
@@ -34,17 +34,17 @@ function NavItem({ icon, label, active = false, badge, onClick, isMobile = false
             active ? 'bg-white/20' : 'hover:bg-white/5'
           } transition-colors relative`}
         >
-          <div className="flex items-center justify-center w-6 h-6">
+          <div className="flex items-center justify-center w-6 h-6 relative">
             {icon}
+            {badge && (
+              <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-500 rounded-full">
+                <span className="text-white text-[10px] font-bold leading-none">{badge}</span>
+              </div>
+            )}
           </div>
           <span className="text-gray-text text-sm font-medium">
             {label}
           </span>
-          {badge && (
-            <div className="ml-auto flex items-center justify-center w-5 h-5 bg-pink-primary rounded-full">
-              <span className="text-white text-xs font-bold">{badge}</span>
-            </div>
-          )}
         </button>
       </div>
     );
@@ -73,38 +73,8 @@ function NavItem({ icon, label, active = false, badge, onClick, isMobile = false
         
         {/* Badge */}
         {badge && (
-          <div className="absolute -right-0.5 top-3.5 bg-dark-secondary rounded-full">
-            <div className="flex w-[22px] h-[22px] justify-center items-center">
-              <div className="flex flex-col items-start">
-                <svg 
-                  width="21" 
-                  height="41" 
-                  viewBox="0 0 21 41" 
-                  fill="none" 
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-10"
-                >
-                  <path 
-                    d="M10.1641 19.8105C15.1346 19.8105 19.1641 15.7811 19.1641 10.8105C19.1641 5.83998 15.1346 1.81055 10.1641 1.81055C5.1935 1.81055 1.16406 5.83998 1.16406 10.8105C1.16406 15.7811 5.1935 19.8105 10.1641 19.8105Z" 
-                    stroke="#71717A" 
-                    strokeWidth="2" 
-                    strokeLinecap="round"
-                  />
-                  <path 
-                    d="M19.1641 30.8105C19.1641 25.84 15.1346 21.8105 10.1641 21.8105C5.1935 21.8105 1.16406 25.84 1.16406 30.8105C1.16406 35.7811 5.1935 39.8105 10.1641 39.8105C15.1346 39.8105 19.1641 35.7811 19.1641 30.8105Z" 
-                    stroke="#FF8FB4" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeDasharray="6.79 49.76"
-                  />
-                </svg>
-              </div>
-              <div className="flex w-[22px] h-[22px] p-0.75 flex-col items-center absolute">
-                <span className="text-pink-primary text-center text-[10px] font-bold leading-4 tracking-[-0.4px]">
-                  {badge}
-                </span>
-              </div>
-            </div>
+          <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-500 rounded-full">
+            <span className="text-white text-[10px] font-bold leading-none">{badge}</span>
           </div>
         )}
       </button>
@@ -117,10 +87,10 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
   const pathname = usePathname();
   const { user, profile, signOut } = useAuth();
   const { activeGenerations } = useGeneration();
-  const { totals } = useCart();
+  const { cartData } = useCart();
+  const totals = cartData?.totals || { subtotal: 0, taxAmount: 0, shippingAmount: 0, total: 0, itemCount: 0 };
   const [profilePopupOpen, setProfilePopupOpen] = useState(false);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
-
 
   const handleNavClick = (path: string) => {
     router.push(path);
@@ -243,7 +213,7 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               }
               label="Cart"
               active={pathname === '/cart'}
-              badge={totals.itemCount || 0}
+              badge={totals.itemCount > 0 ? totals.itemCount : undefined}
               onClick={() => {
                 if (!user) {
                   // Show auth modal for non-authenticated users
@@ -457,7 +427,7 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               }
               label="Cart"
               active={pathname === '/cart'}
-              badge={totals.itemCount || 0}
+              badge={totals.itemCount > 0 ? totals.itemCount : undefined}
               onClick={() => {
                 if (!user) {
                   // Show auth modal for non-authenticated users with redirect path
