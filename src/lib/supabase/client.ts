@@ -20,7 +20,8 @@ export const supabase = (() => {
   console.log('🔍 Supabase client initialization:', {
     supabaseUrl: supabaseUrl ? 'exists' : 'missing',
     supabaseAnonKey: supabaseAnonKey ? 'exists' : 'missing',
-    nodeEnv: process.env.NODE_ENV
+    nodeEnv: process.env.NODE_ENV,
+    windowDefined: typeof window !== 'undefined'
   });
 
   if (!supabaseUrl || !supabaseAnonKey) {

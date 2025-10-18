@@ -125,7 +125,16 @@ export function UserImageGallery() {
   const IMAGES_PER_PAGE = 20;
 
   const fetchUserImages = useCallback(async (pageNum: number = 0, append: boolean = false) => {
+    console.log('🔍 UserImageGallery: fetchUserImages called', { pageNum, append, userId: user?.id });
+    
     if (!user) {
+      console.log('❌ UserImageGallery: No user found, stopping fetch');
+      setLoading(false);
+      return;
+    }
+
+    if (!supabase || !supabase.from) {
+      console.error('❌ UserImageGallery: Supabase client not available');
       setLoading(false);
       return;
     }
@@ -133,6 +142,8 @@ export function UserImageGallery() {
     try {
       const from = pageNum * IMAGES_PER_PAGE;
       const to = from + IMAGES_PER_PAGE - 1;
+
+      console.log('🔍 UserImageGallery: Making Supabase query', { from, to, userId: user.id });
 
       const { data, error } = await supabase
         .from('images')
@@ -142,20 +153,23 @@ export function UserImageGallery() {
         .range(from, to);
 
       if (error) {
-        console.error('Error fetching user images:', error);
-      } else {
-        const newImages = data || [];
-        
-        if (append) {
-          setImages(prev => [...prev, ...newImages]);
-        } else {
-          setImages(newImages);
-        }
-        
-        setHasMore(newImages.length === IMAGES_PER_PAGE);
+        console.error('❌ UserImageGallery: Supabase error:', error);
+        setLoading(false);
+        return;
       }
+
+      const newImages = data || [];
+      console.log('✅ UserImageGallery: Fetched images', { count: newImages.length });
+      
+      if (append) {
+        setImages(prev => [...prev, ...newImages]);
+      } else {
+        setImages(newImages);
+      }
+      
+      setHasMore(newImages.length === IMAGES_PER_PAGE);
     } catch (error) {
-      console.error('Error fetching user images:', error);
+      console.error('❌ UserImageGallery: Fetch error:', error);
     } finally {
       setLoading(false);
     }

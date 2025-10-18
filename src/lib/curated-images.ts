@@ -47,7 +47,8 @@ export class CuratedImageAPI {
       supabaseExists: !!supabase, 
       supabaseFrom: !!supabase?.from,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'exists' : 'missing'
+      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'exists' : 'missing',
+      windowDefined: typeof window !== 'undefined'
     });
     
     try {

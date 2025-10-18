@@ -158,6 +158,16 @@ export function CuratedImageGallery({
     });
   }, [images.length, loading, error, hasMore]);
 
+  // Additional debug logging for initial load
+  useEffect(() => {
+    console.log('🖼️ CuratedImageGallery initial load check:', { 
+      images: images.length > 0 ? `${images.length} images loaded` : 'no images yet',
+      loading,
+      error: error ? error.message : 'no error',
+      hasMore
+    });
+  }, []);
+
   // Additional debug logging for hook state
   useEffect(() => {
     console.log('🖼️ CuratedImageGallery hook state:', { 
