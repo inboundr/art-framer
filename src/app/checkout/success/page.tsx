@@ -53,10 +53,11 @@ function CheckoutSuccessContent() {
     handleAuthRestoration();
   }, [isInitialized, isAuthenticated, restoreSession]);
 
-  // Retrieve stored shipping address when authenticated and session ID is available
+  // Retrieve stored shipping address when session ID is available
+  // Note: This works with or without authentication (fallback for post-payment scenarios)
   useEffect(() => {
     const retrieveStoredAddress = async () => {
-      if (!isAuthenticated || !sessionId || addressLoading) return;
+      if (!sessionId || addressLoading) return;
 
       setAddressLoading(true);
       try {
@@ -76,7 +77,7 @@ function CheckoutSuccessContent() {
     };
 
     retrieveStoredAddress();
-  }, [isAuthenticated, sessionId, addressLoading]);
+  }, [sessionId, addressLoading]);
 
   // Show loading state while checking authentication
   if (!isInitialized || !authChecked) {
