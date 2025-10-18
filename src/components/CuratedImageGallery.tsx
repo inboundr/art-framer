@@ -153,9 +153,20 @@ export function CuratedImageGallery({
       imagesCount: images.length, 
       loading, 
       hasError: !!error,
-      hasMore 
+      hasMore,
+      errorMessage: error?.message
     });
   }, [images.length, loading, error, hasMore]);
+
+  // Additional debug logging for hook state
+  useEffect(() => {
+    console.log('🖼️ CuratedImageGallery hook state:', { 
+      images: images.length > 0 ? `${images.length} images` : 'no images',
+      loading,
+      error: error ? error.message : 'no error',
+      hasMore
+    });
+  }, [images, loading, error, hasMore]);
 
   // Check for pending cart image after login
   useEffect(() => {
@@ -342,6 +353,7 @@ export function CuratedImageGallery({
           promptText={selectedImage.title}
           imageId={selectedImage.id}
           isMobile={false}
+          isCuratedImage={true} // Curated images are indeed curated
         />
       )}
     </div>

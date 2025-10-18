@@ -280,6 +280,7 @@ export function UserImageGallery() {
           promptText={selectedImage.prompt}
           imageId={selectedImage.id}
           isMobile={false} // You can add mobile detection here if needed
+          isCuratedImage={false} // User images are not curated images
         />
       )}
     </>

@@ -530,6 +530,7 @@ export function GenerationPanel({
           promptText={localPromptText}
           imageId={selectedImage.id}
           isMobile={isMobile}
+          isCuratedImage={false} // Generated images are not curated images
         />
       )}
     </div>

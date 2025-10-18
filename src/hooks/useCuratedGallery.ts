@@ -135,12 +135,15 @@ export function useCuratedGallery(options: {
   // Load initial gallery on mount
   useEffect(() => {
     console.log('🚀 useCuratedGallery useEffect triggered');
+    console.log('🚀 useCuratedGallery options:', memoizedOptions);
     
     const loadInitialGallery = async () => {
+      console.log('🔄 Starting loadInitialGallery...');
       setLoading(true);
       setError(null);
 
       try {
+        console.log('📡 Calling curatedImageAPI.getGallery...');
         const response = await curatedImageAPI.getGallery(1, memoizedOptions.pageSize || 20, memoizedOptions.filters);
         console.log('✅ Initial curated gallery response:', response);
         

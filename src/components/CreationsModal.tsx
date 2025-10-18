@@ -15,6 +15,7 @@ interface CreationsModalProps {
   promptText: string;
   imageId?: string; // Add imageId prop
   isMobile?: boolean;
+  isCuratedImage?: boolean; // Add explicit flag to indicate if this is a curated image
 }
 
 export function CreationsModal({ 
@@ -23,7 +24,8 @@ export function CreationsModal({
   imageUrl, 
   promptText, 
   imageId,
-  isMobile = false 
+  isMobile = false,
+  isCuratedImage = false
 }: CreationsModalProps) {
   const [showFrameSelector, setShowFrameSelector] = useState(false);
   const [selectedFrame, setSelectedFrame] = useState<any>(null);
@@ -83,11 +85,8 @@ export function CreationsModal({
       // Get the session to access the token
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Determine if this is a curated image by checking if it starts with 'CUR-' in the URL or has specific characteristics
-      const isCuratedImage = imageUrl.includes('curated') || imageUrl.includes('placeholder') || 
-                            promptText.includes('Curated') || promptText.includes('Abstract') ||
-                            promptText.includes('Nature') || promptText.includes('Portrait') ||
-                            promptText.includes('Modern') || promptText.includes('Artistic');
+      // Use the explicit flag passed from the parent component to determine if this is a curated image
+      // This is more reliable than trying to guess based on URL or prompt content
 
       let response;
       if (isCuratedImage) {

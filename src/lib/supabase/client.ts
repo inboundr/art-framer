@@ -17,8 +17,14 @@ export const supabase = (() => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+  console.log('🔍 Supabase client initialization:', {
+    supabaseUrl: supabaseUrl ? 'exists' : 'missing',
+    supabaseAnonKey: supabaseAnonKey ? 'exists' : 'missing',
+    nodeEnv: process.env.NODE_ENV
+  });
+
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not found, using mock client');
+    console.warn('❌ Supabase environment variables not found, using mock client');
     return {} as any;
   }
 

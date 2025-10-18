@@ -49,23 +49,19 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Allow unauthenticated GET requests for public product listing
+    // Authentication is only required for POST requests (creating products)
     
     const { searchParams } = new URL(request.url);
     
     const params = GetProductsSchema.parse({
-      imageId: searchParams.get('imageId'),
-      frameSize: searchParams.get('frameSize'),
-      frameStyle: searchParams.get('frameStyle'),
-      frameMaterial: searchParams.get('frameMaterial'),
-      status: searchParams.get('status'),
-      limit: searchParams.get('limit'),
-      offset: searchParams.get('offset'),
+      imageId: searchParams.get('imageId') || undefined,
+      frameSize: searchParams.get('frameSize') || undefined,
+      frameStyle: searchParams.get('frameStyle') || undefined,
+      frameMaterial: searchParams.get('frameMaterial') || undefined,
+      status: searchParams.get('status') || undefined,
+      limit: searchParams.get('limit') || undefined,
+      offset: searchParams.get('offset') || undefined,
     });
 
     let query = supabase
