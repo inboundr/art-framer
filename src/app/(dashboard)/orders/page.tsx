@@ -54,13 +54,11 @@ interface Order {
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   total_amount: number;
   shipping_address: {
-    firstName: string;
-    lastName: string;
-    address1: string;
-    address2?: string;
+    line1: string;
+    line2?: string;
     city: string;
     state: string;
-    zip: string;
+    postal_code: string;
     country: string;
     phone?: string;
   };
@@ -370,10 +368,9 @@ export default function OrdersPage() {
                     <span className="font-medium">Shipping Address</span>
                   </div>
                   <div className="text-sm">
-                    <div>{order.shipping_address.firstName} {order.shipping_address.lastName}</div>
-                    <div>{order.shipping_address.address1}</div>
-                    {order.shipping_address.address2 && <div>{order.shipping_address.address2}</div>}
-                    <div>{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}</div>
+                    <div>{order.shipping_address.line1}</div>
+                    {order.shipping_address.line2 && <div>{order.shipping_address.line2}</div>}
+                    <div>{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.postal_code}</div>
                     <div>{order.shipping_address.country}</div>
                     {order.shipping_address.phone && <div>{order.shipping_address.phone}</div>}
                   </div>

@@ -218,21 +218,38 @@ async function handleCheckoutSessionCompleted(
 
     let shippingAddress;
     if (addressError || !storedAddressData) {
-      console.warn('⚠️ No stored address found for session, using fallback:', {
+      console.warn('⚠️ No stored address found for session, trying to get from Stripe session:', {
         sessionId: session.id,
         error: addressError?.message,
         errorCode: addressError?.code,
         errorDetails: addressError?.details,
-        hasStoredData: !!storedAddressData
+        hasStoredData: !!storedAddressData,
+        stripeCustomerDetails: session.customer_details
       });
-      shippingAddress = {
-        line1: 'Address not provided',
-        line2: null,
-        city: 'Unknown',
-        state: 'Unknown',
-        postal_code: '00000',
-        country: session.currency?.toUpperCase() === 'CAD' ? 'CA' : 'US'
-      };
+      
+      // Try to get address from Stripe session customer details
+      if (session.customer_details?.address) {
+        const stripeAddress = session.customer_details.address;
+        shippingAddress = {
+          line1: stripeAddress.line1 || 'Address not provided',
+          line2: stripeAddress.line2 || null,
+          city: stripeAddress.city || 'Unknown',
+          state: stripeAddress.state || 'Unknown',
+          postal_code: stripeAddress.postal_code || '00000',
+          country: stripeAddress.country || 'US'
+        };
+        console.log('✅ Using Stripe session address:', shippingAddress);
+      } else {
+        shippingAddress = {
+          line1: 'Address not provided',
+          line2: null,
+          city: 'Unknown',
+          state: 'Unknown',
+          postal_code: '00000',
+          country: session.currency?.toUpperCase() === 'CAD' ? 'CA' : 'US'
+        };
+        console.log('⚠️ Using fallback address:', shippingAddress);
+      }
     } else {
       const storedAddress = storedAddressData.shipping_address as any;
       console.log('✅ Retrieved stored address:', {
