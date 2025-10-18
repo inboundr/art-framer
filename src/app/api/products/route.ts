@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
     
     if (authError || !user) {
       console.log('Auth failed:', { authError: authError?.message, user: !!user });
+      console.log('Auth header present:', !!request.headers.get('authorization'));
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -160,8 +161,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = CreateProductSchema.parse(body);
 
-    // Verify the image belongs to the user
-    const { data: image, error: imageError } = await supabase
+    // Verify the image belongs to the user using service client to bypass RLS
+    const serviceSupabase = createServiceClient();
+    const { data: image, error: imageError } = await serviceSupabase
       .from('images')
       .select('id, user_id, status')
       .eq('id', validatedData.imageId)
@@ -212,7 +214,6 @@ export async function POST(request: NextRequest) {
     );
 
     // Create product using service client to bypass RLS
-    const serviceSupabase = createServiceClient();
     const { data: product, error: productError } = await (serviceSupabase as any)
       .from('products')
       .insert({

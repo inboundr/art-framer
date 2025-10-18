@@ -189,7 +189,7 @@ describe('Products API', () => {
     })
 
     test('should return 404 for non-existent image', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
+      const { createClient, createServiceClient } = await import('@/lib/supabase/server')
       const mockSupabase = createMockSupabaseClient({
         from: jest.fn((table) => {
           if (table === 'images') {
@@ -211,6 +211,9 @@ describe('Products API', () => {
       })
       
       createClient.mockResolvedValue(mockSupabase)
+      // Mock service client to return the same mock
+      createServiceClient.mockReturnValue(mockSupabase)
+      
       // Mock all authentication methods to succeed
       mockSupabase.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -311,7 +314,7 @@ describe('Products API', () => {
     })
 
     test('should return 400 for incomplete image', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
+      const { createClient, createServiceClient } = await import('@/lib/supabase/server')
       const incompleteImage = { ...mockUserImage, status: 'processing' }
       const mockSupabase = createMockSupabaseClient({
         from: jest.fn((table) => {
@@ -334,6 +337,9 @@ describe('Products API', () => {
       })
       
       createClient.mockResolvedValue(mockSupabase)
+      // Mock service client to return the same mock
+      createServiceClient.mockReturnValue(mockSupabase)
+      
       // Mock all authentication methods to succeed
       mockSupabase.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
