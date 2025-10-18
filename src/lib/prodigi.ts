@@ -727,8 +727,10 @@ export class ProdigiClient {
         // Validate that the dynamic SKU actually exists in Prodigi
         try {
           await this.getProductDetails(dynamicSku);
-          console.log(`✅ Found and validated dynamic Prodigi SKU: ${dynamicSku}`);
-          return dynamicSku;
+          // Make the SKU unique by appending image ID if provided
+          const uniqueDynamicSku = imageId ? `${dynamicSku}-${imageId.substring(0, 8)}` : dynamicSku;
+          console.log(`✅ Found and validated dynamic Prodigi SKU: ${uniqueDynamicSku}`);
+          return uniqueDynamicSku;
         } catch (validationError) {
           console.log(`⚠️ Dynamic SKU ${dynamicSku} failed validation, falling back to known SKUs`);
           // Fall through to use known SKUs
@@ -752,7 +754,7 @@ export class ProdigiClient {
       return generatedSku;
     } catch (error) {
       console.warn('Error generating frame SKU, using fallback:', error);
-      return this.getFallbackSku(frameSize, frameStyle, frameMaterial);
+      return this.getFallbackSku(frameSize, frameStyle, frameMaterial, imageId);
     }
   }
 
@@ -844,7 +846,7 @@ export class ProdigiClient {
       },
       items: await Promise.all(orderData.items.map(async item => ({
         merchantReference: `item-${item.productSku}`,
-        sku: await this.getProductSku(item.frameSize, item.frameStyle, item.frameMaterial),
+        sku: item.productSku, // Use the base SKU passed from order processing
         copies: item.quantity,
         sizing: 'fillPrintArea',
         attributes: this.getProductAttributes(item.frameStyle, item.frameMaterial),

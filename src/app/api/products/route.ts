@@ -184,21 +184,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if product already exists
-    const { data: existingProduct } = await supabase
+    // Check if product already exists using service client to bypass RLS
+    console.log('🔍 Checking for existing product with specs:', {
+      imageId: validatedData.imageId,
+      frameSize: validatedData.frameSize,
+      frameStyle: validatedData.frameStyle,
+      frameMaterial: validatedData.frameMaterial
+    });
+    
+    const { data: existingProduct, error: existingError } = await serviceSupabase
       .from('products')
       .select('id')
       .eq('image_id', validatedData.imageId)
       .eq('frame_size', validatedData.frameSize)
       .eq('frame_style', validatedData.frameStyle)
       .eq('frame_material', validatedData.frameMaterial)
-      .single();
+      .maybeSingle(); // Use maybeSingle() instead of single() to avoid error when no product exists
 
-    if (existingProduct) {
-      return NextResponse.json(
-        { error: 'Product with these specifications already exists' },
-        { status: 409 }
-      );
+    console.log('🔍 Existing product check result:', { existingProduct, existingError });
+
+    if (existingProduct && !existingError) {
+      // Return the existing product instead of error
+      const productId = (existingProduct as { id: string }).id;
+      const { data: product } = await serviceSupabase
+        .from('products')
+        .select(`
+          *,
+          images (
+            id,
+            prompt,
+            image_url,
+            thumbnail_url,
+            user_id,
+            created_at
+          )
+        `)
+        .eq('id', productId)
+        .single();
+      
+      return NextResponse.json({ product }, { status: 200 });
     }
 
     // Calculate dimensions based on frame size
@@ -210,7 +234,8 @@ export async function POST(request: NextRequest) {
     const sku = await prodigiClient.generateFrameSku(
       validatedData.frameSize,
       validatedData.frameStyle,
-      validatedData.frameMaterial
+      validatedData.frameMaterial,
+      validatedData.imageId // Pass image ID to make SKU unique
     );
 
     // Create product using service client to bypass RLS
@@ -242,6 +267,41 @@ export async function POST(request: NextRequest) {
 
     if (productError) {
       console.error('Error creating product:', productError);
+      
+      // Handle duplicate SKU constraint specifically
+      if (productError.code === '23505' && productError.message.includes('products_sku_key')) {
+        console.log('🔄 Duplicate SKU detected, finding existing product with SKU:', sku);
+        
+        // Find and return the existing product with this SKU
+        const { data: existingProductBySku } = await serviceSupabase
+          .from('products')
+          .select(`
+            *,
+            images (
+              id,
+              prompt,
+              image_url,
+              thumbnail_url,
+              user_id,
+              created_at
+            )
+          `)
+          .eq('sku', sku)
+          .single();
+        
+        console.log('🔍 Found existing product by SKU:', existingProductBySku ? 'Yes' : 'No');
+        
+        if (existingProductBySku) {
+          console.log('✅ Returning existing product for quantity increment');
+          return NextResponse.json({ product: existingProductBySku }, { status: 200 });
+        }
+        
+        return NextResponse.json(
+          { error: 'Product with this SKU already exists', details: 'A product with the same frame specifications already exists' },
+          { status: 409 }
+        );
+      }
+      
       return NextResponse.json(
         { error: 'Failed to create product', details: productError.message },
         { status: 500 }

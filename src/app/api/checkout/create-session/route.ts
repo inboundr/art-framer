@@ -310,7 +310,7 @@ export async function POST(request: NextRequest) {
                 frame_size: item.products.frame_size,
                 frame_style: item.products.frame_style,
                 frame_material: item.products.frame_material,
-                sku: item.products.sku,
+                sku: item.finalSku, // Use base SKU for consistency with Prodigi operations
               },
             },
             unit_amount: Math.round(item.products.price * 100),

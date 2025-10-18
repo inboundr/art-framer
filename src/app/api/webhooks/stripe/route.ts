@@ -621,18 +621,19 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
     // Prepare order data for Prodigi
     const prodigiOrderData = {
       orderReference: order.order_number || `ORDER-${orderId.slice(-8)}`,
-      items: await Promise.all(order.order_items.map(async (item: any) => ({
-        productUid: await prodigiClient.getProductSku(
-          item.products?.frame_size || 'medium',
-          item.products?.frame_style || 'black',
-          item.products?.frame_material || 'wood'
-        ),
-        quantity: item.quantity,
-        imageUrl: item.products?.images?.image_url || '',
-        frameSize: item.products?.frame_size || 'medium',
-        frameStyle: item.products?.frame_style || 'black',
-        frameMaterial: item.products?.frame_material || 'wood',
-      }))),
+      items: await Promise.all(order.order_items.map(async (item: any) => {
+        // Extract base SKU from stored SKU (remove image ID suffix if present)
+        const baseSku = prodigiClient.extractBaseProdigiSku(item.products?.sku || '');
+        
+        return {
+          productUid: baseSku,
+          quantity: item.quantity,
+          imageUrl: item.products?.images?.image_url || '',
+          frameSize: item.products?.frame_size || 'medium',
+          frameStyle: item.products?.frame_style || 'black',
+          frameMaterial: item.products?.frame_material || 'wood',
+        };
+      })),
       shippingAddress: order.shipping_address,
       customerEmail: order.customer_email,
       customerPhone: order.customer_phone,
