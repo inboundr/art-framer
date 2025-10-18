@@ -879,6 +879,10 @@ export class ProdigiClient {
       attributes.color = 'silver';
     }
     
+    // Add wrap attribute for extra large frames (GLOBAL-FRA-CAN-30X40 requires it)
+    // Default to ImageWrap for framed prints
+    attributes.wrap = 'ImageWrap';
+    
     return attributes;
   }
 

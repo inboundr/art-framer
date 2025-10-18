@@ -166,6 +166,10 @@ export async function POST(request: NextRequest) {
               sku: baseProdigiSku, // Use base SKU for Prodigi API calls
               quantity: item.quantity,
               price: item.products.price,
+              attributes: {
+                color: item.products.frame_style,
+                wrap: 'ImageWrap'
+              }
             };
           } catch (error) {
             console.warn(`⚠️ Failed to regenerate SKU for ${item.products.sku}, using stored SKU:`, error);
@@ -180,6 +184,10 @@ export async function POST(request: NextRequest) {
           sku: baseStoredSku, // Use base SKU for Prodigi API calls
           quantity: item.quantity,
           price: item.products.price,
+          attributes: {
+            color: item.products.frame_style,
+            wrap: 'ImageWrap'
+          }
         };
       })
     );

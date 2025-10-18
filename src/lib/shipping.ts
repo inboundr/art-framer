@@ -12,6 +12,7 @@ export const ShippingItemSchema = z.object({
   quantity: z.number().int().min(1),
   price: z.number().min(0).optional(), // Product price for subtotal calculation
   weight: z.number().min(0).optional(),
+  attributes: z.record(z.string()).optional(), // Prodigi attributes like color, wrap
   dimensions: z.object({
     length: z.number().min(0),
     width: z.number().min(0),
@@ -436,6 +437,7 @@ export class ShippingService {
     const prodigiItems = items.map(item => ({
       sku: item.sku,
       quantity: item.quantity,
+      attributes: item.attributes || {},
     }));
 
     const result = await this.withRetry(
@@ -472,7 +474,7 @@ export class ShippingService {
    * Call Prodigi API with timeout protection
    */
   private async callProdigiWithTimeout(
-    items: Array<{ sku: string; quantity: number }>,
+    items: Array<{ sku: string; quantity: number; attributes?: Record<string, string> }>,
     address: ShippingAddress
   ): Promise<ShippingResult> {
     return new Promise(async (resolve, reject) => {
