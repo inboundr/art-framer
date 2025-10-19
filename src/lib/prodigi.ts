@@ -834,7 +834,7 @@ export class ProdigiClient {
       merchantReference: orderData.orderReference,
       shippingMethod: 'Standard',
       recipient: {
-        name: `${orderData.shippingAddress.firstName || orderData.shippingAddress.first_name || ''} ${orderData.shippingAddress.lastName || orderData.shippingAddress.last_name || ''}`.trim(),
+        name: `${orderData.shippingAddress.firstName || orderData.shippingAddress.first_name || 'Customer'} ${orderData.shippingAddress.lastName || orderData.shippingAddress.last_name || 'Name'}`.trim(),
         address: {
           line1: orderData.shippingAddress.address1 || orderData.shippingAddress.line1 || '',
           line2: orderData.shippingAddress.address2 || orderData.shippingAddress.line2,

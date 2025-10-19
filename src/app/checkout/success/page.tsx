@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useAuthPersistence } from '@/hooks/useAuthPersistence';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 function CheckoutSuccessContent() {
@@ -15,6 +15,7 @@ function CheckoutSuccessContent() {
   const [authChecked, setAuthChecked] = useState(false);
   const [storedAddress, setStoredAddress] = useState<any>(null);
   const [addressLoading, setAddressLoading] = useState(false);
+  const addressRetrievedRef = useRef(false);
 
   // Enhanced authentication handling for post-redirect scenarios
   useEffect(() => {
@@ -57,9 +58,10 @@ function CheckoutSuccessContent() {
   // Note: This works with or without authentication (fallback for post-payment scenarios)
   useEffect(() => {
     const retrieveStoredAddress = async () => {
-      if (!sessionId || addressLoading) return;
+      if (!sessionId || addressLoading || addressRetrievedRef.current) return;
 
       setAddressLoading(true);
+      addressRetrievedRef.current = true; // Mark as retrieved to prevent multiple calls
       try {
         const response = await fetch(`/api/checkout/retrieve-address?sessionId=${sessionId}`);
         if (response.ok) {
@@ -77,7 +79,7 @@ function CheckoutSuccessContent() {
     };
 
     retrieveStoredAddress();
-  }, [sessionId, addressLoading]);
+  }, [sessionId]); // Only depend on sessionId
 
   // Show loading state while checking authentication
   if (!isInitialized || !authChecked) {

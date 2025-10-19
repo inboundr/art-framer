@@ -395,6 +395,22 @@ export async function POST(request: NextRequest) {
 
     // Store shipping address with Stripe session ID for later retrieval
     try {
+      console.log('💾 Storing shipping address for session:', {
+        sessionId: session.id,
+        userId: user.id,
+        address: {
+          firstName: validatedData.shippingAddress.firstName || '',
+          lastName: validatedData.shippingAddress.lastName || '',
+          address1: validatedData.shippingAddress.address1 || '',
+          address2: validatedData.shippingAddress.address2 || '',
+          city: validatedData.shippingAddress.city || '',
+          state: validatedData.shippingAddress.state || '',
+          zip: validatedData.shippingAddress.zip || '',
+          country: countryCode,
+          phone: validatedData.shippingAddress.phone || '',
+        }
+      });
+
       const { error: addressError } = await (serviceSupabase as any)
         .from('stripe_session_addresses')
         .insert({
@@ -415,13 +431,25 @@ export async function POST(request: NextRequest) {
         });
 
       if (addressError) {
-        console.error('Error storing shipping address:', addressError);
-        // Don't fail the checkout if address storage fails
+        console.error('❌ Error storing shipping address:', {
+          sessionId: session.id,
+          error: addressError,
+          errorCode: addressError.code,
+          errorMessage: addressError.message,
+          errorDetails: addressError.details,
+          errorHint: addressError.hint
+        });
+        // Don't fail the checkout if address storage fails, but log the issue
       } else {
-        console.log('✅ Shipping address stored for session:', session.id);
+        console.log('✅ Shipping address stored successfully for session:', session.id);
       }
     } catch (error) {
-      console.error('Error storing shipping address:', error);
+      console.error('❌ Exception storing shipping address:', {
+        sessionId: session.id,
+        error: error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
       // Don't fail the checkout if address storage fails
     }
 

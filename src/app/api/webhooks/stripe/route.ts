@@ -210,6 +210,7 @@ async function handleCheckoutSessionCompleted(
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
     // Retrieve stored shipping address from our database
+    console.log('🔍 Looking for stored address for session:', session.id);
     const { data: storedAddressData, error: addressError } = await (supabase as any)
       .from('stripe_session_addresses')
       .select('shipping_address')
@@ -224,7 +225,8 @@ async function handleCheckoutSessionCompleted(
         errorCode: addressError?.code,
         errorDetails: addressError?.details,
         hasStoredData: !!storedAddressData,
-        stripeCustomerDetails: session.customer_details
+        stripeCustomerDetails: session.customer_details,
+        stripeAddress: session.customer_details?.address
       });
       
       // Try to get address from Stripe session customer details
@@ -256,14 +258,50 @@ async function handleCheckoutSessionCompleted(
         sessionId: session.id,
         address: storedAddress
       });
-      shippingAddress = {
-        line1: storedAddress.address1 || 'Address not provided',
-        line2: storedAddress.address2 || null,
-        city: storedAddress.city || 'Unknown',
-        state: storedAddress.state || 'Unknown',
-        postal_code: storedAddress.zip || '00000',
-        country: storedAddress.country || 'US'
-      };
+      
+      // Validate that we have meaningful address data
+      if (storedAddress.address1 && storedAddress.city && storedAddress.state) {
+        shippingAddress = {
+          line1: storedAddress.address1,
+          line2: storedAddress.address2 || null,
+          city: storedAddress.city,
+          state: storedAddress.state,
+          postal_code: storedAddress.zip || '00000',
+          country: storedAddress.country || 'US'
+        };
+        console.log('✅ Using stored address:', shippingAddress);
+      } else {
+        console.warn('⚠️ Stored address is incomplete, falling back to Stripe session:', {
+          storedAddress,
+          hasAddress1: !!storedAddress.address1,
+          hasCity: !!storedAddress.city,
+          hasState: !!storedAddress.state
+        });
+        
+        // Fall back to Stripe session data
+        if (session.customer_details?.address) {
+          const stripeAddress = session.customer_details.address;
+          shippingAddress = {
+            line1: stripeAddress.line1 || 'Address not provided',
+            line2: stripeAddress.line2 || null,
+            city: stripeAddress.city || 'Unknown',
+            state: stripeAddress.state || 'Unknown',
+            postal_code: stripeAddress.postal_code || '00000',
+            country: stripeAddress.country || 'US'
+          };
+          console.log('✅ Using Stripe session address as fallback:', shippingAddress);
+        } else {
+          shippingAddress = {
+            line1: 'Address not provided',
+            line2: null,
+            city: 'Unknown',
+            state: 'Unknown',
+            postal_code: '00000',
+            country: session.currency?.toUpperCase() === 'CAD' ? 'CA' : 'US'
+          };
+          console.log('⚠️ Using final fallback address:', shippingAddress);
+        }
+      }
     }
 
     console.log('🏠 Shipping address retrieved:', {

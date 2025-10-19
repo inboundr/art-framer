@@ -238,8 +238,13 @@ export class OrderRetryManager {
         // Extract base SKU from stored SKU (remove image ID suffix if present)
         const baseSku = prodigiClient.extractBaseProdigiSku(item.products?.sku || '');
         
+        // Validate that we have a valid SKU
+        if (!baseSku || baseSku.trim() === '') {
+          throw new Error(`Invalid SKU for product ${item.products?.id}: ${item.products?.sku}`);
+        }
+        
         return {
-          productUid: baseSku,
+          productSku: baseSku,
           quantity: item.quantity,
           imageUrl: item.products?.images?.image_url || '',
           frameSize: item.products?.frame_size || 'medium',
