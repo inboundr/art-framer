@@ -324,9 +324,10 @@ async function handleCheckoutSessionCompleted(
       total_price: item.products.price * item.quantity,
     }));
 
-    const { error: orderItemsError } = await (supabase as any)
+    const { data: insertedOrderItems, error: orderItemsError } = await (supabase as any)
       .from('order_items')
-      .insert(orderItems);
+      .insert(orderItems)
+      .select('id, product_id');
 
     if (orderItemsError) {
       console.error('❌ Error creating order items:', {
@@ -353,7 +354,7 @@ async function handleCheckoutSessionCompleted(
     // Create dropship orders for each item
     console.log('📦 Creating dropship orders for', cartItems.length, 'items');
     for (const item of cartItems) {
-      const orderItem = orderItems.find((oi: any) => oi.product_id === item.product_id);
+      const orderItem = insertedOrderItems?.find((oi: any) => oi.product_id === item.product_id);
       const { error: dropshipError } = await supabase
         .from('dropship_orders')
         .insert({

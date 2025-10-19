@@ -52,7 +52,8 @@ export class OrderRetryManager {
     payload: any,
     immediate: boolean = false
   ): Promise<string> {
-    const supabase = await createClient();
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
     
     const operationId = `retry_${type}_${orderId}_${Date.now()}`;
     const nextRetry = immediate 
@@ -102,7 +103,8 @@ export class OrderRetryManager {
    * Process a retryable operation
    */
   async processOperation(operationId: string): Promise<boolean> {
-    const supabase = await createClient();
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
     
     // Fetch operation from database
     const { data: operation, error: fetchError } = await (supabase as any)
@@ -406,7 +408,8 @@ export class OrderRetryManager {
    * Process all pending retry operations
    */
   async processPendingOperations(): Promise<{ processed: number; failed: number }> {
-    const supabase = await createClient();
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
     
     // Fetch all pending operations that are due for retry
     const { data: operations, error } = await (supabase as any)
@@ -452,7 +455,8 @@ export class OrderRetryManager {
     failed: number;
     cancelled: number;
   }> {
-    const supabase = await createClient();
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
     
     const { data, error } = await (supabase as any)
       .from('retry_operations')

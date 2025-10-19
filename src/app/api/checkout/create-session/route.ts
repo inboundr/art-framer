@@ -395,7 +395,7 @@ export async function POST(request: NextRequest) {
 
     // Store shipping address with Stripe session ID for later retrieval
     try {
-      const { error: addressError } = await (supabase as any)
+      const { error: addressError } = await (serviceSupabase as any)
         .from('stripe_session_addresses')
         .insert({
           stripe_session_id: session.id,
