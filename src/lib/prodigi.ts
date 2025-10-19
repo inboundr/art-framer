@@ -40,6 +40,7 @@ interface ProdigiOrderItem {
 interface ProdigiOrder {
   merchantReference: string;
   shippingMethod: string;
+  callbackUrl?: string;
   recipient: {
     name: string;
     address: {
@@ -869,6 +870,7 @@ export class ProdigiClient {
     return {
       merchantReference: orderData.orderReference,
       shippingMethod: 'Standard',
+      callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/prodigi`,
       recipient: {
         name: recipientName,
         email: orderData.customerEmail,

@@ -9,6 +9,8 @@ describe('ProdigiClient', () => {
   const mockEnvironment = 'sandbox' as const;
 
   beforeEach(() => {
+    // Set up environment variable for callbackUrl
+    process.env.NEXT_PUBLIC_APP_URL = 'https://test-app.com';
     prodigiClient = new ProdigiClient(mockApiKey, mockEnvironment);
     jest.clearAllMocks();
   });
@@ -62,6 +64,7 @@ describe('ProdigiClient', () => {
       expect(result).toEqual({
         merchantReference: 'ORDER-123',
         shippingMethod: 'Standard',
+        callbackUrl: 'https://test-app.com/api/webhooks/prodigi',
         recipient: {
           name: 'John Doe',
           email: 'john@example.com',
