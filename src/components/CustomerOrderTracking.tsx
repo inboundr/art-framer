@@ -12,6 +12,7 @@ import {
   ExternalLink,
   RefreshCw,
   Bell,
+  Pause,
 } from 'lucide-react';
 
 interface Order {
@@ -71,6 +72,13 @@ export function CustomerOrderTracking({ orderId, showAllOrders = false }: Custom
       icon: Package,
       color: 'bg-purple-100 text-purple-800',
       progress: 50,
+    },
+    paused: {
+      label: 'Order Paused',
+      description: 'Your order is paused for editing. You can modify or cancel it before production begins.',
+      icon: Pause,
+      color: 'bg-orange-100 text-orange-800',
+      progress: 30,
     },
     shipped: {
       label: 'Shipped',

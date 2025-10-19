@@ -701,8 +701,8 @@ export class ProdigiClient {
       
       // Safely convert edit window data to proper types
       const editWindow = orderStatus.editWindow;
-      const canEdit = editWindow?.canEdit === true || editWindow?.canEdit === 'true';
-      const canCancel = editWindow?.canCancel === true || editWindow?.canCancel === 'true';
+      const canEdit = editWindow?.canEdit === true || (editWindow?.canEdit as any) === 'true';
+      const canCancel = editWindow?.canCancel === true || (editWindow?.canCancel as any) === 'true';
       
       return {
         canEdit,
@@ -710,7 +710,7 @@ export class ProdigiClient {
         editWindow: editWindow ? {
           duration: editWindow.duration || '',
           expiresAt: editWindow.expiresAt,
-          expired: editWindow.expired === true || editWindow.expired === 'true',
+          expired: editWindow.expired === true || (editWindow.expired as any) === 'true',
         } : undefined,
       };
     } catch (error) {

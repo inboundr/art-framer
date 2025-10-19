@@ -21,7 +21,8 @@ import {
   XCircle,
   Clock,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  Pause
 } from 'lucide-react';
 
 interface Order {
@@ -80,6 +81,7 @@ export function AdminOrderDashboard() {
     pending: 'bg-yellow-100 text-yellow-800',
     paid: 'bg-blue-100 text-blue-800',
     processing: 'bg-purple-100 text-purple-800',
+    paused: 'bg-orange-100 text-orange-800',
     shipped: 'bg-green-100 text-green-800',
     delivered: 'bg-green-100 text-green-800',
     cancelled: 'bg-red-100 text-red-800',
@@ -90,6 +92,7 @@ export function AdminOrderDashboard() {
     pending: Clock,
     paid: CheckCircle,
     processing: Package,
+    paused: Pause,
     shipped: Truck,
     delivered: CheckCircle,
     cancelled: XCircle,
@@ -101,7 +104,7 @@ export function AdminOrderDashboard() {
       setLoading(true);
       const params = new URLSearchParams();
       
-      if (filters.status) params.append('status', filters.status);
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
       if (filters.search) params.append('search', filters.search);
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters.dateTo) params.append('dateTo', filters.dateTo);
@@ -250,7 +253,7 @@ export function AdminOrderDashboard() {
     setEditOrderOpen(true);
   };
 
-  const formatCurrency = (amount: number, currency: string) => {
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency.toUpperCase(),
@@ -298,7 +301,7 @@ export function AdminOrderDashboard() {
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="processing">Processing</SelectItem>

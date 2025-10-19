@@ -17,7 +17,8 @@ import {
   RefreshCw,
   MapPin,
   CreditCard,
-  Calendar
+  Calendar,
+  Pause
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -163,6 +164,8 @@ export function OrderManagement({ userId }: OrderManagementProps) {
         return <CheckCircle className="h-4 w-4" />;
       case 'processing':
         return <Package className="h-4 w-4" />;
+      case 'paused':
+        return <Pause className="h-4 w-4" />;
       case 'shipped':
         return <Truck className="h-4 w-4" />;
       case 'delivered':
@@ -183,6 +186,8 @@ export function OrderManagement({ userId }: OrderManagementProps) {
         return 'bg-blue-100 text-blue-800';
       case 'processing':
         return 'bg-purple-100 text-purple-800';
+      case 'paused':
+        return 'bg-orange-100 text-orange-800';
       case 'shipped':
         return 'bg-indigo-100 text-indigo-800';
       case 'delivered':
