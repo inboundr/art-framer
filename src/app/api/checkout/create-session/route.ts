@@ -5,6 +5,46 @@ import Stripe from "stripe";
 import type { PricingItem } from "@/lib/pricing";
 import type { ShippingItem } from "@/lib/shipping";
 
+// Helper function to get product attributes based on SKU type
+function getProductAttributesForSku(sku: string, frameStyle: string): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  
+  // Only add attributes for SKUs that require them
+  // GLOBAL-FRA-CAN-* (extra large frames) require both color and wrap
+  if (sku.startsWith('GLOBAL-FRA-CAN-')) {
+    if (frameStyle === 'black') {
+      attributes.color = 'black';
+    } else if (frameStyle === 'white') {
+      attributes.color = 'white';
+    } else if (frameStyle === 'natural') {
+      attributes.color = 'natural';
+    } else if (frameStyle === 'gold') {
+      attributes.color = 'gold';
+    } else if (frameStyle === 'silver') {
+      attributes.color = 'silver';
+    }
+    attributes.wrap = 'ImageWrap';
+  }
+  // GLOBAL-CFPM-* (canvas prints) require color
+  else if (sku.startsWith('GLOBAL-CFPM-')) {
+    if (frameStyle === 'black') {
+      attributes.color = 'black';
+    } else if (frameStyle === 'white') {
+      attributes.color = 'white';
+    } else if (frameStyle === 'natural') {
+      attributes.color = 'natural';
+    } else if (frameStyle === 'gold') {
+      attributes.color = 'gold';
+    } else if (frameStyle === 'silver') {
+      attributes.color = 'silver';
+    }
+  }
+  // GLOBAL-FAP-* (standard frames) don't require attributes
+  // No attributes needed for these SKUs
+  
+  return attributes;
+}
+
 // Initialize Stripe with fallback for build time
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_for_build';
 const stripe = new Stripe(stripeSecretKey, {
@@ -254,6 +294,7 @@ export async function POST(request: NextRequest) {
     const shippingItems: ShippingItem[] = processedItems.map((item: any) => ({
       sku: item.finalSku,
       quantity: item.quantity,
+      attributes: getProductAttributesForSku(item.finalSku, item.products.frame_style)
     }));
 
     // Use the new country field or fall back to countryCode for backward compatibility

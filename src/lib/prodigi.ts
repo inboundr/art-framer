@@ -849,7 +849,7 @@ export class ProdigiClient {
         sku: item.productSku, // Use the base SKU passed from order processing
         copies: item.quantity,
         sizing: 'fillPrintArea',
-        attributes: this.getProductAttributes(item.frameStyle, item.frameMaterial),
+        attributes: this.getProductAttributes(item.frameStyle, item.frameMaterial, item.productSku),
         assets: [{
           printArea: 'default',
           url: item.imageUrl,
@@ -863,25 +863,43 @@ export class ProdigiClient {
   }
 
   // Get product attributes based on frame style and material
-  private getProductAttributes(frameStyle: string, _frameMaterial: string): Record<string, string> {
+  private getProductAttributes(frameStyle: string, _frameMaterial: string, sku?: string): Record<string, string> {
     const attributes: Record<string, string> = {};
     
-    // Add color attribute for canvas prints (GLOBAL-CFPM-16X20 requires it)
-    if (frameStyle === 'black') {
-      attributes.color = 'black';
-    } else if (frameStyle === 'white') {
-      attributes.color = 'white';
-    } else if (frameStyle === 'natural') {
-      attributes.color = 'natural';
-    } else if (frameStyle === 'gold') {
-      attributes.color = 'gold';
-    } else if (frameStyle === 'silver') {
-      attributes.color = 'silver';
+    // Only add attributes for SKUs that require them
+    if (sku) {
+      // GLOBAL-FRA-CAN-* (extra large frames) require both color and wrap
+      if (sku.startsWith('GLOBAL-FRA-CAN-')) {
+        if (frameStyle === 'black') {
+          attributes.color = 'black';
+        } else if (frameStyle === 'white') {
+          attributes.color = 'white';
+        } else if (frameStyle === 'natural') {
+          attributes.color = 'natural';
+        } else if (frameStyle === 'gold') {
+          attributes.color = 'gold';
+        } else if (frameStyle === 'silver') {
+          attributes.color = 'silver';
+        }
+        attributes.wrap = 'ImageWrap';
+      }
+      // GLOBAL-CFPM-* (canvas prints) require color
+      else if (sku.startsWith('GLOBAL-CFPM-')) {
+        if (frameStyle === 'black') {
+          attributes.color = 'black';
+        } else if (frameStyle === 'white') {
+          attributes.color = 'white';
+        } else if (frameStyle === 'natural') {
+          attributes.color = 'natural';
+        } else if (frameStyle === 'gold') {
+          attributes.color = 'gold';
+        } else if (frameStyle === 'silver') {
+          attributes.color = 'silver';
+        }
+      }
+      // GLOBAL-FAP-* (standard frames) don't require attributes
+      // No attributes needed for these SKUs
     }
-    
-    // Add wrap attribute for extra large frames (GLOBAL-FRA-CAN-30X40 requires it)
-    // Default to ImageWrap for framed prints
-    attributes.wrap = 'ImageWrap';
     
     return attributes;
   }

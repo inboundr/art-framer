@@ -3,6 +3,46 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import type { ShippingItem } from '@/lib/shipping';
 
+// Helper function to get product attributes based on SKU type
+function getProductAttributesForSku(sku: string, frameStyle: string): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  
+  // Only add attributes for SKUs that require them
+  // GLOBAL-FRA-CAN-* (extra large frames) require both color and wrap
+  if (sku.startsWith('GLOBAL-FRA-CAN-')) {
+    if (frameStyle === 'black') {
+      attributes.color = 'black';
+    } else if (frameStyle === 'white') {
+      attributes.color = 'white';
+    } else if (frameStyle === 'natural') {
+      attributes.color = 'natural';
+    } else if (frameStyle === 'gold') {
+      attributes.color = 'gold';
+    } else if (frameStyle === 'silver') {
+      attributes.color = 'silver';
+    }
+    attributes.wrap = 'ImageWrap';
+  }
+  // GLOBAL-CFPM-* (canvas prints) require color
+  else if (sku.startsWith('GLOBAL-CFPM-')) {
+    if (frameStyle === 'black') {
+      attributes.color = 'black';
+    } else if (frameStyle === 'white') {
+      attributes.color = 'white';
+    } else if (frameStyle === 'natural') {
+      attributes.color = 'natural';
+    } else if (frameStyle === 'gold') {
+      attributes.color = 'gold';
+    } else if (frameStyle === 'silver') {
+      attributes.color = 'silver';
+    }
+  }
+  // GLOBAL-FAP-* (standard frames) don't require attributes
+  // No attributes needed for these SKUs
+  
+  return attributes;
+}
+
 const ShippingAddressSchema = z.object({
   countryCode: z.string().min(2).max(2),
   stateOrCounty: z.string().optional(),
@@ -162,14 +202,14 @@ export async function POST(request: NextRequest) {
             
             console.log(`🔄 Regenerated SKU for shipping: ${item.products.sku} -> ${freshSku} (using base: ${baseProdigiSku})`);
             
+            // Get attributes based on SKU type
+            const attributes = getProductAttributesForSku(baseProdigiSku, item.products.frame_style);
+            
             return {
               sku: baseProdigiSku, // Use base SKU for Prodigi API calls
               quantity: item.quantity,
               price: item.products.price,
-              attributes: {
-                color: item.products.frame_style,
-                wrap: 'ImageWrap'
-              }
+              attributes
             };
           } catch (error) {
             console.warn(`⚠️ Failed to regenerate SKU for ${item.products.sku}, using stored SKU:`, error);
