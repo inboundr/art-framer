@@ -12,7 +12,7 @@ export const ShippingItemSchema = z.object({
   quantity: z.number().int().min(1),
   price: z.number().min(0).optional(), // Product price for subtotal calculation
   weight: z.number().min(0).optional(),
-  attributes: z.record(z.string()).optional(), // Prodigi attributes like color, wrap
+  attributes: z.record(z.string(), z.string()).optional(), // Prodigi attributes like color, wrap
   dimensions: z.object({
     length: z.number().min(0),
     width: z.number().min(0),
