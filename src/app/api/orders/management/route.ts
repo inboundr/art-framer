@@ -34,12 +34,12 @@ export async function GET(request: NextRequest) {
 
     // Parse and validate query parameters
     const queryParams = {
-      status: searchParams.get('status'),
-      userId: searchParams.get('userId'),
-      dateFrom: searchParams.get('dateFrom'),
-      dateTo: searchParams.get('dateTo'),
-      limit: searchParams.get('limit'),
-      offset: searchParams.get('offset'),
+      status: searchParams.get('status') || undefined,
+      userId: searchParams.get('userId') || undefined,
+      dateFrom: searchParams.get('dateFrom') || undefined,
+      dateTo: searchParams.get('dateTo') || undefined,
+      limit: searchParams.get('limit') || undefined,
+      offset: searchParams.get('offset') || undefined,
     };
 
     const validatedQuery = OrderQuerySchema.parse(queryParams);

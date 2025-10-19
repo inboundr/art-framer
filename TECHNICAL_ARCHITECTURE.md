@@ -511,67 +511,6 @@ export class VeoClient {
 
 ### Dropshipping API Integrations
 
-#### Gelato API Integration
-
-```typescript
-// lib/gelato.ts
-export class GelatoClient {
-  private apiKey: string;
-  private baseUrl = "https://api.gelato.com";
-
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
-
-  async createOrder(params: {
-    imageUrl: string;
-    frameSize: string;
-    frameStyle: string;
-    quantity: number;
-    shippingAddress: any;
-  }) {
-    const response = await fetch(`${this.baseUrl}/v1/orders`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        items: [
-          {
-            productUid: this.getProductUid(params.frameSize, params.frameStyle),
-            quantity: params.quantity,
-            imageUrl: params.imageUrl,
-          },
-        ],
-        shippingAddress: params.shippingAddress,
-        currency: "USD",
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to create Gelato order");
-    }
-
-    return response.json();
-  }
-
-  private getProductUid(size: string, style: string): string {
-    // Map frame size and style to Gelato product UIDs
-    const productMap = {
-      "small-black": "gelato-frame-small-black",
-      "small-white": "gelato-frame-small-white",
-      "medium-black": "gelato-frame-medium-black",
-      "medium-white": "gelato-frame-medium-white",
-      "large-black": "gelato-frame-large-black",
-      "large-white": "gelato-frame-large-white",
-    };
-
-    return productMap[`${size}-${style}`] || "gelato-frame-medium-black";
-  }
-}
-```
-
 ### Payment Processing
 
 #### Stripe Integration

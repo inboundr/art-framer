@@ -169,11 +169,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Cart API POST: Starting request');
     const supabase = await createClient();
+    console.log('Cart API POST: Supabase client created');
     
     // Check authentication - try both cookie and header methods
     let user = null;
     let authError = null;
+    console.log('Cart API POST: About to check authentication');
     
     // Method 1: Try cookie-based auth
     const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
@@ -202,19 +205,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    console.log('Cart API POST: About to parse request body');
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error('Cart API POST: JSON parsing error:', jsonError);
+      return NextResponse.json(
+        { error: 'Invalid request data' },
+        { status: 400 }
+      );
+    }
+    console.log('Cart API POST: Request body parsed:', body);
+    console.log('Cart API POST: About to validate request data');
     const validatedData = AddToCartSchema.parse(body);
+    console.log('Cart API POST: Request data validated:', validatedData);
 
     // Use service client to bypass RLS for cart operations
     const serviceSupabase = createServiceClient();
+    console.log('Cart API: Service client created:', typeof serviceSupabase);
     
     // Verify product exists and is active
+    console.log('Cart API: About to query products table');
     const { data: product, error: productError } = await serviceSupabase
       .from('products')
       .select('id, status, price')
       .eq('id', validatedData.productId)
       .eq('status', 'active')
       .single();
+    console.log('Cart API: Product query result:', { product, productError });
 
     if (productError || !product) {
       return NextResponse.json(
@@ -294,6 +313,9 @@ export async function POST(request: NextRequest) {
     }, { status: isNewItem ? 201 : 200 });
   } catch (error) {
     console.error('Error in POST /api/cart:', error);
+    console.error('Error type:', typeof error);
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.issues },

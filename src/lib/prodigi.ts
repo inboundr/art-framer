@@ -1083,6 +1083,74 @@ export class ProdigiClient {
       throw new Error(`Prodigi shipping calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  /**
+   * Get shipping quote for items
+   */
+  async getQuote(quoteRequest: {
+    items: Array<{
+      sku: string;
+      quantity: number;
+      attributes?: Record<string, string>;
+    }>;
+    destinationCountryCode: string;
+  }): Promise<Array<{
+    shipmentMethod: string;
+    cost: {
+      amount: string;
+      currency: string;
+    };
+    estimatedDays: number;
+  }>> {
+    try {
+      const requestBody = {
+        shippingMethod: 'Standard',
+        destinationCountryCode: quoteRequest.destinationCountryCode,
+        items: quoteRequest.items.map(item => ({
+          sku: item.sku,
+          copies: item.quantity,
+          attributes: item.attributes || {},
+          assets: [{
+            printArea: 'default'
+          }]
+        }))
+      };
+
+      const response = await this.request<{
+        outcome: string;
+        quotes: Array<{
+          shipmentMethod: string;
+          costSummary: {
+            items: { amount: string; currency: string };
+            shipping: { amount: string; currency: string };
+          };
+          shipments: Array<{
+            carrier: { name: string; service: string };
+            cost: { amount: string; currency: string };
+          }>;
+        }>;
+      }>('/quotes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (response.quotes && response.quotes.length > 0) {
+        return response.quotes.map(quote => ({
+          shipmentMethod: quote.shipmentMethod,
+          cost: quote.costSummary.shipping,
+          estimatedDays: 5 // Default estimate
+        }));
+      }
+
+      return [];
+    } catch (error) {
+      console.error('Error getting quote:', error);
+      throw new Error(`Failed to get quote: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }
 
 // Create singleton instance

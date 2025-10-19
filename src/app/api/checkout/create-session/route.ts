@@ -203,7 +203,17 @@ export async function POST(request: NextRequest) {
       userEmail: user.email 
     });
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error('Checkout API: JSON parsing error:', jsonError);
+      return NextResponse.json(
+        { error: 'Invalid request data' },
+        { status: 400 }
+      );
+    }
+    
     const validatedData = CreateCheckoutSessionSchema.parse(body);
 
     const serviceSupabase = createServiceClient();
@@ -456,6 +466,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Error creating checkout session:', error);
+    console.error('Error type:', typeof error);
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.issues },

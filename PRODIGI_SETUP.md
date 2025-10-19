@@ -106,12 +106,10 @@ Prodigi's global network automatically routes orders to the nearest print facili
 ### Common Issues
 
 1. **API Key Invalid**
-
    - Verify your API key is correct
    - Check if you're using the right environment (sandbox vs production)
 
 2. **Product SKU Not Found**
-
    - Ensure your frame specifications match the mapping table
    - Check if the product exists in Prodigi's catalog
 
@@ -149,7 +147,7 @@ When you're ready to process real orders:
 The system is designed with redundancy:
 
 1. **Primary**: Prodigi (main provider)
-2. **Backup**: Gelato (if Prodigi is unavailable)
+2. **Backup**: Alternative print providers (if Prodigi is unavailable)
 3. **Emergency**: Printful (last resort)
 
 This ensures your orders are always fulfilled, even if one provider has issues.

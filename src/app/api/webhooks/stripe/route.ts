@@ -8,31 +8,45 @@ import Stripe from "stripe";
 export async function POST(request: NextRequest) {
   try {
     // Try to get the raw request body using the body stream
-    const chunks: Uint8Array[] = [];
-    const reader = request.body?.getReader();
-    
-    if (!reader) {
-      console.error('❌ No request body reader available');
+    let body: Uint8Array;
+
+    if (typeof request.body === 'string') {
+      // Handle string body (test environment)
+      try {
+        body = new TextEncoder().encode(request.body);
+      } catch (error) {
+        console.error('❌ Error encoding string body:', error);
+        return NextResponse.json(
+          { received: false, error: 'Invalid request body' },
+          { status: 400 }
+        );
+      }
+    } else if (request.body && typeof request.body.getReader === 'function') {
+      // Handle ReadableStream body (production environment)
+      const chunks: Uint8Array[] = [];
+      const reader = request.body.getReader();
+
+      // Read the entire body as raw bytes
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      // Combine all chunks into a single Uint8Array
+      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      body = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        body.set(chunk, offset);
+        offset += chunk.length;
+      }
+    } else {
+      console.error('❌ No request body available');
       return NextResponse.json(
-        { error: 'No request body available' },
+        { received: false, error: 'No request body available' },
         { status: 400 }
       );
-    }
-
-    // Read the entire body as raw bytes
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-    }
-
-    // Combine all chunks into a single Uint8Array
-    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-    const body = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      body.set(chunk, offset);
-      offset += chunk.length;
     }
 
     const signature = request.headers.get('stripe-signature');
@@ -40,28 +54,13 @@ export async function POST(request: NextRequest) {
     if (!signature) {
       console.error('❌ Missing stripe-signature header');
       return NextResponse.json(
-        { error: 'Missing stripe-signature header' },
+        { received: false, error: 'Missing stripe-signature header' },
         { status: 400 }
       );
     }
 
-    console.log('🔍 Webhook signature verification:', {
-      hasSignature: !!signature,
-      signatureLength: signature.length,
-      bodyLength: body.length,
-      bodyType: 'Uint8Array',
-      signatureHeader: signature.substring(0, 50) + '...',
-      bodyPreview: new TextDecoder().decode(body.slice(0, 100)) + '...'
-    });
-
     const event = await constructWebhookEvent(body, signature);
     const supabase = await createServiceClient();
-
-    console.log('🔍 Webhook received:', {
-      type: event.type,
-      timestamp: new Date().toISOString(),
-      eventId: event.id
-    });
 
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -107,7 +106,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error processing webhook:', error);
     return NextResponse.json(
-      { error: 'Webhook processing failed' },
+      { received: false, error: 'Webhook processing failed' },
       { status: 400 }
     );
   }

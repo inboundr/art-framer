@@ -17,7 +17,7 @@
 - Supabase account
 - Stripe account
 - Ideogram API key
-- Gelato API key
+- Prodigi API key
 
 ### Installation
 
@@ -59,7 +59,6 @@
 
    # Dropshipping
    PRODIGI_API_KEY=your_prodigi_api_key
-   GELATO_API_KEY=your_gelato_api_key
 
    # Email
    RESEND_API_KEY=your_resend_api_key
@@ -110,7 +109,7 @@ graph TB
     subgraph "External Services"
         J[Stripe] --> K[Payments]
         L[Ideogram] --> M[AI Images]
-        N[Gelato] --> O[Print Production]
+        N[Prodigi] --> O[Print Production]
     end
 
     D --> E
@@ -145,7 +144,7 @@ graph TB
 ### 🚚 Dropshipping Integration
 
 - **Zero inventory** - 100% dropshipping model
-- **Global fulfillment** - Gelato's worldwide network
+- **Global fulfillment** - Prodigi's worldwide network
 - **Fast delivery** - Local production partners
 - **Quality assurance** - Professional printing and framing
 
@@ -169,7 +168,7 @@ graph TB
 - **Next.js API Routes** - Serverless functions
 - **Stripe** - Payment processing
 - **Ideogram API** - AI image generation
-- **Gelato API** - Print-on-demand
+- **Prodigi API** - Print-on-demand
 
 ### DevOps
 
@@ -203,7 +202,6 @@ art-framer/
 ### Vercel (Recommended)
 
 1. **Connect your repository**
-
    - Push your code to GitHub
    - Connect to Vercel
    - Configure environment variables
@@ -294,7 +292,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **Ideogram** - AI image generation
-- **Gelato** - Print-on-demand fulfillment
+- **Prodigi** - Print-on-demand fulfillment
 - **Stripe** - Payment processing
 - **Supabase** - Backend infrastructure
 - **Vercel** - Hosting and deployment

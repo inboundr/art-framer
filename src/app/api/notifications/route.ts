@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
 
     // Parse and validate query parameters
     const queryParams = {
-      unreadOnly: searchParams.get('unreadOnly'),
-      type: searchParams.get('type'),
-      limit: searchParams.get('limit'),
-      offset: searchParams.get('offset'),
+      unreadOnly: searchParams.get('unreadOnly') || undefined,
+      type: searchParams.get('type') || undefined,
+      limit: searchParams.get('limit') || undefined,
+      offset: searchParams.get('offset') || undefined,
     };
 
     const validatedQuery = NotificationQuerySchema.parse(queryParams);

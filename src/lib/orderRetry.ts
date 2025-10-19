@@ -384,22 +384,6 @@ export class OrderRetryManager {
       .eq('id', operationId);
   }
 
-  /**
-   * Mark operation as failed
-   */
-  private async markOperationFailed(operationId: string, error: string): Promise<void> {
-    const { createServiceClient } = await import('@/lib/supabase/server');
-    const supabase = await createServiceClient();
-    
-    await (supabase as any)
-      .from('retry_operations')
-      .update({
-        status: 'failed',
-        error,
-        failed_at: new Date().toISOString(),
-      })
-      .eq('id', operationId);
-  }
 
   /**
    * Mark operation with error (for retry)
@@ -414,6 +398,85 @@ export class OrderRetryManager {
         error,
       })
       .eq('id', operationId);
+  }
+
+  /**
+   * Get pending operations
+   */
+  async getPendingOperations(): Promise<RetryableOperation[]> {
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
+    
+    const { data, error } = await (supabase as any)
+      .from('retry_operations')
+      .select('*')
+      .eq('status', 'pending')
+      .lte('next_retry', new Date().toISOString())
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching pending operations:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Mark operation as complete (public method)
+   */
+  async markOperationComplete(operationId: string): Promise<boolean> {
+    try {
+      const { createServiceClient } = await import('@/lib/supabase/server');
+      const supabase = await createServiceClient();
+      
+      const { error } = await (supabase as any)
+        .from('retry_operations')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', operationId);
+
+      if (error) {
+        console.error('Error marking operation complete:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error marking operation complete:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Mark operation as failed (public method)
+   */
+  async markOperationFailed(operationId: string, error: string): Promise<boolean> {
+    try {
+      const { createServiceClient } = await import('@/lib/supabase/server');
+      const supabase = await createServiceClient();
+      
+      const { error: updateError } = await (supabase as any)
+        .from('retry_operations')
+        .update({
+          status: 'failed',
+          error,
+          failed_at: new Date().toISOString(),
+        })
+        .eq('id', operationId);
+
+      if (updateError) {
+        console.error('Error marking operation failed:', updateError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error marking operation failed:', error);
+      return false;
+    }
   }
 
   /**

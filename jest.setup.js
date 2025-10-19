@@ -1,5 +1,18 @@
 import '@testing-library/jest-dom'
 
+// Polyfill for TextEncoder/TextDecoder in test environment
+global.TextEncoder = global.TextEncoder || class TextEncoder {
+  encode(input) {
+    return new Uint8Array(Buffer.from(input, 'utf8'))
+  }
+}
+
+global.TextDecoder = global.TextDecoder || class TextDecoder {
+  decode(input) {
+    return Buffer.from(input).toString('utf8')
+  }
+}
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {
