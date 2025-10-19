@@ -50,6 +50,19 @@ interface ProdigiOrder {
       townOrCity: string;
       stateOrCounty?: string;
     };
+    email?: string;
+    phoneNumber?: string;
+  };
+  billingAddress?: {
+    name: string;
+    address: {
+      line1: string;
+      line2?: string;
+      postalOrZipCode: string;
+      countryCode: string;
+      townOrCity: string;
+      stateOrCounty?: string;
+    };
   };
   items: ProdigiOrderItem[];
   metadata?: Record<string, unknown>;
@@ -826,15 +839,40 @@ export class ProdigiClient {
         postal_code?: string;
         country: string;
       };
+      billingAddress?: {
+        firstName?: string;
+        first_name?: string;
+        lastName?: string;
+        last_name?: string;
+        address1?: string;
+        line1?: string;
+        address2?: string;
+        line2?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+        postal_code?: string;
+        country?: string;
+      };
       customerEmail: string;
       customerPhone?: string;
     }
   ): Promise<ProdigiOrder> {
+    const recipientName = `${orderData.shippingAddress.firstName || orderData.shippingAddress.first_name || 'Customer'} ${orderData.shippingAddress.lastName || orderData.shippingAddress.last_name || 'Name'}`.trim();
+    
+    // Use billing address if provided, otherwise use shipping address
+    const billingInfo = orderData.billingAddress || orderData.shippingAddress;
+    const billingName = orderData.billingAddress 
+      ? `${orderData.billingAddress.firstName || orderData.billingAddress.first_name || 'Customer'} ${orderData.billingAddress.lastName || orderData.billingAddress.last_name || 'Name'}`.trim()
+      : recipientName;
+
     return {
       merchantReference: orderData.orderReference,
       shippingMethod: 'Standard',
       recipient: {
-        name: `${orderData.shippingAddress.firstName || orderData.shippingAddress.first_name || 'Customer'} ${orderData.shippingAddress.lastName || orderData.shippingAddress.last_name || 'Name'}`.trim(),
+        name: recipientName,
+        email: orderData.customerEmail,
+        phoneNumber: orderData.customerPhone,
         address: {
           line1: orderData.shippingAddress.address1 || orderData.shippingAddress.line1 || '',
           line2: orderData.shippingAddress.address2 || orderData.shippingAddress.line2,
@@ -844,6 +882,17 @@ export class ProdigiClient {
           stateOrCounty: orderData.shippingAddress.state,
         },
       },
+      billingAddress: {
+        name: billingName,
+        address: {
+          line1: billingInfo.address1 || billingInfo.line1 || '',
+          line2: billingInfo.address2 || billingInfo.line2,
+          postalOrZipCode: billingInfo.zip || billingInfo.postal_code || '',
+          countryCode: billingInfo.country || orderData.shippingAddress.country,
+          townOrCity: billingInfo.city || orderData.shippingAddress.city,
+          stateOrCounty: billingInfo.state || orderData.shippingAddress.state,
+        },
+      },
       items: await Promise.all(orderData.items.map(async item => ({
         merchantReference: `item-${item.productSku}`,
         sku: item.productSku, // Use the base SKU passed from order processing
@@ -851,8 +900,10 @@ export class ProdigiClient {
         sizing: 'fillPrintArea',
         attributes: this.getProductAttributes(item.frameStyle, item.frameMaterial, item.productSku),
         assets: [{
-          printArea: 'default',
+          printArea: 'Default',
           url: item.imageUrl,
+          // md5Hash is optional but recommended for asset integrity
+          // We can add this later if needed for better validation
         }],
       }))),
       metadata: {

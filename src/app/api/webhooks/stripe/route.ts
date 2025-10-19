@@ -665,7 +665,7 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
         const baseSku = prodigiClient.extractBaseProdigiSku(item.products?.sku || '');
         
         return {
-          productUid: baseSku,
+          productSku: baseSku, // Changed from productUid to productSku to match the interface
           quantity: item.quantity,
           imageUrl: item.products?.images?.image_url || '',
           frameSize: item.products?.frame_size || 'medium',
@@ -674,6 +674,7 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
         };
       })),
       shippingAddress: order.shipping_address,
+      billingAddress: order.billing_address, // Include billing address for Prodigi
       customerEmail: order.customer_email,
       customerPhone: order.customer_phone,
     };

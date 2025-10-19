@@ -253,6 +253,7 @@ export class OrderRetryManager {
         };
       })),
       shippingAddress: order.shipping_address,
+      billingAddress: order.billing_address, // Include billing address for Prodigi
       customerEmail: order.customer_email,
       customerPhone: order.customer_phone,
     };
