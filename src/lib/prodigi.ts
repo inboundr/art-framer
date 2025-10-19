@@ -82,6 +82,22 @@ interface ProdigiOrderResponse {
     quantity: number;
     status: string;
   }>;
+  editWindow?: {
+    duration: string;
+    expiresAt?: string;
+    canEdit: boolean;
+    canCancel: boolean;
+    expired?: boolean;
+  };
+  modifications?: Array<{
+    type: string;
+    field: string;
+    oldValue: any;
+    newValue: any;
+    timestamp: string;
+  }>;
+  cancelledAt?: string;
+  cancellationReason?: string;
 }
 
 export class ProdigiClient {
@@ -635,6 +651,75 @@ export class ProdigiClient {
   }
 
   /**
+   * Update order during edit window
+   */
+  async updateOrder(orderId: string, updates: {
+    items?: Array<{
+      sku: string;
+      quantity: number;
+      attributes?: Record<string, string>;
+    }>;
+    shippingAddress?: {
+      name: string;
+      address: {
+        line1: string;
+        line2?: string;
+        postalOrZipCode: string;
+        countryCode: string;
+        townOrCity: string;
+        stateOrCounty?: string;
+      };
+    };
+    metadata?: Record<string, unknown>;
+  }): Promise<ProdigiOrderResponse> {
+    try {
+      const response = await this.request<ProdigiOrderResponse>(`/Orders/${orderId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      });
+      return response;
+    } catch (error) {
+      console.error('Error updating Prodigi order:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if order is in edit window and can be modified
+   */
+  async canEditOrder(orderId: string): Promise<{
+    canEdit: boolean;
+    canCancel: boolean;
+    editWindow?: {
+      duration: string;
+      expiresAt?: string;
+      expired?: boolean;
+    };
+  }> {
+    try {
+      const orderStatus = await this.getOrderStatus(orderId);
+      
+      // Safely convert edit window data to proper types
+      const editWindow = orderStatus.editWindow;
+      const canEdit = editWindow?.canEdit === true || editWindow?.canEdit === 'true';
+      const canCancel = editWindow?.canCancel === true || editWindow?.canCancel === 'true';
+      
+      return {
+        canEdit,
+        canCancel,
+        editWindow: editWindow ? {
+          duration: editWindow.duration || '',
+          expiresAt: editWindow.expiresAt,
+          expired: editWindow.expired === true || editWindow.expired === 'true',
+        } : undefined,
+      };
+    } catch (error) {
+      console.error('Error checking if order can be edited:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Dynamically find the best Prodigi SKU based on frame specifications
    */
   async getProductSku(frameSize: string, frameStyle: string, frameMaterial: string): Promise<string> {
@@ -963,6 +1048,20 @@ export class ProdigiClient {
     trackingNumber?: string;
     trackingUrl?: string;
     estimatedDelivery?: string;
+    editWindow?: {
+      duration: string;
+      expiresAt?: string;
+      canEdit: boolean;
+      canCancel: boolean;
+      expired?: boolean;
+    };
+    modifications?: Array<{
+      type: string;
+      field: string;
+      oldValue: any;
+      newValue: any;
+      timestamp: string;
+    }>;
   }> {
     try {
       const order = await this.getOrder(orderId);
@@ -974,13 +1073,16 @@ export class ProdigiClient {
         'Cancelled': 'cancelled',
         'OnHold': 'pending',
         'Error': 'failed',
+        'Paused': 'paused', // New status for edit window
       };
 
       return {
-        status: statusMap[order.status] || order.status.toLowerCase(),
+        status: statusMap[order.status] || (order.status ? order.status.toLowerCase() : 'unknown'),
         trackingNumber: order.trackingNumber,
         trackingUrl: order.trackingUrl,
         estimatedDelivery: order.estimatedDelivery,
+        editWindow: order.editWindow,
+        modifications: order.modifications,
       };
     } catch (error) {
       console.error('Error getting Prodigi order status:', error);
