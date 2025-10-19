@@ -23,8 +23,8 @@ export function WelcomeModal({ isOpen, onClose, onStartCreating }: WelcomeModalP
   const features = [
     {
       icon: <Star className="w-5 h-5 text-pink-primary" />,
-      title: "Enjoy credits in the fast queue",
-      description: "Create professional-quality artwork for free! Skip the wait and generate even more with an Art Framer plan."
+      title: "Create unlimited art frames",
+      description: "Generate as many custom frames as you want! No limits, no restrictions - just pure creativity."
     },
     {
       icon: <Globe className="w-5 h-5 text-primary" />,
@@ -105,7 +105,7 @@ export function WelcomeModal({ isOpen, onClose, onStartCreating }: WelcomeModalP
 
         <div className="text-center pt-4">
           <p className="text-sm text-muted-foreground">
-            Your free plan includes 50 credits per month
+            Start creating your first frame today - it's completely free!
           </p>
         </div>
       </DialogContent>

@@ -490,7 +490,7 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               </div>
             </div>
             
-            {/* Credits/Upgrade Button */}
+            {/* User Status */}
             <div className="flex pt-2 flex-col items-start">
               {user ? (
                 <button className="flex min-w-16 px-2 py-1.5 flex-col justify-center items-center gap-1 rounded-md bg-pink-accent hover:bg-pink-accent/90 transition-colors">
@@ -500,13 +500,13 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
                     </svg>
                     <div className="flex flex-col items-center">
                       <span className="text-pink-light text-center text-sm font-semibold leading-5 tracking-[-0.48px]">
-                        {profile?.credits || 0}
+                        Create
                       </span>
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-pink-light text-center text-xs font-semibold leading-[21px] tracking-[-0.48px]">
-                      Credits
+                      Frames
                     </span>
                   </div>
                 </button>

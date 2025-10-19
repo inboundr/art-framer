@@ -58,9 +58,9 @@ const faqData: FAQItem[] = [
   {
     id: '4',
     question: 'How much does it cost to generate images?',
-    answer: 'New users get 50 free credits per month. Each image generation costs 1 credit. Additional credits can be purchased, and premium plans offer unlimited generation and priority processing.',
+    answer: 'Art Framer is completely free to use! You can generate unlimited custom frames at no cost. Premium plans offer additional features like priority processing and exclusive frame styles.',
     category: 'Pricing',
-    tags: ['cost', 'credits', 'free', 'premium']
+    tags: ['cost', 'free', 'premium', 'unlimited']
   },
   {
     id: '5',

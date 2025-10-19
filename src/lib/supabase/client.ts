@@ -115,7 +115,7 @@ export type Database = {
           username: string | null
           full_name: string | null
           avatar_url: string | null
-          credits: number
+          // Removed plan_type - no plans needed
           is_premium: boolean
           login_count: number
           last_login_at: string | null
@@ -129,7 +129,7 @@ export type Database = {
           username?: string | null
           full_name?: string | null
           avatar_url?: string | null
-          credits?: number
+          // Removed plan_type - no plans needed
           is_premium?: boolean
           login_count?: number
           last_login_at?: string | null
@@ -143,7 +143,7 @@ export type Database = {
           username?: string | null
           full_name?: string | null
           avatar_url?: string | null
-          credits?: number
+          // Removed plan_type - no plans needed
           is_premium?: boolean
           login_count?: number
           last_login_at?: string | null

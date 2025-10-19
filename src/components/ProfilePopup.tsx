@@ -40,7 +40,7 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
 
   if (!isOpen || !user) return null;
 
-  const creditsPercentage = Math.min(((profile?.credits || 0) / 100) * 100, 100);
+  // Simple user status - no plans needed
 
   const handleLogout = async () => {
     try {
@@ -81,12 +81,10 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
           </div>
         </div>
 
-        {/* Credits Section */}
+        {/* User Status Section */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              {profile?.is_premium ? 'Premium' : 'Free'}
-            </span>
+            <span className="text-sm font-medium text-gray-700">Ready to Create</span>
             <div className="flex items-center gap-1 text-sm text-gray-600">
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
@@ -94,7 +92,7 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
                 height="16" 
                 fill="currentColor" 
                 viewBox="0 0 24 24"
-                className="text-yellow-500"
+                className="text-green-500"
               >
                 <path 
                   fillRule="evenodd" 
@@ -102,22 +100,21 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="font-semibold">{profile?.credits || 0}</span>
-              <span>credits left</span>
+              <span className="font-semibold">Unlimited Frames</span>
             </div>
           </div>
           
-          {/* Progress Bar */}
+          {/* Status Indicator */}
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${creditsPercentage}%` }}
+              className="h-2 rounded-full transition-all duration-300 bg-gradient-to-r from-green-500 to-blue-500"
+              style={{ width: '100%' }}
             />
           </div>
         </div>
 
-        {/* Upgrade Button */}
-        <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+        {/* Create Frame Button */}
+        <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-pink-primary text-white rounded-lg hover:bg-pink-primary/90 transition-colors">
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
             width="20" 
