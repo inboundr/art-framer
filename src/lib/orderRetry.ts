@@ -205,7 +205,8 @@ export class OrderRetryManager {
    * Execute Prodigi order creation
    */
   private async executeProdigiOrderCreation(orderId: string, payload: any): Promise<any> {
-    const supabase = await createClient();
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
 
     // Fetch order details
     const { data: order, error: orderError } = await (supabase as any)
@@ -290,7 +291,8 @@ export class OrderRetryManager {
    * Execute Prodigi status update
    */
   private async executeProdigiStatusUpdate(orderId: string, payload: any): Promise<any> {
-    const supabase = await createClient();
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
 
     // Fetch dropship order
     const { data: dropshipOrder, error: dropshipError } = await (supabase as any)
@@ -340,7 +342,8 @@ export class OrderRetryManager {
    * Execute notification sending
    */
   private async executeNotificationSend(orderId: string, payload: any): Promise<any> {
-    const supabase = await createClient();
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
 
     // Create notification using the stored function
     const { data, error } = await (supabase as any).rpc('create_order_notification', {
@@ -362,7 +365,8 @@ export class OrderRetryManager {
    * Mark operation as completed
    */
   private async markOperationCompleted(operationId: string, result: any): Promise<void> {
-    const supabase = await createClient();
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
     
     await (supabase as any)
       .from('retry_operations')
@@ -378,7 +382,8 @@ export class OrderRetryManager {
    * Mark operation as failed
    */
   private async markOperationFailed(operationId: string, error: string): Promise<void> {
-    const supabase = await createClient();
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
     
     await (supabase as any)
       .from('retry_operations')
@@ -394,7 +399,8 @@ export class OrderRetryManager {
    * Mark operation with error (for retry)
    */
   private async markOperationError(operationId: string, error: string): Promise<void> {
-    const supabase = await createClient();
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = await createServiceClient();
     
     await (supabase as any)
       .from('retry_operations')
