@@ -1,0 +1,30 @@
+# Ignore test files and development files
+__tests__/
+coverage/
+*.test.ts
+*.test.tsx
+*.test.js
+*.test.jsx
+jest.config.js
+jest.setup.js
+*.log
+.env.local
+.env.development
+
+# Ignore documentation and scripts
+*.md
+scripts/
+docs/
+
+# Ignore build artifacts
+.next/
+out/
+build/
+dist/
+
+# Ignore node_modules (should be handled by Vercel)
+node_modules/
+
+# Ignore git files
+.git/
+.gitignore
