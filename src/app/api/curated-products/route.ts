@@ -92,12 +92,26 @@ export async function POST(request: NextRequest) {
 
     // Create a temporary image record for the curated image
     const serviceSupabase = createServiceClient();
+
+    // Resolve curated storage path to public URL so the frontend doesn't request /images/...
+    const resolveCuratedPublicUrl = (path: string | null | undefined): string | null => {
+      if (!path) return null;
+      if (path.startsWith('http://') || path.startsWith('https://')) return path;
+      try {
+        const { data } = (serviceSupabase as any).storage.from('curated-images').getPublicUrl(path);
+        return data?.publicUrl ?? path;
+      } catch {
+        return path;
+      }
+    };
+
+    const curatedPublicImageUrl = resolveCuratedPublicUrl((curatedImageData as any).image_url);
     const { data: tempImage, error: tempImageError } = await (serviceSupabase as any)
       .from('images')
       .insert({
         user_id: user.id,
         prompt: curatedImageData.title,
-        image_url: curatedImageData.image_url,
+        image_url: curatedPublicImageUrl,
         width: curatedImageData.width,
         height: curatedImageData.height,
         aspect_ratio: calculateAspectRatio(curatedImageData.width, curatedImageData.height),

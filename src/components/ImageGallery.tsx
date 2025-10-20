@@ -140,7 +140,7 @@ function ImageCard({ image, onLike, onUnlike, isLiked = false, isInteracting = f
             
             {/* Actual Image */}
             <RobustImage
-              src={image.image_url || '/placeholder.svg'}
+              src={image.image_url ?? ''}
               alt={image.prompt}
               className="absolute top-0 left-0 w-full h-full"
               imageClassName="object-cover"

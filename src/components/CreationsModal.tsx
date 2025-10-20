@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { Button } from '@/components/ui/button';
 import { FrameSelector } from '@/components/FrameSelector';
@@ -32,6 +32,19 @@ export function CreationsModal({
   const { user } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
+
+  // Normalize any storage path into a public URL so the browser doesn't request /images/...
+  const normalizedImageUrl = useMemo(() => {
+    if (!imageUrl) return '';
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) return imageUrl;
+    const bucket = isCuratedImage ? 'curated-images' : 'images';
+    try {
+      const { data } = supabase.storage.from(bucket).getPublicUrl(imageUrl);
+      return data?.publicUrl || imageUrl;
+    } catch {
+      return imageUrl;
+    }
+  }, [imageUrl, isCuratedImage]);
 
   if (!isOpen) return null;
 
@@ -328,7 +341,7 @@ export function CreationsModal({
                 }}
               >
                 <img
-                  src={getProxiedImageUrl(imageUrl)}
+                  src={getProxiedImageUrl(normalizedImageUrl)}
                   alt="Generated AI Image"
                   className="w-full h-full object-contain"
                 />

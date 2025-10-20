@@ -36,6 +36,12 @@ export interface CuratedImageFilters {
 }
 
 export class CuratedImageAPI {
+  private resolvePublicUrl(path: string | null): string | null {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    const { data } = supabase.storage.from('curated-images').getPublicUrl(path);
+    return data?.publicUrl ?? path;
+  }
   // Get curated images for home page gallery
   async getGallery(
     page: number = 1, 
@@ -113,8 +119,14 @@ export class CuratedImageAPI {
         total_pages 
       });
 
+      const resolvedImages = (images || []).map((img: any) => ({
+        ...img,
+        image_url: this.resolvePublicUrl(img.image_url),
+        thumbnail_url: this.resolvePublicUrl(img.thumbnail_url),
+      }));
+
       return {
-        images: images || [],
+        images: resolvedImages,
         pagination: {
           page,
           total_pages,
@@ -153,8 +165,14 @@ export class CuratedImageAPI {
         throw new Error(`Failed to fetch featured images: ${error.message}`);
       }
 
-      console.log('✅ Featured images query successful:', { count: images?.length || 0 });
-      return images || [];
+      const resolved = (images || []).map((img: any) => ({
+        ...img,
+        image_url: this.resolvePublicUrl(img.image_url),
+        thumbnail_url: this.resolvePublicUrl(img.thumbnail_url),
+      }));
+
+      console.log('✅ Featured images query successful:', { count: resolved.length });
+      return resolved;
     } catch (error) {
       console.error('❌ CuratedImageAPI.getFeaturedImages error:', error);
       throw error;
@@ -180,8 +198,14 @@ export class CuratedImageAPI {
         throw new Error(`Failed to fetch category images: ${error.message}`);
       }
 
-      console.log('✅ Category images query successful:', { count: images?.length || 0 });
-      return images || [];
+      const resolved = (images || []).map((img: any) => ({
+        ...img,
+        image_url: this.resolvePublicUrl(img.image_url),
+        thumbnail_url: this.resolvePublicUrl(img.thumbnail_url),
+      }));
+
+      console.log('✅ Category images query successful:', { count: resolved.length });
+      return resolved;
     } catch (error) {
       console.error('❌ CuratedImageAPI.getImagesByCategory error:', error);
       throw error;
@@ -273,8 +297,14 @@ export class CuratedImageAPI {
         query 
       });
 
+      const resolvedImages = (images || []).map((img: any) => ({
+        ...img,
+        image_url: this.resolvePublicUrl(img.image_url),
+        thumbnail_url: this.resolvePublicUrl(img.thumbnail_url),
+      }));
+
       return {
-        images: images || [],
+        images: resolvedImages,
         pagination: {
           page,
           total_pages,

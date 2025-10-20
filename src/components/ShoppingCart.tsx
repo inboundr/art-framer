@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { FramePreview } from '@/components/FramePreview';
+import { createClient } from '@supabase/supabase-js';
 
 interface ShoppingCartProps {
   onCheckout?: () => void;
@@ -31,6 +32,20 @@ interface ShoppingCartProps {
 }
 
 export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: ShoppingCartProps) {
+  const normalizeImageUrl = (url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    try {
+      const supa = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+      );
+      const { data } = supa.storage.from('curated-images').getPublicUrl(url);
+      return data?.publicUrl || url;
+    } catch {
+      return url;
+    }
+  };
   const { cartData, loading, updateQuantity, removeFromCart, clearCart } = useCart();
   const cartItems = cartData?.cartItems || [];
   const totals = cartData?.totals || { subtotal: 0, taxAmount: 0, shippingAmount: 0, total: 0, itemCount: 0 };
@@ -142,7 +157,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                   {/* Enhanced Frame Preview */}
                   <div className="flex-shrink-0">
                     <FramePreview
-                      imageUrl={item.products.images.image_url || item.products.images.thumbnail_url || ''}
+                      imageUrl={normalizeImageUrl(item.products.images.image_url || item.products.images.thumbnail_url)}
                       imagePrompt={item.products.images.prompt}
                       frameSize={item.products.frame_size}
                       frameStyle={item.products.frame_style}

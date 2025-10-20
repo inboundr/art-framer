@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 
 interface CartItem {
@@ -72,6 +73,22 @@ interface CartModalProps {
 
 export function CartModal({ isOpen, onClose }: CartModalProps) {
   const [cartData, setCartData] = useState<CartData | null>(null);
+  // Normalize any DB-stored storage path into a public URL
+  const normalizeImageUrl = useCallback((url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    // Prefer curated-images bucket for curated paths
+    try {
+      const supa = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+      );
+      const { data } = supa.storage.from('curated-images').getPublicUrl(url);
+      return data?.publicUrl || url;
+    } catch {
+      return url;
+    }
+  }, []);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
   const { user } = useAuth();
@@ -307,7 +324,7 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
                         <div className="flex-shrink-0">
                           <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted">
                             <img
-                              src={getProxiedImageUrl(item.products.images.image_url)}
+                              src={getProxiedImageUrl(normalizeImageUrl(item.products.images.image_url || item.products.images.thumbnail_url))}
                               alt={item.products.images.prompt}
                               className="w-full h-full object-cover"
                             />

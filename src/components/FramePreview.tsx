@@ -245,15 +245,15 @@ export function FramePreview({
           >
             {/* Image area */}
             <div className="relative w-full h-full bg-white rounded-sm overflow-hidden shadow-lg">
-              <img
-                src={getProxiedImageUrl(imageUrl)}
-                alt={imagePrompt}
-                className="w-full h-full object-cover transition-all duration-300"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/placeholder-image.jpg';
-                }}
-              />
+              {imageUrl ? (
+                <img
+                  src={getProxiedImageUrl(imageUrl)}
+                  alt={imagePrompt}
+                  className="w-full h-full object-cover transition-all duration-300"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 animate-pulse" />
+              )}
               
               {/* Glass reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-30 pointer-events-none"></div>
