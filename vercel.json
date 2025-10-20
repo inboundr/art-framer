@@ -8,14 +8,15 @@
   ],
   "functions": {
     "src/app/api/**/*.ts": {
-      "maxDuration": 30
+      "maxDuration": 10
     }
   },
   "env": {
     "NODE_ENV": "production"
   },
   "regions": ["iad1"],
-  "installCommand": "npm install",
+  "installCommand": "npm ci --only=production",
   "buildCommand": "npm run build",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "framework": "nextjs"
 }

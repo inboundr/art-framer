@@ -36,3 +36,9 @@ public-images/
 *.jpeg
 *.gif
 *.webp
+
+# Ignore cache and temporary files
+.next/cache/
+.next/trace
+.next/types/
+*.tsbuildinfo

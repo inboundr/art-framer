@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
     pagesBufferLength: 2,
   },
   
+  // Force static optimization
+  trailingSlash: false,
+  generateEtags: false,
+  
   // Remove problematic cache headers that might cause Vercel issues
   async headers() {
     return [
