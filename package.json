@@ -26,7 +26,7 @@
     "test-webhook": "node scripts/test-prodigi-webhook.js",
     "test-webhook:prod": "WEBHOOK_URL=https://your-domain.com/api/webhooks/prodigi node scripts/test-prodigi-webhook.js",
     "prebuild": "echo 'Skipping env validation for testing'",
-    "postbuild": "echo 'Build completed successfully'",
+    "postbuild": "echo 'Build completed successfully' && rm -rf .next/cache",
     "supabase:start": "docker-compose up -d",
     "supabase:stop": "docker-compose down",
     "supabase:restart": "docker-compose restart",

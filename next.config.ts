@@ -14,6 +14,17 @@ const nextConfig: NextConfig = {
   // Optimize for Vercel deployment
   serverExternalPackages: ['sharp'],
   
+  // Optimize bundle size
+  experimental: {
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+  },
+  
+  // Disable cache for Vercel deployment
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
+  
   // Remove problematic cache headers that might cause Vercel issues
   async headers() {
     return [

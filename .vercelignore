@@ -28,3 +28,11 @@ node_modules/
 # Ignore git files
 .git/
 .gitignore
+
+# Ignore large files that might cause deployment issues
+public-images/
+*.jpg
+*.png
+*.jpeg
+*.gif
+*.webp
