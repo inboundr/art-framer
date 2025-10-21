@@ -2,12 +2,12 @@
 describe('CuratedImageAPI', () => {
   it('should be importable', () => {
     expect(() => {
-      require('../curated-images');
+      import('../curated-images');
     }).not.toThrow();
   });
 
-  it('should have expected methods', () => {
-    const { CuratedImageAPI } = require('../curated-images');
+  it('should have expected methods', async () => {
+    const { CuratedImageAPI } = await import('../curated-images');
     const api = new CuratedImageAPI();
     
     expect(typeof api.getGallery).toBe('function');

@@ -19,7 +19,7 @@ describe('OrderRetryManager', () => {
   let mockSupabase: any;
   let mockProdigiClient: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset all mocks
     jest.clearAllMocks();
 
@@ -38,11 +38,12 @@ describe('OrderRetryManager', () => {
     };
 
     // Mock createServiceClient
-    const { createServiceClient } = require('@/lib/supabase/server');
+    const { createServiceClient } = await import('@/lib/supabase/server');
     createServiceClient.mockResolvedValue(mockSupabase);
 
     // Mock Prodigi client
-    mockProdigiClient = require('@/lib/prodigi').prodigiClient;
+    const prodigiModule = await import('@/lib/prodigi');
+    mockProdigiClient = prodigiModule.prodigiClient;
 
     // Initialize OrderRetryManager
     orderRetryManager = new OrderRetryManager({

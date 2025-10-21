@@ -9,7 +9,7 @@ jest.mock('@/lib/prodigi-product-service', () => ({
 }));
 
 describe('/api/prodigi/products/clear-cache', () => {
-  const mockProdigiProductService = require('@/lib/prodigi-product-service').ProdigiProductService;
+  const mockProdigiProductService = jest.requireMock('@/lib/prodigi-product-service').ProdigiProductService;
 
   beforeEach(() => {
     jest.clearAllMocks();
