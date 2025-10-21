@@ -23,10 +23,10 @@ jest.mock('@/lib/prodigi', () => ({
 }));
 
 describe('/api/cart/shipping', () => {
-  const mockCreateClient = require('@/lib/supabase/server').createClient;
-  const mockCreateServiceClient = require('@/lib/supabase/server').createServiceClient;
-  const mockDefaultShippingService = require('@/lib/shipping').defaultShippingService;
-  const mockProdigiClient = require('@/lib/prodigi').ProdigiClient;
+  const mockCreateClient = jest.requireMock('@/lib/supabase/server').createClient;
+  const mockCreateServiceClient = jest.requireMock('@/lib/supabase/server').createServiceClient;
+  const mockDefaultShippingService = jest.requireMock('@/lib/shipping').defaultShippingService;
+  const mockProdigiClient = jest.requireMock('@/lib/prodigi').ProdigiClient;
 
   beforeEach(() => {
     jest.clearAllMocks();

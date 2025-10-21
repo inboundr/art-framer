@@ -18,7 +18,7 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 describe('useAddresses', () => {
-  const mockUseAuth = require('../useAuth').useAuth;
+  const mockUseAuth = jest.requireMock('../useAuth').useAuth;
 
   beforeEach(() => {
     jest.clearAllMocks();

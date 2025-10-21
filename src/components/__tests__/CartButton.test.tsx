@@ -17,7 +17,7 @@ jest.mock('../CartModal', () => ({
 }));
 
 describe('CartButton', () => {
-  const mockUseCart = require('@/contexts/CartContext').useCart;
+  const mockUseCart = jest.requireMock('@/contexts/CartContext').useCart;
 
   beforeEach(() => {
     jest.clearAllMocks();

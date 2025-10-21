@@ -9,7 +9,7 @@ jest.mock('@/lib/supabase/images', () => ({
 }));
 
 describe('/api/test-gallery', () => {
-  const mockSupabaseImageAPI = require('@/lib/supabase/images').supabaseImageAPI;
+  const mockSupabaseImageAPI = jest.requireMock('@/lib/supabase/images').supabaseImageAPI;
 
   beforeEach(() => {
     jest.clearAllMocks();

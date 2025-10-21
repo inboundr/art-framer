@@ -130,7 +130,7 @@ describe('Checkout Session Creation - Comprehensive Tests', () => {
 
 
     // Mock createClient and createServiceClient
-    const { createClient, createServiceClient } = require('@/lib/supabase/server');
+    const { createClient, createServiceClient } = jest.requireMock('@/lib/supabase/server');
     createClient.mockResolvedValue(mockSupabase);
     createServiceClient.mockReturnValue(mockServiceSupabase);
     
@@ -140,7 +140,7 @@ describe('Checkout Session Creation - Comprehensive Tests', () => {
     // Stripe mock is reset automatically by jest.clearAllMocks()
     
     // Setup Stripe instance for all tests
-    const Stripe = require('stripe');
+    const Stripe = jest.requireMock('stripe');
     stripeInstance = new Stripe('sk_test');
 
     // Mock shipping service
@@ -149,7 +149,7 @@ describe('Checkout Session Creation - Comprehensive Tests', () => {
       calculateShippingGuaranteed: jest.fn(),
     };
 
-    const { ShippingService, defaultShippingService } = require('@/lib/shipping');
+    const { ShippingService, defaultShippingService } = jest.requireMock('@/lib/shipping');
     ShippingService.mockImplementation(() => mockShippingService);
     
     // Mock the default export
@@ -157,7 +157,7 @@ describe('Checkout Session Creation - Comprehensive Tests', () => {
     defaultShippingService.calculateShippingGuaranteed = jest.fn();
     
     // Mock pricing calculator
-    const { defaultPricingCalculator } = require('@/lib/pricing');
+    const { defaultPricingCalculator } = jest.requireMock('@/lib/pricing');
     defaultPricingCalculator.calculateTotal = jest.fn().mockReturnValue({
       subtotal: 50.00,
       taxAmount: 5.00,
@@ -225,11 +225,11 @@ describe('Checkout Session Creation - Comprehensive Tests', () => {
       });
 
       // Mock shipping calculation
-      const { defaultShippingService } = require('@/lib/shipping');
+      const { defaultShippingService } = jest.requireMock('@/lib/shipping');
       defaultShippingService.calculateShipping.mockResolvedValue(mockShippingResult);
 
       // Mock pricing calculation
-      const { defaultPricingCalculator } = require('@/lib/pricing');
+      const { defaultPricingCalculator } = jest.requireMock('@/lib/pricing');
       defaultPricingCalculator.calculateTotal.mockReturnValue({
         subtotal: 25.00,
         taxAmount: 2.00,
@@ -346,7 +346,7 @@ describe('Checkout Session Creation - Comprehensive Tests', () => {
       });
 
       // Mock shipping calculation
-      const { defaultShippingService } = require('@/lib/shipping');
+      const { defaultShippingService } = jest.requireMock('@/lib/shipping');
       defaultShippingService.calculateShipping.mockResolvedValue({
         recommended: {
           cost: mockShippingResult.shippingCost,
@@ -550,7 +550,7 @@ describe('Checkout Session Creation - Comprehensive Tests', () => {
       });
 
       // Mock shipping calculation failure
-      const { defaultShippingService } = require('@/lib/shipping');
+      const { defaultShippingService } = jest.requireMock('@/lib/shipping');
       defaultShippingService.calculateShipping.mockRejectedValue(new Error('Shipping calculation failed'));
 
       const requestBody = {
@@ -627,7 +627,7 @@ describe('Checkout Session Creation - Comprehensive Tests', () => {
       });
 
       // Mock shipping calculation success
-      const { defaultShippingService } = require('@/lib/shipping');
+      const { defaultShippingService } = jest.requireMock('@/lib/shipping');
       defaultShippingService.calculateShipping.mockResolvedValue({
         recommended: {
           cost: mockShippingResult.shippingCost,
@@ -795,7 +795,7 @@ describe('Checkout Session Creation - Comprehensive Tests', () => {
       });
 
       // Mock shipping calculation success
-      const { defaultShippingService } = require('@/lib/shipping');
+      const { defaultShippingService } = jest.requireMock('@/lib/shipping');
       defaultShippingService.calculateShipping.mockResolvedValue({
         recommended: {
           cost: mockShippingResult.shippingCost,
@@ -902,7 +902,7 @@ describe('Checkout Session Creation - Comprehensive Tests', () => {
       });
 
       // Mock shipping calculation success
-      const { defaultShippingService } = require('@/lib/shipping');
+      const { defaultShippingService } = jest.requireMock('@/lib/shipping');
       defaultShippingService.calculateShipping.mockResolvedValue({
         recommended: {
           cost: mockShippingResult.shippingCost,

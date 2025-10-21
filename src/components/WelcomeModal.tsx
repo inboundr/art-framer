@@ -105,7 +105,7 @@ export function WelcomeModal({ isOpen, onClose, onStartCreating }: WelcomeModalP
 
         <div className="text-center pt-4">
           <p className="text-sm text-muted-foreground">
-            Start creating your first frame today - it's completely free!
+            Start creating your first frame today - it&apos;s completely free!
           </p>
         </div>
       </DialogContent>

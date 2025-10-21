@@ -7,7 +7,7 @@ jest.mock('@/lib/supabase/server', () => ({
 }));
 
 describe('/api/test-db', () => {
-  const mockCreateClient = require('@/lib/supabase/server').createClient;
+  const mockCreateClient = jest.requireMock('@/lib/supabase/server').createClient;
 
   beforeEach(() => {
     jest.clearAllMocks();

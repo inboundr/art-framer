@@ -143,7 +143,7 @@ describe('Cart API - Comprehensive Tests', () => {
     });
 
     // Mock createClient and createServiceClient
-    const { createClient, createServiceClient } = require('@/lib/supabase/server');
+    const { createClient, createServiceClient } = jest.requireMock('@/lib/supabase/server');
     createClient.mockResolvedValue(mockSupabase);
     createServiceClient.mockReturnValue(mockServiceSupabase);
     
@@ -155,7 +155,7 @@ describe('Cart API - Comprehensive Tests', () => {
       calculateTotal: jest.fn(),
     };
 
-    const { defaultPricingCalculator } = require('@/lib/pricing');
+    const { defaultPricingCalculator } = jest.requireMock('@/lib/pricing');
     Object.assign(defaultPricingCalculator, mockPricingCalculator);
   });
 

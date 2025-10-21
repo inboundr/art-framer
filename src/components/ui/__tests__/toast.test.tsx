@@ -13,7 +13,7 @@ jest.mock('@radix-ui/react-toast', () => ({
 }));
 
 // Mock the displayName properties
-const mockToastPrimitives = require('@radix-ui/react-toast');
+const mockToastPrimitives = jest.requireMock('@radix-ui/react-toast');
 mockToastPrimitives.Provider.displayName = 'ToastProvider';
 mockToastPrimitives.Root.displayName = 'ToastRoot';
 mockToastPrimitives.Viewport.displayName = 'ToastViewport';
