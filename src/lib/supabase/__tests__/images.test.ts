@@ -2,12 +2,12 @@
 describe('SupabaseImageAPI', () => {
   it('should be importable', () => {
     expect(() => {
-      require('../images');
+      import('../images');
     }).not.toThrow();
   });
 
-  it('should have expected methods', () => {
-    const { SupabaseImageAPI } = require('../images');
+  it('should have expected methods', async () => {
+    const { SupabaseImageAPI } = await import('../images');
     const api = new SupabaseImageAPI();
     
     expect(typeof api.getGallery).toBe('function');

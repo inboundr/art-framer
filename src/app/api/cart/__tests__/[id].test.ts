@@ -70,7 +70,7 @@ describe('Cart Item API - Individual Item Operations', () => {
     };
 
     // Mock createClient and createServiceClient
-    const { createClient, createServiceClient } = require('@/lib/supabase/server');
+    const { createClient, createServiceClient } = jest.requireMock('@/lib/supabase/server');
     createClient.mockResolvedValue(mockSupabase);
     createServiceClient.mockReturnValue(mockServiceSupabase);
   });

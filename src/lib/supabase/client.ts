@@ -17,12 +17,15 @@ export const supabase = (() => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  console.log('🔍 Supabase client initialization:', {
-    supabaseUrl: supabaseUrl ? 'exists' : 'missing',
-    supabaseAnonKey: supabaseAnonKey ? 'exists' : 'missing',
-    nodeEnv: process.env.NODE_ENV,
-    windowDefined: typeof window !== 'undefined'
-  });
+  // Only log in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 Supabase client initialization:', {
+      supabaseUrl: supabaseUrl ? 'exists' : 'missing',
+      supabaseAnonKey: supabaseAnonKey ? 'exists' : 'missing',
+      nodeEnv: process.env.NODE_ENV,
+      windowDefined: typeof window !== 'undefined'
+    });
+  }
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('❌ Supabase environment variables not found, using mock client');
@@ -41,7 +44,9 @@ export const supabase = (() => {
         if (typeof window !== 'undefined') {
           try {
             const value = window.localStorage.getItem(key);
-            console.log(`🔍 Storage getItem: ${key} = ${value ? 'exists' : 'null'}`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`🔍 Storage getItem: ${key} = ${value ? 'exists' : 'null'}`);
+            }
             return value;
           } catch (error) {
             console.error('Error getting from localStorage:', error);
@@ -54,7 +59,9 @@ export const supabase = (() => {
         if (typeof window !== 'undefined') {
           try {
             window.localStorage.setItem(key, value);
-            console.log(`💾 Storage setItem: ${key} = stored`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`💾 Storage setItem: ${key} = stored`);
+            }
             
             // Also set a backup in sessionStorage
             window.sessionStorage.setItem(`backup_${key}`, value);
@@ -74,7 +81,9 @@ export const supabase = (() => {
           try {
             window.localStorage.removeItem(key);
             window.sessionStorage.removeItem(`backup_${key}`);
-            console.log(`🗑️ Storage removeItem: ${key}`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`🗑️ Storage removeItem: ${key}`);
+            }
           } catch (error) {
             console.error('Error removing from storage:', error);
           }

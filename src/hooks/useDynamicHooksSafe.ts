@@ -163,8 +163,8 @@ export function useIntersectionAnimationSafe(
   try {
     // Dynamically import and use the hook - this violates React hooks rules
     // but is necessary for conditional loading
-    // eslint-disable-next-line react-hooks/rules-of-hooks, @typescript-eslint/no-require-imports
-    const { useIntersectionAnimation } = require('@/hooks/useDynamicAnimations');
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { useIntersectionAnimation } = jest.requireMock('@/hooks/useDynamicAnimations');
     // eslint-disable-next-line react-hooks/rules-of-hooks
     return useIntersectionAnimation(presetName, config, options);
   } catch (error) {

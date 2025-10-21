@@ -10,7 +10,7 @@ jest.mock('@/lib/prodigi', () => ({
 }));
 
 describe('/api/frames/images', () => {
-  const mockProdigiClient = require('@/lib/prodigi').prodigiClient;
+  const mockProdigiClient = jest.requireMock('@/lib/prodigi').prodigiClient;
 
   beforeEach(() => {
     jest.clearAllMocks();

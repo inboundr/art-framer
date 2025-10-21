@@ -45,7 +45,7 @@ describe('Stripe Webhook Handler - Comprehensive Tests', () => {
     };
 
     // Mock createServiceClient
-    const { createServiceClient } = require('@/lib/supabase/server');
+    const { createServiceClient } = jest.requireMock('@/lib/supabase/server');
     createServiceClient.mockResolvedValue(mockSupabase);
 
     // Mock cart items query (this is called with .select().eq().in() chain)
@@ -76,12 +76,12 @@ describe('Stripe Webhook Handler - Comprehensive Tests', () => {
     });
 
     // Mock Stripe
-    const { stripe, constructWebhookEvent } = require('@/lib/stripe');
+    const { stripe, constructWebhookEvent } = jest.requireMock('@/lib/stripe');
     mockStripe = stripe;
     mockStripe.webhooks.constructEvent = jest.fn();
 
     // Mock Prodigi client
-    mockProdigiClient = require('@/lib/prodigi').prodigiClient;
+    mockProdigiClient = jest.requireMock('@/lib/prodigi').prodigiClient;
   });
 
   describe('checkout.session.completed event', () => {
@@ -120,7 +120,7 @@ describe('Stripe Webhook Handler - Comprehensive Tests', () => {
 
     it('should handle successful checkout session completion', async () => {
       // Mock Stripe webhook verification
-      const { constructWebhookEvent } = require('@/lib/stripe');
+      const { constructWebhookEvent } = jest.requireMock('@/lib/stripe');
       constructWebhookEvent.mockImplementation((payload, signature) => {
         console.log('Mock constructWebhookEvent called with:', { payload, signature });
         return mockEvent;
@@ -810,7 +810,7 @@ describe('Stripe Webhook Handler - Comprehensive Tests', () => {
   describe('Error handling', () => {
     it('should handle invalid JSON', async () => {
       // Mock constructWebhookEvent to throw an error for invalid JSON
-      const { constructWebhookEvent } = require('@/lib/stripe');
+      const { constructWebhookEvent } = jest.requireMock('@/lib/stripe');
       constructWebhookEvent.mockImplementation(() => {
         throw new Error('Invalid JSON');
       });
@@ -849,7 +849,7 @@ describe('Stripe Webhook Handler - Comprehensive Tests', () => {
 
     it('should handle Stripe webhook verification failure', async () => {
       // Mock constructWebhookEvent to throw an error for invalid signature
-      const { constructWebhookEvent } = require('@/lib/stripe');
+      const { constructWebhookEvent } = jest.requireMock('@/lib/stripe');
       constructWebhookEvent.mockImplementation(() => {
         throw new Error('Invalid signature');
       });

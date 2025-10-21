@@ -9,7 +9,7 @@ jest.mock('@/lib/curated-images', () => ({
 }));
 
 describe('/api/curated-images/featured', () => {
-  const mockCuratedImageAPI = require('@/lib/curated-images').curatedImageAPI;
+  const mockCuratedImageAPI = jest.requireMock('@/lib/curated-images').curatedImageAPI;
 
   beforeEach(() => {
     jest.clearAllMocks();
