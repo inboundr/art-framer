@@ -259,23 +259,24 @@ export function CreationsModal({
                   </div>
                 </div>
                 <button className="flex h-9 px-4 items-center justify-center rounded-lg bg-muted/18 hover:bg-muted/30 transition-colors">
-                  <span className="text-muted-foreground text-sm font-semibold">Download</span>
+                  <span className="text-muted-foreground text-sm font-semibold">Share</span>
                 </button>
               </div>
 
-              {/* Mobile Action Buttons */}
+              {/* Mobile Action Buttons - Conversion Focused */}
               <div className="flex flex-wrap gap-2">
-                <button className="flex h-10 px-4 items-center justify-center rounded-lg border border-border hover:bg-secondary/50 transition-colors">
-                  <span className="text-muted-foreground text-sm font-medium">Retry</span>
+                <button 
+                  onClick={handleBuyAsFrame}
+                  className="flex h-10 px-4 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-semibold"
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  <span className="text-sm font-medium">Order Framed Print</span>
                 </button>
                 <button className="flex h-10 px-4 items-center justify-center rounded-lg border border-border hover:bg-secondary/50 transition-colors">
-                  <span className="text-muted-foreground text-sm font-medium">Magic fill</span>
+                  <span className="text-muted-foreground text-sm font-medium">Try Different Frame</span>
                 </button>
                 <button className="flex h-10 px-4 items-center justify-center rounded-lg border border-border hover:bg-secondary/50 transition-colors">
-                  <span className="text-muted-foreground text-sm font-medium">Remix</span>
-                </button>
-                <button className="flex h-10 px-4 items-center justify-center rounded-lg border border-border hover:bg-secondary/50 transition-colors">
-                  <span className="text-muted-foreground text-sm font-medium">Upscale</span>
+                  <span className="text-muted-foreground text-sm font-medium">Save for Later</span>
                 </button>
               </div>
 
@@ -367,41 +368,39 @@ export function CreationsModal({
                 </div>
               </div>
 
-              {/* Action Buttons Row */}
-              <div className="flex items-center gap-2 mb-6">
-                <button className="flex h-9 px-2 items-center justify-center rounded-lg hover:bg-background/50 transition-colors">
-                  <svg width="20" height="20" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-                    <path d="M10.193 16.785C10.4907 16.9405 10.8374 16.9405 11.1341 16.785C12.7041 15.965 17.6641 12.9961 17.6641 8.17055C17.6673 7.15158 17.2663 6.17294 16.5489 5.4493C15.8315 4.72566 14.8564 4.31613 13.8374 4.31055C13.2087 4.31847 12.5913 4.47918 12.0384 4.77882C11.4856 5.07846 11.0139 5.50805 10.6641 6.03055C10.3143 5.5082 9.84285 5.07871 9.29023 4.77907C8.73761 4.47944 8.12043 4.31865 7.49186 4.31055C6.47271 4.31584 5.4973 4.72524 4.77967 5.44891C4.06204 6.17258 3.66083 7.15139 3.66408 8.17055C3.66408 12.9972 8.62297 15.965 10.193 16.785Z" stroke="#D4D4D8" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleShare}
-                  className="flex h-9 px-3 items-center justify-center rounded-lg bg-muted/18 hover:bg-muted/30 transition-colors gap-1.5"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span className="text-muted-foreground text-sm font-semibold">Share</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownload}
-                  className="flex h-9 px-3 items-center justify-center rounded-lg bg-muted/18 hover:bg-muted/30 transition-colors"
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  <span className="text-muted-foreground text-sm font-semibold">Download</span>
-                </Button>
+              {/* Action Buttons Row - Clean Layout */}
+              <div className="flex items-center justify-between mb-6">
+                {/* Left side - Secondary actions */}
+                <div className="flex items-center gap-2">
+                  <button className="flex h-9 px-2 items-center justify-center rounded-lg hover:bg-background/50 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+                      <path d="M10.193 16.785C10.4907 16.9405 10.8374 16.9405 11.1341 16.785C12.7041 15.965 17.6641 12.9961 17.6641 8.17055C17.6673 7.15158 17.2663 6.17294 16.5489 5.4493C15.8315 4.72566 14.8564 4.31613 13.8374 4.31055C13.2087 4.31847 12.5913 4.47918 12.0384 4.77882C11.4856 5.07846 11.0139 5.50805 10.6641 6.03055C10.3143 5.5082 9.84285 5.07871 9.29023 4.77907C8.73761 4.47944 8.12043 4.31865 7.49186 4.31055C6.47271 4.31584 5.4973 4.72524 4.77967 5.44891C4.06204 6.17258 3.66083 7.15139 3.66408 8.17055C3.66408 12.9972 8.62297 15.965 10.193 16.785Z" stroke="#D4D4D8" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleShare}
+                    className="flex h-9 px-3 items-center justify-center rounded-lg bg-muted/18 hover:bg-muted/30 transition-colors gap-1.5"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span className="text-muted-foreground text-sm font-semibold">Share</span>
+                  </Button>
+                </div>
 
-                <Button
-                  onClick={handleBuyAsFrame}
-                  className="flex h-9 px-3 items-center justify-center rounded-lg bg-primary hover:bg-primary/90 transition-colors ml-auto"
-                >
-                  <Package className="w-4 h-4 mr-1" />
-                  <span className="text-white text-sm font-semibold">Order Framed Print</span>
-                </Button>
+                {/* Right side - Primary CTA */}
+                <div className="flex flex-col items-end">
+                  <div className="text-sm text-muted-foreground mb-1">Starting at</div>
+                  <Button
+                    onClick={handleBuyAsFrame}
+                    className="flex h-10 px-6 items-center justify-center rounded-lg bg-primary hover:bg-primary/90 transition-colors font-semibold text-base"
+                  >
+                    <Package className="w-5 h-5 mr-2" />
+                    <span className="text-white font-semibold">Order Framed Print</span>
+                  </Button>
+                  <div className="text-xs text-muted-foreground mt-1">Free shipping over $100</div>
+                </div>
               </div>
               
             </div>
