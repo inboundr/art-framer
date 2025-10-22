@@ -8,22 +8,13 @@ export function NotificationBar({ onClose }: NotificationBarProps) {
       <div className="flex items-center flex-1 justify-center">
         <div className="flex items-start">
           <div className="flex flex-col items-start pr-2">
-            <span className="text-gray-text text-sm md:text-base">🪫</span>
+            <span className="text-gray-text text-sm md:text-base">🚚</span>
           </div>
           <div className="flex flex-col items-start">
             <div className="text-gray-text text-sm md:text-base leading-5 md:leading-6">
-              <span className="text-gray-light font-bold">You reached your Free plan limit.</span>
-              <span className="text-gray-text hidden sm:inline"> Please wait for your weekly limit to reset in 4 days, or </span>
-              <span className="text-gray-light font-bold">upgrade your plan.</span>
+              <span className="text-gray-light font-bold">Free shipping over $100</span>
+              <span className="text-gray-text hidden sm:inline"> on all framed art orders</span>
             </div>
-          </div>
-        </div>
-        <div className="flex flex-col items-start pl-3 md:pl-6">
-          <div className="flex justify-center items-center">
-            <button className="flex min-w-12 md:min-w-16 justify-center items-center px-2 md:px-4 py-1.5 md:py-2 bg-gray-light text-dark rounded-md text-sm md:text-base font-medium leading-5 md:leading-6">
-              <span className="hidden sm:inline">See plans</span>
-              <span className="sm:hidden">Upgrade</span>
-            </button>
           </div>
         </div>
       </div>

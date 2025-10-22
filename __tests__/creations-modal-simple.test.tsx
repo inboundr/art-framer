@@ -72,37 +72,47 @@ describe('CreationsModal Component', () => {
   test('should render when open', () => {
     render(<CreationsModal {...defaultProps} />)
     
-    expect(screen.getByText('A beautiful sunset')).toBeInTheDocument()
+    // With simplified UI, we should see the modal header and image
+    expect(screen.getByText('Creation Details')).toBeInTheDocument()
+    expect(screen.getByAltText('Generated AI Image')).toBeInTheDocument()
   })
 
   test('should not render when closed', () => {
     render(<CreationsModal {...defaultProps} isOpen={false} />)
     
-    expect(screen.queryByText('A beautiful sunset')).not.toBeInTheDocument()
+    expect(screen.queryByText('Creation Details')).not.toBeInTheDocument()
   })
 
   test('should handle user images correctly', () => {
     render(<CreationsModal {...defaultProps} isCuratedImage={false} isMobile={true} />)
     
-    expect(screen.getByText('A beautiful sunset')).toBeInTheDocument()
+    // With simplified UI, we should see the modal header and image
+    expect(screen.getByText('Creation Details')).toBeInTheDocument()
+    expect(screen.getByAltText('Generated AI Image')).toBeInTheDocument()
   })
 
   test('should handle curated images correctly', () => {
     render(<CreationsModal {...defaultProps} isCuratedImage={true} isMobile={true} />)
     
-    expect(screen.getByText('A beautiful sunset')).toBeInTheDocument()
+    // With simplified UI, we should see the modal header and image
+    expect(screen.getByText('Creation Details')).toBeInTheDocument()
+    expect(screen.getByAltText('Generated AI Image')).toBeInTheDocument()
   })
 
   test('should handle missing image ID', () => {
     render(<CreationsModal {...defaultProps} imageId={undefined} isMobile={true} />)
     
-    expect(screen.getByText('A beautiful sunset')).toBeInTheDocument()
+    // With simplified UI, we should see the modal header and image
+    expect(screen.getByText('Creation Details')).toBeInTheDocument()
+    expect(screen.getByAltText('Generated AI Image')).toBeInTheDocument()
   })
 
   test('should handle invalid image ID', () => {
     render(<CreationsModal {...defaultProps} imageId="invalid-id" isMobile={true} />)
     
-    expect(screen.getByText('A beautiful sunset')).toBeInTheDocument()
+    // With simplified UI, we should see the modal header and image
+    expect(screen.getByText('Creation Details')).toBeInTheDocument()
+    expect(screen.getByAltText('Generated AI Image')).toBeInTheDocument()
   })
 })
 
@@ -120,8 +130,9 @@ describe('CreationsModal API Route Selection', () => {
 
     render(<CreationsModal {...props} />)
     
-    // The component should be ready to use the regular products API
-    expect(screen.getByText('User generated image')).toBeInTheDocument()
+    // With simplified UI, we should see the modal header and image
+    expect(screen.getByText('Creation Details')).toBeInTheDocument()
+    expect(screen.getByAltText('Generated AI Image')).toBeInTheDocument()
   })
 
   test('should use correct API route for curated images', () => {
@@ -137,8 +148,9 @@ describe('CreationsModal API Route Selection', () => {
 
     render(<CreationsModal {...props} />)
     
-    // The component should be ready to use the curated products API
-    expect(screen.getByText('Curated artwork')).toBeInTheDocument()
+    // With simplified UI, we should see the modal header and image
+    expect(screen.getByText('Creation Details')).toBeInTheDocument()
+    expect(screen.getByAltText('Generated AI Image')).toBeInTheDocument()
   })
 })
 
@@ -161,7 +173,9 @@ describe('CreationsModal Error Handling', () => {
 
     render(<CreationsModal {...props} />)
     
-    expect(screen.getByText('Test image')).toBeInTheDocument()
+    // With simplified UI, we should see the modal header and image
+    expect(screen.getByText('Creation Details')).toBeInTheDocument()
+    expect(screen.getByAltText('Generated AI Image')).toBeInTheDocument()
   })
 
   test('should handle network errors', () => {
@@ -178,6 +192,8 @@ describe('CreationsModal Error Handling', () => {
 
     render(<CreationsModal {...props} />)
     
-    expect(screen.getByText('Test image')).toBeInTheDocument()
+    // With simplified UI, we should see the modal header and image
+    expect(screen.getByText('Creation Details')).toBeInTheDocument()
+    expect(screen.getByAltText('Generated AI Image')).toBeInTheDocument()
   })
 })

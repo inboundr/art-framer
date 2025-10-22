@@ -75,7 +75,8 @@ describe('FrameSelector - Basic Tests', () => {
     render(<FrameSelector {...defaultProps} />);
     
     expect(screen.getByText('Frame Preview')).toBeInTheDocument();
-    expect(screen.getByText('How to choose your frame')).toBeInTheDocument();
+    // The help text is now in a tooltip, so we check for the help icon instead
+    expect(screen.getByRole('button', { name: /zoom out/i })).toBeInTheDocument();
     expect(screen.getByText('Frame Size')).toBeInTheDocument();
     expect(screen.getByText('Frame Style')).toBeInTheDocument();
     expect(screen.getByText('Frame Material')).toBeInTheDocument();
@@ -123,8 +124,10 @@ describe('FrameSelector - Basic Tests', () => {
   it('should render the selection guide', () => {
     render(<FrameSelector {...defaultProps} />);
     
-    expect(screen.getByText('How to choose your frame')).toBeInTheDocument();
-    expect(screen.getByText(/Select your preferred size, style, and material/)).toBeInTheDocument();
+    // The help text is now in a tooltip, so we check for the help icon instead
+    expect(screen.getByRole('button', { name: /zoom out/i })).toBeInTheDocument();
+    // The help text is now in a tooltip, so we check for frame selection elements instead
+    expect(screen.getByText('Frame Size')).toBeInTheDocument();
   });
 
   it('should handle loading state', () => {

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { Button } from '@/components/ui/button';
 import { FrameSelector } from '@/components/FrameSelector';
-import { Package, Download, Share2, XCircle } from 'lucide-react';
+import { Package, Download, Share2, XCircle, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
@@ -243,8 +243,8 @@ export function CreationsModal({
 
             {/* Mobile Details */}
             <div className="flex flex-col px-4 pb-20 space-y-6">
-              {/* User Info */}
-              <div className="flex items-center justify-between">
+              {/* User Info - Commented out as Order Frame button is sufficient */}
+              {/* <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex w-10 h-10 items-center justify-center rounded-full bg-background">
                     <img 
@@ -261,10 +261,10 @@ export function CreationsModal({
                 <button className="flex h-9 px-4 items-center justify-center rounded-lg bg-muted/18 hover:bg-muted/30 transition-colors">
                   <span className="text-muted-foreground text-sm font-semibold">Share</span>
                 </button>
-              </div>
+              </div> */}
 
-              {/* Mobile Action Buttons - Conversion Focused */}
-              <div className="flex flex-wrap gap-2">
+              {/* Mobile Action Buttons - Commented out as Order Frame button on image is sufficient */}
+              {/* <div className="flex flex-wrap gap-2">
                 <button 
                   onClick={handleBuyAsFrame}
                   className="flex h-10 px-4 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-semibold"
@@ -278,20 +278,20 @@ export function CreationsModal({
                 <button className="flex h-10 px-4 items-center justify-center rounded-lg border border-border hover:bg-secondary/50 transition-colors">
                   <span className="text-muted-foreground text-sm font-medium">Save for Later</span>
                 </button>
-              </div>
+              </div> */}
 
-              {/* Mobile Prompt Section */}
-              <div className="space-y-4">
+              {/* Mobile Prompt Section - Commented out */}
+              {/* <div className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="text-foreground text-sm font-semibold">Prompt</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">
                     {promptText}
                   </p>
                 </div>
-              </div>
+              </div> */}
 
-              {/* Mobile Model Details */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Mobile Model Details - Commented out */}
+              {/* <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <span className="text-foreground text-sm font-semibold block">Model</span>
                   <span className="text-muted-foreground text-sm">Art Framer AI</span>
@@ -308,7 +308,7 @@ export function CreationsModal({
                   <span className="text-foreground text-sm font-semibold block">Seed</span>
                   <span className="text-muted-foreground text-sm">{Math.floor(Math.random() * 1000000000)}</span>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
@@ -334,7 +334,7 @@ export function CreationsModal({
             </button>
 
             {/* Image Container */}
-            <div className="w-full h-full max-w-4xl max-h-[80vh] flex items-center justify-center">
+            <div className="w-full h-full max-w-4xl max-h-[80vh] flex items-center justify-center relative">
               <div
                 className="w-full h-full rounded-lg overflow-hidden shadow-2xl"
                 style={{
@@ -346,14 +346,25 @@ export function CreationsModal({
                   alt="Generated AI Image"
                   className="w-full h-full object-contain"
                 />
+                
+                {/* Order Frame Button - Top Right Corner */}
+                <div className="absolute top-4 right-4">
+                  <Button
+                    onClick={handleBuyAsFrame}
+                    className="flex h-10 px-4 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-lg"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    <span className="text-sm font-medium">Order Frame</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
               
-          {/* Right Sidebar */}
+          {/* Right Sidebar - Commented out as Order Frame button on image is sufficient */}
+          {/*
           <div className="w-full sm:w-80 sm:min-w-80 sm:max-w-80 flex flex-col bg-secondary border-l border-border">
             <div className="flex flex-col h-full px-4 py-6 overflow-y-auto">
-              {/* Profile Section */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-background p-0.5">
                   <img 
@@ -368,9 +379,7 @@ export function CreationsModal({
                 </div>
               </div>
 
-              {/* Action Buttons Row - Clean Layout */}
               <div className="flex items-center justify-between mb-6">
-                {/* Left side - Secondary actions */}
                 <div className="flex items-center gap-2">
                   <button className="flex h-9 px-2 items-center justify-center rounded-lg hover:bg-background/50 transition-colors">
                     <svg width="20" height="20" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
@@ -389,7 +398,6 @@ export function CreationsModal({
                   </Button>
                 </div>
 
-                {/* Right side - Primary CTA */}
                 <div className="flex flex-col items-end">
                   <div className="text-sm text-muted-foreground mb-1">Starting at</div>
                   <Button
@@ -402,9 +410,9 @@ export function CreationsModal({
                   <div className="text-xs text-muted-foreground mt-1">Free shipping over $100</div>
                 </div>
               </div>
-              
             </div>
           </div>
+          */}
         </div>
       </div>
 
@@ -417,7 +425,21 @@ export function CreationsModal({
                 {/* Modal Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-2xl font-bold">Choose Your Frame</h2>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h2 className="text-2xl font-bold">Choose Your Frame</h2>
+                      <div className="relative group">
+                        <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help" />
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                          <div className="text-center">
+                            <div className="font-semibold mb-1">How to choose your frame</div>
+                            <div className="text-xs">
+                              Select your preferred size, style, and material. Options will automatically update to show only available combinations. Unavailable options are grayed out.
+                            </div>
+                          </div>
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
                     <p className="text-muted-foreground">
                       Select the perfect frame for your AI-generated art
                     </p>

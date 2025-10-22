@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ShoppingCart, Check, Star, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { ShoppingCart, Check, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useFrameImages } from '@/hooks/useFrameImages';
@@ -422,21 +422,6 @@ export function FrameSelector({
 
       {/* Right Side - Configuration Options */}
       <div className="space-y-6">
-        {/* Selection Guide */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-white text-xs font-bold">i</span>
-            </div>
-            <div>
-              <h4 className="font-semibold text-blue-900 mb-1">How to choose your frame</h4>
-              <p className="text-blue-700 text-sm">
-                Select your preferred size, style, and material. Options will automatically update 
-                to show only available combinations. Unavailable options are grayed out.
-              </p>
-            </div>
-          </div>
-        </div>
         {/* Frame Size Selection */}
         <Card className="border-0 shadow-lg">
           <CardHeader className="pb-4">
@@ -641,10 +626,6 @@ export function FrameSelector({
                 <Separator />
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm text-muted-foreground">4.8 (127 reviews)</span>
-                  </div>
                   <Button 
                     onClick={() => handleAddToCart(currentFrame)}
                     className="min-w-32 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg"
