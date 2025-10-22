@@ -66,6 +66,28 @@ interface AttachedImage {
   preview: string;
 }
 
+// Helper function to convert aspect ratio from UI format (1:1) to API format (1x1)
+const convertAspectRatio = (uiRatio: string): string => {
+  const ratioMap: Record<string, string> = {
+    '1:1': '1x1',
+    '16:9': '16x9',
+    '9:16': '9x16',
+    '4:3': '4x3',
+    '3:4': '3x4',
+    '3:2': '3x2',
+    '2:3': '2x3',
+    '1:3': '1x3',
+    '3:1': '3x1',
+    '10:16': '10x16',
+    '16:10': '16x10',
+    '1:2': '1x2',
+    '2:1': '2x1',
+    '4:5': '4x5',
+    '5:4': '5x4'
+  };
+  return ratioMap[uiRatio] || '1x1';
+};
+
 export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps) {
   const { user, profile } = useAuth();
   // const [activeCategory, setActiveCategory] = useState('Poster'); // Hidden filter bar
@@ -106,13 +128,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
       // This will be handled by the parent component to show auth modal
       if (onOpenGenerationPanel) {
         onOpenGenerationPanel(promptText.trim(), {
-          aspectRatio: currentAspectRatio.value === '1:1' ? '1x1' : 
-                       currentAspectRatio.value === '16:9' ? '16x9' : 
-                       currentAspectRatio.value === '9:16' ? '9x16' : 
-                       currentAspectRatio.value === '4:3' ? '4x3' : 
-                       currentAspectRatio.value === '3:4' ? '3x4' : 
-                       currentAspectRatio.value === '3:2' ? '3x2' : 
-                       currentAspectRatio.value === '2:3' ? '2x3' : '1x1',
+          aspectRatio: convertAspectRatio(currentAspectRatio.value),
           numberOfImages: parseInt(modelSettings.images) as 1 | 2 | 3 | 4,
           model: modelSettings.model === '3.0-latest' ? 'V_3' : 
                  modelSettings.model === '3.0-march26' ? 'V_3' : 
@@ -144,13 +160,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
         // User is authenticated, proceed with generation
     if (onOpenGenerationPanel) {
       const settings = {
-        aspectRatio: currentAspectRatio.value === '1:1' ? '1x1' : 
-                     currentAspectRatio.value === '16:9' ? '16x9' : 
-                     currentAspectRatio.value === '9:16' ? '9x16' : 
-                     currentAspectRatio.value === '4:3' ? '4x3' : 
-                     currentAspectRatio.value === '3:4' ? '3x4' : 
-                     currentAspectRatio.value === '3:2' ? '3x2' : 
-                     currentAspectRatio.value === '2:3' ? '2x3' : '1x1',
+        aspectRatio: convertAspectRatio(currentAspectRatio.value),
         numberOfImages: parseInt(modelSettings.images) as 1 | 2 | 3 | 4,
         model: modelSettings.model === '3.0-latest' ? 'V_3' : 
                modelSettings.model === '3.0-march26' ? 'V_3' : 
