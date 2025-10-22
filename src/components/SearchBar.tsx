@@ -66,26 +66,60 @@ interface AttachedImage {
   preview: string;
 }
 
-// Helper function to convert aspect ratio from UI format (1:1) to API format (1x1)
+// Helper functions to convert UI dropdown values to API format
 const convertAspectRatio = (uiRatio: string): string => {
   const ratioMap: Record<string, string> = {
-    '1:1': '1x1',
-    '16:9': '16x9',
-    '9:16': '9x16',
-    '4:3': '4x3',
-    '3:4': '3x4',
-    '3:2': '3x2',
-    '2:3': '2x3',
-    '1:3': '1x3',
-    '3:1': '3x1',
-    '10:16': '10x16',
-    '16:10': '16x10',
-    '1:2': '1x2',
-    '2:1': '2x1',
-    '4:5': '4x5',
-    '5:4': '5x4'
+    '1:1': '1x1', '16:9': '16x9', '9:16': '9x16', '4:3': '4x3', '3:4': '3x4',
+    '3:2': '3x2', '2:3': '2x3', '1:3': '1x3', '3:1': '3x1', '10:16': '10x16',
+    '16:10': '16x10', '1:2': '1x2', '2:1': '2x1', '4:5': '4x5', '5:4': '5x4'
   };
   return ratioMap[uiRatio] || '1x1';
+};
+
+const convertModel = (uiModel: string): string => {
+  const modelMap: Record<string, string> = {
+    '3.0-latest': 'V_3',
+    '3.0-march26': 'V_3',
+    '2.0': 'V_2',
+    '2a': 'V_2',
+    '1.0': 'V_1'
+  };
+  return modelMap[uiModel] || 'V_3';
+};
+
+const convertRenderSpeed = (uiSpeed: string): string => {
+  const speedMap: Record<string, string> = {
+    'default': 'BALANCED',
+    'turbo': 'TURBO',
+    'quality': 'QUALITY'
+  };
+  return speedMap[uiSpeed] || 'BALANCED';
+};
+
+const convertStyle = (uiStyle: string): string => {
+  const styleMap: Record<string, string> = {
+    'auto': 'AUTO',
+    'realistic': 'REALISTIC',
+    'design': 'DESIGN',
+    'general': 'GENERAL',
+    'random': 'AUTO'
+  };
+  return styleMap[uiStyle] || 'AUTO';
+};
+
+const convertColor = (uiColor: string): string => {
+  const colorMap: Record<string, string> = {
+    'auto': 'AUTO',
+    'ember': 'EMBER',
+    'fresh': 'FRESH',
+    'jungle': 'JUNGLE',
+    'magic': 'MAGIC',
+    'melon': 'MELON',
+    'mosaic': 'MOSAIC',
+    'pastel': 'PASTEL',
+    'ultramarine': 'ULTRAMARINE'
+  };
+  return colorMap[uiColor] || 'AUTO';
 };
 
 export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps) {
@@ -130,27 +164,10 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
         onOpenGenerationPanel(promptText.trim(), {
           aspectRatio: convertAspectRatio(currentAspectRatio.value),
           numberOfImages: parseInt(modelSettings.images) as 1 | 2 | 3 | 4,
-          model: modelSettings.model === '3.0-latest' ? 'V_3' : 
-                 modelSettings.model === '3.0-march26' ? 'V_3' : 
-                 modelSettings.model === '2.0' ? 'V_2' : 
-                 modelSettings.model === '2a' ? 'V_2' : 
-                 modelSettings.model === '1.0' ? 'V_1' : 'V_3',
-          renderSpeed: modelSettings.speed === 'default' ? 'BALANCED' : 
-                      modelSettings.speed === 'turbo' ? 'TURBO' : 
-                      modelSettings.speed === 'quality' ? 'QUALITY' : 'BALANCED',
-          style: styleSetting === 'auto' ? 'AUTO' : 
-                 styleSetting === 'realistic' ? 'REALISTIC' : 
-                 styleSetting === 'design' ? 'DESIGN' : 
-                 styleSetting === 'general' ? 'GENERAL' : 'AUTO',
-          color: colorSetting === 'auto' ? 'AUTO' : 
-                 colorSetting === 'ember' ? 'EMBER' : 
-                 colorSetting === 'fresh' ? 'FRESH' : 
-                 colorSetting === 'jungle' ? 'JUNGLE' : 
-                 colorSetting === 'magic' ? 'MAGIC' : 
-                 colorSetting === 'melon' ? 'MELON' : 
-                 colorSetting === 'mosaic' ? 'MOSAIC' : 
-                 colorSetting === 'pastel' ? 'PASTEL' : 
-                 colorSetting === 'ultramarine' ? 'ULTRAMARINE' : 'AUTO',
+          model: convertModel(modelSettings.model),
+          renderSpeed: convertRenderSpeed(modelSettings.speed),
+          style: convertStyle(styleSetting),
+          color: convertColor(colorSetting),
           referenceImages: attachedImages.map(img => img.preview),
         });
       }
@@ -162,27 +179,10 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
       const settings = {
         aspectRatio: convertAspectRatio(currentAspectRatio.value),
         numberOfImages: parseInt(modelSettings.images) as 1 | 2 | 3 | 4,
-        model: modelSettings.model === '3.0-latest' ? 'V_3' : 
-               modelSettings.model === '3.0-march26' ? 'V_3' : 
-               modelSettings.model === '2.0' ? 'V_2' : 
-               modelSettings.model === '2a' ? 'V_2' : 
-               modelSettings.model === '1.0' ? 'V_1' : 'V_3',
-        renderSpeed: modelSettings.speed === 'default' ? 'BALANCED' : 
-                    modelSettings.speed === 'turbo' ? 'TURBO' : 
-                    modelSettings.speed === 'quality' ? 'QUALITY' : 'BALANCED',
-        style: styleSetting === 'auto' ? 'AUTO' : 
-               styleSetting === 'realistic' ? 'REALISTIC' : 
-               styleSetting === 'design' ? 'DESIGN' : 
-               styleSetting === 'general' ? 'GENERAL' : 'AUTO',
-        color: colorSetting === 'auto' ? 'AUTO' :
-               colorSetting === 'ember' ? 'EMBER' : 
-               colorSetting === 'fresh' ? 'FRESH' : 
-               colorSetting === 'jungle' ? 'JUNGLE' : 
-               colorSetting === 'magic' ? 'MAGIC' : 
-               colorSetting === 'melon' ? 'MELON' : 
-               colorSetting === 'mosaic' ? 'MOSAIC' : 
-               colorSetting === 'pastel' ? 'PASTEL' : 
-               colorSetting === 'ultramarine' ? 'ULTRAMARINE' : 'AUTO',
+        model: convertModel(modelSettings.model),
+        renderSpeed: convertRenderSpeed(modelSettings.speed),
+        style: convertStyle(styleSetting),
+        color: convertColor(colorSetting),
         referenceImages: attachedImages.map(img => img.preview),
       };
       
