@@ -133,9 +133,9 @@ export function GenerationPanel({
               return updatedImages;
             });
             
-            setGenerationStatus(`Generated and saved ${actualImages.length} images!`);
+            setGenerationStatus(`Your art is ready! Choose a frame to order.`);
           } else {
-            setGenerationStatus(`Generated ${actualImages.length} images!`);
+            setGenerationStatus(`Your art is ready! Choose a frame to order.`);
           }
           
           return;
@@ -151,7 +151,7 @@ export function GenerationPanel({
             isLoaded: true
           }));
           setImages(actualImages);
-          setGenerationStatus(`Generated ${actualImages.length} images!`);
+          setGenerationStatus(`Your art is ready! Choose a frame to order.`);
           return;
         }
       }
@@ -364,6 +364,16 @@ export function GenerationPanel({
         {/* Content Area */}
         {isExpanded && (
           <div className="flex w-full justify-center items-start">
+            {/* Success Message */}
+            {images.length > 0 && (
+              <div className="w-full px-4 py-2 mb-2">
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-center">
+                  <p className="text-green-600 text-sm font-medium">
+                    ✨ Your art is ready! Click any image to choose a frame and order.
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="flex pb-2 justify-center items-center flex-1 self-stretch">
               <div className="flex w-full p-1 px-2 pb-2 justify-center items-start flex-wrap">
                 {/* Images Grid */}

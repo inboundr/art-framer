@@ -9,7 +9,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useDynamicAnimationsSafe } from '@/hooks/useDynamicHooksSafe';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { CreationsModal } from './CreationsModal';
 
 interface CuratedImageCardProps {
   image: CuratedImage;
@@ -49,7 +48,36 @@ function CuratedImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal, 
       }
       return;
     }
+    // Directly trigger the frame selection without opening CreationsModal
     onBuyAsFrame?.(image);
+  };
+
+  const handleView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onImageClick?.(image);
+  };
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // TODO: Implement like functionality
+    console.log('Like clicked for image:', image.id);
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (navigator.share) {
+      navigator.share({
+        title: image.title,
+        text: `Check out this beautiful AI-generated art: ${image.title}`,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: 'Link Copied',
+        description: 'Link has been copied to clipboard.',
+      });
+    }
   };
 
   const handleImageLoad = () => {
@@ -72,7 +100,7 @@ function CuratedImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal, 
     >
       <CardContent className="p-0 relative">
         {/* Image Container */}
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-hidden group">
           {!isLoaded && (
             <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
               <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
@@ -89,36 +117,21 @@ function CuratedImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal, 
             loading="lazy"
           />
           
-          {/* Overlay on hover */}
+          {/* Order Frame Button - Top Right Corner */}
           <div 
-            className={`absolute inset-0 bg-black bg-opacity-0 transition-all duration-300 flex items-center justify-center ${
-              isHovered ? 'bg-opacity-40' : ''
+            className={`absolute top-2 right-2 transition-all duration-300 pointer-events-auto ${
+              isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}
           >
-            <div className={`flex gap-2 transition-all duration-300 ${
-              isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}>
-              <Button size="sm" variant="secondary" className="rounded-full">
-                <Eye className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="secondary" className="rounded-full">
-                <Heart className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="secondary" className="rounded-full">
-                <Download className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="secondary" className="rounded-full">
-                <Share2 className="w-4 h-4" />
-              </Button>
-              <Button 
-                size="sm" 
-                variant="default" 
-                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={handleBuyAsFrame}
-              >
-                <ShoppingCart className="w-4 h-4" />
-              </Button>
-            </div>
+            <Button 
+              size="sm" 
+              variant="default" 
+              className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-3 py-2 shadow-lg"
+              onClick={handleBuyAsFrame}
+            >
+              <ShoppingCart className="w-4 h-4 mr-1" />
+              Order Frame
+            </Button>
           </div>
         </div>
 
@@ -207,8 +220,8 @@ export function CuratedImageGallery({
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             };
-            setSelectedImage(curatedImage);
-            setShowCreationsModal(true);
+            // Directly trigger frame selection for pending image
+            onBuyAsFrame?.(curatedImage);
             // Clear the pending image
             localStorage.removeItem('pending-cart-image');
           } else {
@@ -225,8 +238,6 @@ export function CuratedImageGallery({
   const [isHydrated, setIsHydrated] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
-  const [selectedImage, setSelectedImage] = useState<CuratedImage | null>(null);
-  const [showCreationsModal, setShowCreationsModal] = useState(false);
 
   // Dynamic animations hook
   const { createTransition } = useDynamicAnimationsSafe();
@@ -237,15 +248,10 @@ export function CuratedImageGallery({
   }, []);
 
   const handleBuyAsFrame = (image: CuratedImage) => {
-    setSelectedImage(image);
-    setShowCreationsModal(true);
+    // Directly trigger frame selection without opening CreationsModal
     onBuyAsFrame?.(image);
   };
 
-  const handleCloseCreationsModal = () => {
-    setShowCreationsModal(false);
-    setSelectedImage(null);
-  };
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -354,18 +360,6 @@ export function CuratedImageGallery({
         )}
       </div>
 
-      {/* Creations Modal for frame ordering */}
-      {selectedImage && (
-        <CreationsModal
-          isOpen={showCreationsModal}
-          onClose={handleCloseCreationsModal}
-          imageUrl={selectedImage.image_url}
-          promptText={selectedImage.title}
-          imageId={selectedImage.id}
-          isMobile={false}
-          isCuratedImage={true} // Curated images are indeed curated
-        />
-      )}
     </div>
   );
 }
