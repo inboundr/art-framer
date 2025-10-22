@@ -148,12 +148,13 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
           )}
         </div>
       ) : (
-        <>
-          {/* Cart Items */}
-          <div className="space-y-6 max-h-96 overflow-y-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Cart Items - Takes up 2/3 of the space */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="space-y-6 max-h-96 overflow-y-auto">
             {cartItems.map((item) => (
               <Card key={item.id} className="p-4">
-                <div className="flex gap-4">
+                <div className="flex gap-6">
                   {/* Enhanced Frame Preview */}
                   <div className="flex-shrink-0">
                     <FramePreview
@@ -165,19 +166,19 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                       price={item.products.price * item.quantity}
                       showDetails={false}
                       showWallContext={true}
-                      className="w-32"
+                      className="w-40"
                     />
                   </div>
 
                   {/* Product Details */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm line-clamp-2 mb-1">
+                    <h4 className="font-medium text-base line-clamp-2 mb-2">
                       {getFrameSizeLabel(item.products.frame_size)} Frame
                     </h4>
-                    <p className="text-xs text-muted-foreground mb-1">
+                    <p className="text-sm text-muted-foreground mb-2">
                       {getFrameStyleLabel(item.products.frame_style)} {getFrameMaterialLabel(item.products.frame_material)}
                     </p>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
                           &ldquo;{item.products.images.prompt}&rdquo;
                     </p>
                     
@@ -227,11 +228,11 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                     </div>
 
                     {/* Price */}
-                    <div className="text-sm">
-                      <div className="font-medium">
+                    <div className="text-base">
+                      <div className="font-semibold text-lg">
                         {formatPrice(item.products.price * item.quantity)}
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-sm text-muted-foreground">
                         {formatPrice(item.products.price)} each
                       </div>
                     </div>
@@ -239,28 +240,31 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                 </div>
               </Card>
             ))}
+            </div>
           </div>
 
-          {/* Shipping Information */}
-          {cartItems.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Shipping</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Shipping costs will be calculated during checkout when you provide your address
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Truck className="h-4 w-4" />
-                  <span>Accurate shipping rates calculated at checkout</span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Right Column - Order Summary and Shipping */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Shipping Information */}
+            {cartItems.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Shipping</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Shipping costs will be calculated during checkout when you provide your address
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Truck className="h-4 w-4" />
+                    <span>Accurate shipping rates calculated at checkout</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Cart Summary */}
-          <Card>
+            {/* Cart Summary */}
+            <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Order Summary</CardTitle>
@@ -326,7 +330,8 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
               </Button>
             </CardContent>
           </Card>
-        </>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -371,7 +376,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
   }
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-4xl">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
