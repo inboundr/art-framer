@@ -135,22 +135,22 @@ describe('CuratedImageGallery - Production Ready Tests', () => {
       expect(buyButtons).toHaveLength(3);
     });
 
-    it('should render like buttons', () => {
+    it('should render order frame buttons', () => {
       render(<CuratedImageGallery />);
       
-      const likeButtons = screen.getAllByRole('button').filter(button => 
-        button.querySelector('svg[class*="heart"]')
+      const orderButtons = screen.getAllByRole('button').filter(button => 
+        button.textContent?.includes('Order Frame')
       );
-      expect(likeButtons).toHaveLength(3);
+      expect(orderButtons).toHaveLength(3);
     });
 
-    it('should render share buttons', () => {
+    it('should render order frame buttons with shopping cart icons', () => {
       render(<CuratedImageGallery />);
       
-      const shareButtons = screen.getAllByRole('button').filter(button => 
-        button.querySelector('svg[class*="share"]')
+      const orderButtons = screen.getAllByRole('button').filter(button => 
+        button.querySelector('svg[class*="shopping-cart"]')
       );
-      expect(shareButtons).toHaveLength(3);
+      expect(orderButtons).toHaveLength(3);
     });
   });
 
@@ -259,57 +259,71 @@ describe('CuratedImageGallery - Production Ready Tests', () => {
     });
   });
 
-  describe('Like Functionality', () => {
-    it('should handle like button clicks', async () => {
-      render(<CuratedImageGallery />);
+  describe('Order Frame Functionality', () => {
+    it('should handle order frame button clicks', async () => {
+      // Mock authenticated user
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { id: '1', email: 'test@example.com' },
+        loading: false
+      });
+
+      const mockOnBuyAsFrame = jest.fn();
+      render(<CuratedImageGallery onBuyAsFrame={mockOnBuyAsFrame} />);
       
-      const likeButtons = screen.getAllByRole('button').filter(button => 
-        button.querySelector('svg[class*="heart"]')
+      // Get all buttons first
+      const allButtons = screen.getAllByRole('button');
+      const orderButtons = allButtons.filter(button => 
+        button.textContent?.includes('Order Frame')
       );
-      fireEvent.click(likeButtons[0]);
       
-      expect(likeButtons[0]).toBeInTheDocument();
+      // Click the first order button (it should be visible by default in the test)
+      if (orderButtons.length > 0) {
+        fireEvent.click(orderButtons[0]);
+        expect(mockOnBuyAsFrame).toHaveBeenCalled();
+      } else {
+        // If no buttons found, the test should fail
+        expect(orderButtons.length).toBeGreaterThan(0);
+      }
     });
 
-    it('should handle like button clicks for authenticated users', async () => {
+    it('should handle order frame button clicks for authenticated users', async () => {
       (useAuth as jest.Mock).mockReturnValue({
         user: mockUser,
         loading: false
       });
 
-      render(<CuratedImageGallery />);
+      const mockOnBuyAsFrame = jest.fn();
+      render(<CuratedImageGallery onBuyAsFrame={mockOnBuyAsFrame} />);
       
-      const likeButtons = screen.getAllByRole('button').filter(button => 
-        button.querySelector('svg[class*="heart"]')
+      const orderButtons = screen.getAllByRole('button').filter(button => 
+        button.textContent?.includes('Order Frame')
       );
-      fireEvent.click(likeButtons[0]);
+      fireEvent.click(orderButtons[0]);
       
-      expect(likeButtons[0]).toBeInTheDocument();
+      expect(mockOnBuyAsFrame).toHaveBeenCalled();
     });
   });
 
-  describe('Share Functionality', () => {
-    it('should handle share button clicks', async () => {
-      render(<CuratedImageGallery />);
+  describe('Image View Functionality', () => {
+    it('should handle image clicks to open full view', async () => {
+      const mockOnImageClick = jest.fn();
+      render(<CuratedImageGallery onImageClick={mockOnImageClick} />);
       
-      const shareButtons = screen.getAllByRole('button').filter(button => 
-        button.querySelector('svg[class*="share"]')
-      );
-      fireEvent.click(shareButtons[0]);
+      const images = screen.getAllByRole('img');
+      fireEvent.click(images[0]);
       
-      expect(shareButtons[0]).toBeInTheDocument();
+      expect(mockOnImageClick).toHaveBeenCalled();
     });
 
-    it('should handle share functionality for different images', async () => {
-      render(<CuratedImageGallery />);
+    it('should handle image clicks for different images', async () => {
+      const mockOnImageClick = jest.fn();
+      render(<CuratedImageGallery onImageClick={mockOnImageClick} />);
       
-      const shareButtons = screen.getAllByRole('button').filter(button => 
-        button.querySelector('svg[class*="share"]')
-      );
-      fireEvent.click(shareButtons[0]);
-      fireEvent.click(shareButtons[1]);
+      const images = screen.getAllByRole('img');
+      fireEvent.click(images[0]);
+      fireEvent.click(images[1]);
       
-      expect(shareButtons).toHaveLength(3);
+      expect(mockOnImageClick).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -458,16 +472,8 @@ describe('CuratedImageGallery - Production Ready Tests', () => {
       const buyButtons = screen.getAllByRole('button').filter(button => 
         button.querySelector('svg[class*="shopping-cart"]')
       );
-      const likeButtons = screen.getAllByRole('button').filter(button => 
-        button.querySelector('svg[class*="heart"]')
-      );
-      const shareButtons = screen.getAllByRole('button').filter(button => 
-        button.querySelector('svg[class*="share"]')
-      );
       
       expect(buyButtons).toHaveLength(3);
-      expect(likeButtons).toHaveLength(3);
-      expect(shareButtons).toHaveLength(3);
     });
 
     it('should be keyboard navigable', () => {

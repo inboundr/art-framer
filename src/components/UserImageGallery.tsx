@@ -5,6 +5,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { CreationsModal } from './CreationsModal';
+import { FrameSelector } from './FrameSelector';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart, XCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useCart } from '@/contexts/CartContext';
 
 interface UserImage {
   id: string;
@@ -20,9 +25,10 @@ interface UserImage {
 interface UserImageCardProps {
   image: UserImage;
   onImageClick: (image: UserImage) => void;
+  onBuyAsFrame: (image: UserImage) => void;
 }
 
-function UserImageCard({ image, onImageClick }: UserImageCardProps) {
+function UserImageCard({ image, onImageClick, onBuyAsFrame }: UserImageCardProps) {
   const getAspectRatioClass = () => {
     // Map our aspect ratios to CSS classes
     switch (image.aspect_ratio) {
@@ -89,22 +95,20 @@ function UserImageCard({ image, onImageClick }: UserImageCardProps) {
               loading="lazy"
             />
             
-            {/* Hover Overlay */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-end">
-              <div className="p-3 w-full transform translate-y-full group-hover:translate-y-0 transition-transform duration-200">
-                <p className="text-white text-sm font-medium line-clamp-2 mb-2">
-                  {image.prompt}
-                </p>
-                <div className="flex items-center justify-between text-white/80 text-xs">
-                  <span>{new Date(image.created_at).toLocaleDateString()}</span>
-                  <div className="flex items-center gap-1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="currentColor"/>
-                    </svg>
-                    <span>{image.likes}</span>
-                  </div>
-                </div>
-              </div>
+            {/* Order Frame Button - Top Right Corner */}
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <Button 
+                size="sm" 
+                variant="default" 
+                className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-3 py-2 shadow-lg"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBuyAsFrame(image);
+                }}
+              >
+                <ShoppingCart className="w-4 h-4 mr-1" />
+                Order Frame
+              </Button>
             </div>
           </div>
         </div>
@@ -115,11 +119,15 @@ function UserImageCard({ image, onImageClick }: UserImageCardProps) {
 
 export function UserImageGallery() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const { addToCart } = useCart();
   const [images, setImages] = useState<UserImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [selectedImage, setSelectedImage] = useState<UserImage | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [showFrameSelector, setShowFrameSelector] = useState(false);
+  const [frameSelectorImage, setFrameSelectorImage] = useState<UserImage | null>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
   const IMAGES_PER_PAGE = 20;
@@ -211,6 +219,88 @@ export function UserImageGallery() {
     setSelectedImage(null);
   };
 
+  const handleBuyAsFrame = (image: UserImage) => {
+    setFrameSelectorImage(image);
+    setShowFrameSelector(true);
+  };
+
+  const handleAddToCart = async (frame: any) => {
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to add items to your cart.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!frameSelectorImage?.id) {
+      toast({
+        title: 'Image Error',
+        description: 'Image ID is missing. Please try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          imageId: frameSelectorImage.id,
+          frameSize: frame.size,
+          frameStyle: frame.style,
+          frameMaterial: frame.material,
+          price: frame.price,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        
+        if (response.status === 401) {
+          throw new Error('Please log in to add items to your cart');
+        } else if (response.status === 404) {
+          throw new Error('Image not found or no longer available');
+        } else if (response.status === 500) {
+          throw new Error(errorData.details || errorData.error || 'Failed to create product');
+        } else {
+          throw new Error(errorData.error || 'Failed to create product');
+        }
+      }
+
+      const data = await response.json();
+      
+      const success = await addToCart(data.product.id, 1);
+
+      if (!success) {
+        throw new Error('Failed to add to cart');
+      }
+
+      toast({
+        title: 'Added to Cart',
+        description: 'Framed art has been added to your cart!',
+      });
+
+      setShowFrameSelector(false);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to add framed art to cart. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -272,6 +362,7 @@ export function UserImageGallery() {
                 key={image.id}
                 image={image}
                 onImageClick={handleImageClick}
+                onBuyAsFrame={handleBuyAsFrame}
               />
             ))}
           </div>
@@ -296,6 +387,46 @@ export function UserImageGallery() {
           isMobile={false} // You can add mobile detection here if needed
           isCuratedImage={false} // User images are not curated images
         />
+      )}
+
+      {/* Frame Selector Modal */}
+      {showFrameSelector && frameSelectorImage && (
+        <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-sm">
+          <div className="flex h-full">
+            <div className="flex-1 bg-background overflow-y-auto">
+              <div className="max-w-4xl mx-auto p-6">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold">Choose Your Frame</h2>
+                    <p className="text-muted-foreground">
+                      Select the perfect frame for your AI-generated art
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFrameSelector(false)}
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Frame Selector */}
+                <FrameSelector
+                  imageUrl={frameSelectorImage.image_url}
+                  imagePrompt={frameSelectorImage.prompt}
+                  onFrameSelect={(frame) => {
+                    // Handle frame selection
+                    console.log('Frame selected:', frame);
+                  }}
+                  onAddToCart={handleAddToCart}
+                  selectedFrame={null}
+                  showPreview={true}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

@@ -269,14 +269,14 @@ describe('Home Page Components - Production Ready Tests', () => {
     it('should render notification content', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      expect(screen.getByText(/free plan limit/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/upgrade/i)).toHaveLength(2);
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
+      expect(screen.getByText(/on all framed art orders/i)).toBeInTheDocument();
     });
 
     it('should render close button', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      const closeButton = screen.getAllByRole('button')[1]; // The close button is the second button
+      const closeButton = screen.getByRole('button'); // Only one button now
       expect(closeButton).toBeInTheDocument();
     });
 
@@ -284,7 +284,7 @@ describe('Home Page Components - Production Ready Tests', () => {
       const mockOnClose = jest.fn();
       render(<NotificationBar onClose={mockOnClose} />);
       
-      const closeButton = screen.getAllByRole('button')[1]; // The close button is the second button
+      const closeButton = screen.getByRole('button'); // Only one button now
       fireEvent.click(closeButton);
       
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -293,26 +293,24 @@ describe('Home Page Components - Production Ready Tests', () => {
     it('should render start creating button', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      const startButton = screen.getByText('See plans');
-      expect(startButton).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
     });
 
-    it('should render see plans button', () => {
+    it('should render shipping message', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      const plansButton = screen.getByText('See plans');
-      expect(plansButton).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
     });
 
-    it('should handle see plans button click', async () => {
-      // Mock window.open
-      render(<NotificationBar onClose={jest.fn()} />);
+    it('should handle close button click', async () => {
+      const mockOnClose = jest.fn();
+      render(<NotificationBar onClose={mockOnClose} />);
       
-      const plansButton = screen.getByText('See plans');
-      expect(plansButton).toBeInTheDocument();
+      const closeButton = screen.getByRole('button');
+      expect(closeButton).toBeInTheDocument();
       
-      // The button exists but doesn't have click functionality yet
-      // This test verifies the button is rendered correctly
+      fireEvent.click(closeButton);
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -421,9 +419,9 @@ describe('Home Page Components - Production Ready Tests', () => {
       render(<CuratedImageGallery onOpenAuthModal={jest.fn()} />);
       
       // Should handle error gracefully - component should still render
-      // The component renders 5 buttons per image (view, like, download, share, buy)
-      // With 2 images, that's 10 buttons total
-      expect(screen.getAllByRole('button')).toHaveLength(10);
+      // The component renders 1 button per image (Order Frame)
+      // With 2 images, that's 2 buttons total
+      expect(screen.getAllByRole('button')).toHaveLength(2);
       
       // Restore original localStorage and console
       localStorage.setItem = originalSetItem;
@@ -439,11 +437,11 @@ describe('Home Page Components - Production Ready Tests', () => {
 
       render(<NotificationBar onClose={jest.fn()} />);
       
-      const plansButton = screen.getByText('See plans');
-      fireEvent.click(plansButton);
+      const closeButton = screen.getByRole('button');
+      fireEvent.click(closeButton);
       
       // Should handle error gracefully
-      expect(plansButton).toBeInTheDocument();
+      expect(closeButton).toBeInTheDocument();
     });
   });
 
@@ -517,13 +515,9 @@ describe('Home Page Components - Production Ready Tests', () => {
     it('should have proper button roles', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      const closeButton = screen.getAllByRole('button')[1]; // The close button is the second button
-      const startButton = screen.getByText('See plans');
-      const plansButton = screen.getByText('See plans');
+      const closeButton = screen.getByRole('button'); // Only one button now
       
       expect(closeButton).toBeInTheDocument();
-      expect(startButton).toBeInTheDocument();
-      expect(plansButton).toBeInTheDocument();
     });
   });
 

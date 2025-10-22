@@ -9,19 +9,17 @@ import { NotificationBar } from '../NotificationBar';
 
 describe('NotificationBar', () => {
   describe('Component Rendering', () => {
-    it('should render notification bar with limit message', () => {
+    it('should render notification bar with shipping message', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      expect(screen.getByText(/you reached your free plan limit/i)).toBeInTheDocument();
-      expect(screen.getByText(/please wait for your weekly limit to reset/i)).toBeInTheDocument();
-      expect(screen.getByText(/upgrade your plan/i)).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
+      expect(screen.getByText(/on all framed art orders/i)).toBeInTheDocument();
     });
 
-    it('should render see plans button', () => {
+    it('should render truck emoji', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      const plansButton = screen.getByRole('button', { name: /see plans/i });
-      expect(plansButton).toBeInTheDocument();
+      expect(screen.getByText('🚚')).toBeInTheDocument();
     });
 
     it('should render close button', () => {
@@ -29,7 +27,7 @@ describe('NotificationBar', () => {
       
       // The close button is an icon button without accessible text
       const buttons = screen.getAllByRole('button');
-      expect(buttons).toHaveLength(2); // See plans button + close button
+      expect(buttons).toHaveLength(1); // Only close button (no see plans button)
     });
   });
 
@@ -38,9 +36,9 @@ describe('NotificationBar', () => {
       const mockOnClose = jest.fn();
       render(<NotificationBar onClose={mockOnClose} />);
       
-      // Find the close button (the one without text content)
+      // Find the close button (the only button now)
       const buttons = screen.getAllByRole('button');
-      const closeButton = buttons.find(button => !button.textContent?.includes('See plans'));
+      const closeButton = buttons[0];
       
       expect(closeButton).toBeInTheDocument();
       fireEvent.click(closeButton!);
@@ -52,39 +50,40 @@ describe('NotificationBar', () => {
       render(<NotificationBar />);
       
       // Should not throw error
-      expect(screen.getByText(/you reached your free plan limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
     });
   });
 
   describe('Button Interactions', () => {
-    it('should handle see plans button click', () => {
-      render(<NotificationBar onClose={jest.fn()} />);
+    it('should handle close button click', () => {
+      const mockOnClose = jest.fn();
+      render(<NotificationBar onClose={mockOnClose} />);
       
-      const plansButton = screen.getByRole('button', { name: /see plans/i });
-      fireEvent.click(plansButton);
+      const closeButton = screen.getByRole('button');
+      fireEvent.click(closeButton);
       
-      // Button should still be present after click
-      expect(plansButton).toBeInTheDocument();
+      // onClose should be called
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('Content Display', () => {
-    it('should display limit message', () => {
+    it('should display shipping message', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      expect(screen.getByText(/you reached your free plan limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
     });
 
-    it('should display reset message', () => {
+    it('should display framed art orders text', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      expect(screen.getByText(/please wait for your weekly limit to reset/i)).toBeInTheDocument();
+      expect(screen.getByText(/on all framed art orders/i)).toBeInTheDocument();
     });
 
-    it('should display upgrade message', () => {
+    it('should display truck emoji', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      expect(screen.getByText(/upgrade your plan/i)).toBeInTheDocument();
+      expect(screen.getByText('🚚')).toBeInTheDocument();
     });
   });
 
@@ -92,13 +91,13 @@ describe('NotificationBar', () => {
     it('should handle mobile viewport', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      expect(screen.getByText(/you reached your free plan limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
     });
 
     it('should handle desktop viewport', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      expect(screen.getByText(/you reached your free plan limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
     });
   });
 
@@ -106,7 +105,7 @@ describe('NotificationBar', () => {
     it('should handle component errors gracefully', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      expect(screen.getByText(/you reached your free plan limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
     });
   });
 
@@ -117,7 +116,7 @@ describe('NotificationBar', () => {
       const endTime = performance.now();
       
       expect(endTime - startTime).toBeLessThan(100); // Should render quickly
-      expect(screen.getByText(/you reached your free plan limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
     });
   });
 
@@ -126,20 +125,16 @@ describe('NotificationBar', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
       const buttons = screen.getAllByRole('button');
-      expect(buttons).toHaveLength(2);
-      
-      // Check that one button has accessible text
-      const plansButton = screen.getByRole('button', { name: /see plans/i });
-      expect(plansButton).toBeInTheDocument();
+      expect(buttons).toHaveLength(1); // Only close button
     });
 
     it('should be keyboard navigable', () => {
       render(<NotificationBar onClose={jest.fn()} />);
       
-      const plansButton = screen.getByRole('button', { name: /see plans/i });
-      plansButton.focus();
+      const closeButton = screen.getByRole('button');
+      closeButton.focus();
       
-      expect(document.activeElement).toBe(plansButton);
+      expect(document.activeElement).toBe(closeButton);
     });
   });
 
@@ -147,13 +142,13 @@ describe('NotificationBar', () => {
     it('should handle undefined props', () => {
       render(<NotificationBar onClose={undefined as any} />);
       
-      expect(screen.getByText(/you reached your free plan limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
     });
 
     it('should handle null props', () => {
       render(<NotificationBar onClose={null as any} />);
       
-      expect(screen.getByText(/you reached your free plan limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
     });
   });
 
@@ -169,14 +164,13 @@ describe('NotificationBar', () => {
       
       render(<ParentComponent />);
       
-      expect(screen.getByText(/you reached your free plan limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/free shipping over \$100/i)).toBeInTheDocument();
       
       // Find and click close button
-      const buttons = screen.getAllByRole('button');
-      const closeButton = buttons.find(button => !button.textContent?.includes('See plans'));
-      fireEvent.click(closeButton!);
+      const closeButton = screen.getByRole('button');
+      fireEvent.click(closeButton);
       
-      expect(screen.queryByText(/you reached your free plan limit/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/free shipping over \$100/i)).not.toBeInTheDocument();
     });
 
     it('should handle multiple instances', () => {
@@ -187,8 +181,8 @@ describe('NotificationBar', () => {
         </div>
       );
       
-      const limitTexts = screen.getAllByText(/you reached your free plan limit/i);
-      expect(limitTexts).toHaveLength(2);
+      const shippingTexts = screen.getAllByText(/free shipping over \$100/i);
+      expect(shippingTexts).toHaveLength(2);
     });
   });
 });
