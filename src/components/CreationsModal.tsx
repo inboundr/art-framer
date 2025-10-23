@@ -6,6 +6,7 @@ import { Package, Download, Share2, XCircle, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
+import { useCartNotification } from './CartNotificationToast';
 import { supabase } from '@/lib/supabase/client';
 
 interface CreationsModalProps {
@@ -32,6 +33,7 @@ export function CreationsModal({
   const { user } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
+  const { showCartNotification } = useCartNotification();
 
   // Normalize any storage path into a public URL so the browser doesn't request /images/...
   const normalizedImageUrl = useMemo(() => {
@@ -163,12 +165,21 @@ export function CreationsModal({
         throw new Error('Failed to add to cart');
       }
 
-      toast({
-        title: 'Added to Cart',
-        description: 'Framed art has been added to your cart!',
+      // Show enhanced cart notification with action buttons
+      showCartNotification({
+        itemName: `${frame.size} ${frame.style} Frame`,
+        itemImage: imageUrl,
+        onViewCart: () => {
+          // Close the modal and navigate to cart
+          setShowFrameSelector(false);
+          onClose();
+          window.location.href = '/cart';
+        },
+        onContinueShopping: () => {
+          // Just close the frame selector
+          setShowFrameSelector(false);
+        }
       });
-
-      setShowFrameSelector(false);
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast({

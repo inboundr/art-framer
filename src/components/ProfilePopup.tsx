@@ -81,62 +81,10 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
           </div>
         </div>
 
-        {/* User Status Section */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Ready to Create</span>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="16" 
-                height="16" 
-                fill="currentColor" 
-                viewBox="0 0 24 24"
-                className="text-green-500"
-              >
-                <path 
-                  fillRule="evenodd" 
-                  d="M13.143 2.042a.996.996 0 00-.693.044c-.261.113-.528.34-.79.733L9.491 6.037c-.353.528-.867 1.28-1.318 1.94l-2.653 3.84v.002c-.26.38-.36.72-.37 1.008-.01.288.068.51.145.655.079.149.222.343.475.5.253.157.603.268 1.084.268h3.409v6.24c0 .136 0 .433.085.724.087.295.275.623.675.745a.926.926 0 00.271.041c.326 0 .59-.175.778-.352.188-.178.323-.38.391-.482l.002-.002 2.068-3.23.138-.206c.505-.755 1.233-1.844 1.698-2.526l2.13-3.156c.393-.58.492-1.23.207-1.768-.28-.53-.859-.81-1.543-.81H13.95V3.522c0-.475-.095-.816-.25-1.056a.992.992 0 00-.558-.425z" 
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span className="font-semibold">Unlimited Frames</span>
-            </div>
-          </div>
-          
-          {/* Status Indicator */}
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="h-2 rounded-full transition-all duration-300 bg-gradient-to-r from-green-500 to-blue-500"
-              style={{ width: '100%' }}
-            />
-          </div>
-        </div>
-
-        {/* Create Frame Button */}
-        <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-pink-primary text-white rounded-lg hover:bg-pink-primary/90 transition-colors">
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width="20" 
-            height="20" 
-            fill="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path 
-              fillRule="evenodd" 
-              d="M13.143 2.042a.996.996 0 00-.693.044c-.261.113-.528.34-.79.733L9.491 6.037c-.353.528-.867 1.28-1.318 1.94l-2.653 3.84v.002c-.26.38-.36.72-.37 1.008-.01.288.068.51.145.655.079.149.222.343.475.5.253.157.603.268 1.084.268h3.409v6.24c0 .136 0 .433.085.724.087.295.275.623.675.745a.926.926 0 00.271.041c.326 0 .59-.175.778-.352.188-.178.323-.38.391-.482l.002-.002 2.068-3.23.138-.206c.505-.755 1.233-1.844 1.698-2.526l2.13-3.156c.393-.58.492-1.23.207-1.768-.28-.53-.859-.81-1.543-.81H13.95V3.522c0-.475-.095-.816-.25-1.056a.992.992 0 00-.558-.425z" 
-              clipRule="evenodd"
-            />
-          </svg>
-          Upgrade plan
-        </button>
       </div>
 
       {/* Menu Items */}
       <div className="border-t border-gray-100">
-        <button className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-          View profile
-        </button>
         <button 
           onClick={() => {
             router.push('/faq');
@@ -146,15 +94,6 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
         >
           Help & documentation
         </button>
-        <button className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-          Manage muted users
-        </button>
-        <button className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-          Delete account
-        </button>
-        <button className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-          API
-        </button>
         <button 
           onClick={handleLogout}
           className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -163,29 +102,6 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
         </button>
       </div>
 
-      {/* Theme Toggle */}
-      <div className="border-t border-gray-100 p-4">
-        <div className="flex rounded-lg border border-gray-200 overflow-hidden">
-          <button className="flex-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 3a.5.5 0 01.5.5v1a.5.5 0 01-1 0v-1a.5.5 0 01.5-.5zm0 10a3 3 0 100-6 3 3 0 000 6zm0-1a2 2 0 110-4 2 2 0 010 4zm6.5-1.5a.5.5 0 000-1h-1a.5.5 0 000 1h1zM10 15a.5.5 0 01.5.5v1a.5.5 0 01-1 0v-1a.5.5 0 01.5-.5zM5 10.5a.5.5 0 000-1H4a.5.5 0 000 1h1zm.646-5.354a.5.5 0 01.708 0l1 1a.5.5 0 11-.708.708l-1-1a.5.5 0 010-.708zm.708 9.708a.5.5 0 11-.708-.707l1-1a.5.5 0 01.708.707l-1 1zm9-9.708a.5.5 0 00-.708 0l-1 1a.5.5 0 00.708.708l1-1a.5.5 0 000-.708zm-.708 9.708a.5.5 0 00.708-.707l-1-1a.5.5 0 00-.708.707l1 1z"/>
-            </svg>
-            Light
-          </button>
-          <button className="flex-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10.184 5.015a5 5 0 11-4.586 7.712c1.403-.38 3.316-1.302 4.16-3.551.552-1.474.584-2.938.426-4.16zM15.79 10a6 6 0 00-6.211-5.996.5.5 0 00-.474.592c.229 1.214.279 2.728-.284 4.228-.8 2.134-2.802 2.84-4.077 3.071a.5.5 0 00-.361.71A6 6 0 0015.79 10z"/>
-            </svg>
-            Dark
-          </button>
-          <button className="flex-1 px-3 py-2 text-sm bg-gray-900 text-white flex items-center justify-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M7.167 6a1.5 1.5 0 00-1.5 1.5v4a1.5 1.5 0 001.5 1.5h7a1.5 1.5 0 001.5-1.5v-4a1.5 1.5 0 00-1.5-1.5h-7zm-.5 1.5a.5.5 0 01.5-.5h7a.5.5 0 01.5.5v4a.5.5 0 01-.5.5h-7a.5.5 0 01-.5-.5v-4zm-1.5 6.5a.5.5 0 000 1h11a.5.5 0 000-1h-11z"/>
-            </svg>
-            Auto
-          </button>
-        </div>
-      </div>
 
       {/* Footer */}
       <div className="border-t border-gray-100 p-4">

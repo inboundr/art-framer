@@ -10,6 +10,7 @@ import { useDynamicAnimationsSafe } from '@/hooks/useDynamicHooksSafe';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
+import { useCartNotification } from './CartNotificationToast';
 import { supabase } from '@/lib/supabase/client';
 import { CreationsModal } from './CreationsModal';
 import { FrameSelector } from './FrameSelector';
@@ -29,6 +30,7 @@ function CuratedImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal, 
   const { user } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
+  const { showCartNotification } = useCartNotification();
 
   const handleImageClick = () => {
     onImageClick?.(image);
@@ -36,7 +38,10 @@ function CuratedImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal, 
 
   const handleBuyAsFrame = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering image click
+    console.log('🛒 Order Frame clicked:', { user: !!user, hasOnOpenAuthModal: !!onOpenAuthModal });
+    
     if (!user) {
+      console.log('🔐 User not authenticated, opening auth modal');
       // Store the selected image in localStorage for after login
       localStorage.setItem('pending-cart-image', JSON.stringify({
         id: image.id,
@@ -49,10 +54,14 @@ function CuratedImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal, 
       
       // Show auth modal for non-authenticated users
       if (onOpenAuthModal) {
+        console.log('🔐 Calling onOpenAuthModal');
         onOpenAuthModal();
+      } else {
+        console.error('❌ onOpenAuthModal not provided');
       }
       return;
     }
+    console.log('✅ User authenticated, proceeding to frame selection');
     // Directly trigger the frame selection without opening CreationsModal
     onBuyAsFrame?.(image);
   };
@@ -225,9 +234,9 @@ export function CuratedImageGallery({
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             };
-            // Show the image in CreationsModal for pending image
-            setSelectedImage(curatedImage);
-            setShowCreationsModal(true);
+            // Go directly to frame selection for pending image
+            setFrameSelectorImage(curatedImage);
+            setShowFrameSelector(true);
             // Clear the pending image
             localStorage.removeItem('pending-cart-image');
           } else {
@@ -255,6 +264,7 @@ export function CuratedImageGallery({
   // Cart and toast hooks
   const { toast } = useToast();
   const { addToCart } = useCart();
+  const { showCartNotification } = useCartNotification();
 
   // Ensure hydration safety
   useEffect(() => {
@@ -344,12 +354,20 @@ export function CuratedImageGallery({
         throw new Error('Failed to add to cart');
       }
 
-      toast({
-        title: 'Added to Cart',
-        description: 'Framed art has been added to your cart!',
+      // Show enhanced cart notification with action buttons
+      showCartNotification({
+        itemName: `${frame.size} ${frame.style} Frame`,
+        itemImage: frameSelectorImage.image_url,
+        onViewCart: () => {
+          // Close the frame selector and navigate to cart
+          setShowFrameSelector(false);
+          window.location.href = '/cart';
+        },
+        onContinueShopping: () => {
+          // Just close the frame selector
+          setShowFrameSelector(false);
+        }
       });
-
-      setShowFrameSelector(false);
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast({
