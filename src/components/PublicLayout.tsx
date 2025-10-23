@@ -168,7 +168,10 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               <SearchBar onOpenGenerationPanel={handleOpenGenerationPanel} />
               
               {/* Main Curated Image Gallery - LOADS IMMEDIATELY */}
-              <CuratedImageGallery onOpenAuthModal={() => setAuthModalVisible(true)} />
+              <CuratedImageGallery onOpenAuthModal={() => {
+                console.log('🔐 Auth modal triggered from CuratedImageGallery');
+                setAuthModalVisible(true);
+              }} />
             </div>
           )}
         </div>
@@ -194,6 +197,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       <AuthModal
         isOpen={authModalVisible}
         onClose={() => {
+          console.log('🔐 Auth modal closed');
           setAuthModalVisible(false);
           setPendingGenerationRequest(null);
         }}

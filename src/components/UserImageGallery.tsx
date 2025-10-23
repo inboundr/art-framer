@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingCart, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
+import { useCartNotification } from './CartNotificationToast';
 
 interface UserImage {
   id: string;
@@ -121,6 +122,7 @@ export function UserImageGallery() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
+  const { showCartNotification } = useCartNotification();
   const [images, setImages] = useState<UserImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
@@ -285,12 +287,20 @@ export function UserImageGallery() {
         throw new Error('Failed to add to cart');
       }
 
-      toast({
-        title: 'Added to Cart',
-        description: 'Framed art has been added to your cart!',
+      // Show enhanced cart notification with action buttons
+      showCartNotification({
+        itemName: `${frame.size} ${frame.style} Frame`,
+        itemImage: frameSelectorImage.image_url,
+        onViewCart: () => {
+          // Close the frame selector and navigate to cart
+          setShowFrameSelector(false);
+          window.location.href = '/cart';
+        },
+        onContinueShopping: () => {
+          // Just close the frame selector
+          setShowFrameSelector(false);
+        }
       });
-
-      setShowFrameSelector(false);
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast({

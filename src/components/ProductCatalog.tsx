@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ShoppingCart, Heart, Eye, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useCartNotification } from './CartNotificationToast';
 
 interface Product {
   id: string;
@@ -61,6 +62,7 @@ export function ProductCatalog({
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const { user } = useAuth();
   const { toast } = useToast();
+  const { showCartNotification } = useCartNotification();
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -118,9 +120,15 @@ export function ProductCatalog({
         throw new Error('Failed to add to cart');
       }
 
-      toast({
-        title: 'Added to Cart',
-        description: 'Item has been added to your cart successfully.',
+      // Show enhanced cart notification with action buttons
+      showCartNotification({
+        itemName: `Product #${productId}`,
+        onViewCart: () => {
+          window.location.href = '/cart';
+        },
+        onContinueShopping: () => {
+          // Just continue browsing
+        }
       });
     } catch (err) {
       toast({
