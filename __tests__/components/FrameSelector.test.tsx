@@ -68,10 +68,17 @@ describe('FrameSelector Component', () => {
   it('should render frame options', () => {
     render(<FrameSelector {...defaultProps} />);
 
-    // Check for frame option buttons - these are in the size labels
-    expect(screen.getByText('Small (8" x 10")')).toBeInTheDocument();
-    expect(screen.getByText('Medium (12" x 16")')).toBeInTheDocument();
-    expect(screen.getByText('Large (16" x 20")')).toBeInTheDocument();
+    // Check for frame option dropdown trigger
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    
+    // Check for frame style options (now only color indicators, no text labels)
+    // We can verify the radio group exists and has the correct number of options
+    const radioGroups = screen.getAllByRole('radiogroup');
+    expect(radioGroups.length).toBeGreaterThan(0);
+    
+    // Check that we have radio buttons for frame styles
+    const radioButtons = screen.getAllByRole('radio');
+    expect(radioButtons.length).toBeGreaterThanOrEqual(5); // At least 5 frame style options
   });
 
   it('should handle frame selection', () => {

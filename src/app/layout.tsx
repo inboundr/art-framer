@@ -50,7 +50,7 @@ export default function RootLayout({
                 {children}
                 <Toaster />
                 <Sonner />
-                <AuthDebugPanel />
+                {process.env.NODE_ENV === 'development' && <AuthDebugPanel />}
               </TooltipProvider>
             </GenerationProvider>
           </CartProvider>
