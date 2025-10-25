@@ -522,9 +522,6 @@ export function CuratedImageGallery({
                         </div>
                       </div>
                     </div>
-                    <p className="text-muted-foreground">
-                      Select the perfect frame for your AI-generated art
-                    </p>
                   </div>
                   <Button
                     variant="outline"

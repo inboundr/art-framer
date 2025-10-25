@@ -85,20 +85,25 @@ describe('FrameSelector - Basic Tests', () => {
   it('should render size options with correct labels', () => {
     render(<FrameSelector {...defaultProps} />);
     
-    expect(screen.getByText('Small (8" x 10")')).toBeInTheDocument();
-    expect(screen.getByText('Medium (12" x 16")')).toBeInTheDocument();
-    expect(screen.getByText('Large (16" x 20")')).toBeInTheDocument();
-    expect(screen.getByText('Extra Large (20" x 24")')).toBeInTheDocument();
+    // Check for the dropdown trigger
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    
+    // The size options are now in a dropdown, so we check for the dropdown trigger
+    // and the current selection display
+    expect(screen.getByText('Frame Size')).toBeInTheDocument();
   });
 
   it('should render style options', () => {
     render(<FrameSelector {...defaultProps} />);
     
-    expect(screen.getByText('Black')).toBeInTheDocument();
-    expect(screen.getByText('White')).toBeInTheDocument();
-    expect(screen.getByText('Natural')).toBeInTheDocument();
-    expect(screen.getByText('Gold')).toBeInTheDocument();
-    expect(screen.getByText('Silver')).toBeInTheDocument();
+    // Check for frame style options (now only color indicators, no text labels)
+    // We can verify the radio group exists and has the correct number of options
+    const radioGroups = screen.getAllByRole('radiogroup');
+    expect(radioGroups.length).toBeGreaterThan(0);
+    
+    // Check that we have radio buttons for frame styles
+    const radioButtons = screen.getAllByRole('radio');
+    expect(radioButtons.length).toBeGreaterThanOrEqual(5); // At least 5 frame style options
   });
 
   it('should render material options', () => {
