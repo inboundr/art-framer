@@ -26,19 +26,45 @@ export function useCuratedGallery(options: {
     setError(null);
 
     try {
-      const response = await curatedImageAPI.getGallery(page, memoizedOptions.pageSize || 20, memoizedOptions.filters);
-      console.log('✅ Curated gallery response:', response);
+      // Use API endpoint instead of direct Supabase call
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: (memoizedOptions.pageSize || 20).toString(),
+      });
+
+      if (memoizedOptions.filters?.category) {
+        params.append('category', memoizedOptions.filters.category);
+      }
+      if (memoizedOptions.filters?.featured_only) {
+        params.append('featured_only', 'true');
+      }
+      if (memoizedOptions.filters?.aspect_ratio) {
+        params.append('aspect_ratio', memoizedOptions.filters.aspect_ratio);
+      }
+      if (memoizedOptions.filters?.tags && memoizedOptions.filters.tags.length > 0) {
+        params.append('tags', memoizedOptions.filters.tags.join(','));
+      }
+
+      console.log('📡 Calling API endpoint with params:', params.toString());
+      const response = await fetch(`/api/curated-images?${params.toString()}`);
       
-      if (append) {
-        setImages(prev => [...prev, ...response.images]);
-      } else {
-        setImages(response.images);
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
       
-      setCurrentPage(response.pagination.page);
-      setTotalPages(response.pagination.total_pages);
-      setTotalImages(response.pagination.total);
-      setHasMore(response.pagination.has_more);
+      const data = await response.json();
+      console.log('✅ Curated gallery API response:', data);
+      
+      if (append) {
+        setImages(prev => [...prev, ...data.images]);
+      } else {
+        setImages(data.images);
+      }
+      
+      setCurrentPage(data.pagination.page);
+      setTotalPages(data.pagination.total_pages);
+      setTotalImages(data.pagination.total);
+      setHasMore(data.pagination.has_more);
     } catch (err) {
       console.error('❌ Curated gallery loading error:', err);
       const error = err instanceof Error ? err : new Error('Failed to load curated gallery');
@@ -56,19 +82,44 @@ export function useCuratedGallery(options: {
     }
     console.log('🔄 loadMore called for page:', currentPage + 1);
     
-    // Direct API call to avoid circular dependency
     setLoading(true);
     setError(null);
 
     try {
-      const response = await curatedImageAPI.getGallery(currentPage + 1, memoizedOptions.pageSize || 20, memoizedOptions.filters);
-      console.log('✅ Load more response:', response);
+      // Use API endpoint instead of direct Supabase call
+      const params = new URLSearchParams({
+        page: (currentPage + 1).toString(),
+        limit: (memoizedOptions.pageSize || 20).toString(),
+      });
+
+      if (memoizedOptions.filters?.category) {
+        params.append('category', memoizedOptions.filters.category);
+      }
+      if (memoizedOptions.filters?.featured_only) {
+        params.append('featured_only', 'true');
+      }
+      if (memoizedOptions.filters?.aspect_ratio) {
+        params.append('aspect_ratio', memoizedOptions.filters.aspect_ratio);
+      }
+      if (memoizedOptions.filters?.tags && memoizedOptions.filters.tags.length > 0) {
+        params.append('tags', memoizedOptions.filters.tags.join(','));
+      }
+
+      console.log('📡 Calling API endpoint for load more...');
+      const response = await fetch(`/api/curated-images?${params.toString()}`);
       
-      setImages(prev => [...prev, ...response.images]);
-      setCurrentPage(response.pagination.page);
-      setTotalPages(response.pagination.total_pages);
-      setTotalImages(response.pagination.total);
-      setHasMore(response.pagination.has_more);
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Load more API response:', data);
+      
+      setImages(prev => [...prev, ...data.images]);
+      setCurrentPage(data.pagination.page);
+      setTotalPages(data.pagination.total_pages);
+      setTotalImages(data.pagination.total);
+      setHasMore(data.pagination.has_more);
     } catch (err) {
       console.error('❌ Load more error:', err);
       const error = err instanceof Error ? err : new Error('Failed to load more images');
@@ -85,14 +136,40 @@ export function useCuratedGallery(options: {
     setError(null);
 
     try {
-      const response = await curatedImageAPI.getGallery(1, memoizedOptions.pageSize || 20, memoizedOptions.filters);
-      console.log('✅ Refresh response:', response);
+      // Use API endpoint instead of direct Supabase call
+      const params = new URLSearchParams({
+        page: '1',
+        limit: (memoizedOptions.pageSize || 20).toString(),
+      });
+
+      if (memoizedOptions.filters?.category) {
+        params.append('category', memoizedOptions.filters.category);
+      }
+      if (memoizedOptions.filters?.featured_only) {
+        params.append('featured_only', 'true');
+      }
+      if (memoizedOptions.filters?.aspect_ratio) {
+        params.append('aspect_ratio', memoizedOptions.filters.aspect_ratio);
+      }
+      if (memoizedOptions.filters?.tags && memoizedOptions.filters.tags.length > 0) {
+        params.append('tags', memoizedOptions.filters.tags.join(','));
+      }
+
+      console.log('📡 Calling API endpoint for refresh...');
+      const response = await fetch(`/api/curated-images?${params.toString()}`);
       
-      setImages(response.images);
-      setCurrentPage(response.pagination.page);
-      setTotalPages(response.pagination.total_pages);
-      setTotalImages(response.pagination.total);
-      setHasMore(response.pagination.has_more);
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Refresh API response:', data);
+      
+      setImages(data.images);
+      setCurrentPage(data.pagination.page);
+      setTotalPages(data.pagination.total_pages);
+      setTotalImages(data.pagination.total);
+      setHasMore(data.pagination.has_more);
     } catch (err) {
       console.error('❌ Refresh error:', err);
       const error = err instanceof Error ? err : new Error('Failed to refresh gallery');
@@ -143,15 +220,40 @@ export function useCuratedGallery(options: {
       setError(null);
 
       try {
-        console.log('📡 Calling curatedImageAPI.getGallery...');
-        const response = await curatedImageAPI.getGallery(1, memoizedOptions.pageSize || 20, memoizedOptions.filters);
-        console.log('✅ Initial curated gallery response:', response);
+        // Use API endpoint instead of direct Supabase call
+        const params = new URLSearchParams({
+          page: '1',
+          limit: (memoizedOptions.pageSize || 20).toString(),
+        });
+
+        if (memoizedOptions.filters?.category) {
+          params.append('category', memoizedOptions.filters.category);
+        }
+        if (memoizedOptions.filters?.featured_only) {
+          params.append('featured_only', 'true');
+        }
+        if (memoizedOptions.filters?.aspect_ratio) {
+          params.append('aspect_ratio', memoizedOptions.filters.aspect_ratio);
+        }
+        if (memoizedOptions.filters?.tags && memoizedOptions.filters.tags.length > 0) {
+          params.append('tags', memoizedOptions.filters.tags.join(','));
+        }
+
+        console.log('📡 Calling API endpoint for initial load...');
+        const response = await fetch(`/api/curated-images?${params.toString()}`);
         
-        setImages(response.images);
-        setCurrentPage(response.pagination.page);
-        setTotalPages(response.pagination.total_pages);
-        setTotalImages(response.pagination.total);
-        setHasMore(response.pagination.has_more);
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Initial curated gallery API response:', data);
+        
+        setImages(data.images);
+        setCurrentPage(data.pagination.page);
+        setTotalPages(data.pagination.total_pages);
+        setTotalImages(data.pagination.total);
+        setHasMore(data.pagination.has_more);
       } catch (err) {
         console.error('❌ Initial curated gallery error:', err);
         const error = err instanceof Error ? err : new Error('Failed to load initial curated gallery');

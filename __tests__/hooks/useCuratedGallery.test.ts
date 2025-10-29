@@ -1,35 +1,30 @@
 import { renderHook, act } from '@testing-library/react';
 import { useCuratedGallery } from '@/hooks/useCuratedGallery';
 
-// Mock the curated images API
-jest.mock('@/lib/curated-images', () => ({
-  curatedImageAPI: {
-    getGallery: jest.fn(),
-    getFeaturedImages: jest.fn(),
-    getCategories: jest.fn(),
-    getTags: jest.fn(),
-    searchImages: jest.fn(),
-  },
-}));
+// Mock fetch globally
+global.fetch = jest.fn();
 
 describe('useCuratedGallery Hook', () => {
-  let mockCuratedImageAPI: any;
+  const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCuratedImageAPI = require('@/lib/curated-images').curatedImageAPI;
+    mockFetch.mockClear();
   });
 
   it('should initialize with empty state', async () => {
-    mockCuratedImageAPI.getGallery.mockResolvedValue({
-      images: [],
-      pagination: {
-        page: 1,
-        total_pages: 0,
-        total: 0,
-        has_more: false,
-      },
-    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        images: [],
+        pagination: {
+          page: 1,
+          total_pages: 0,
+          total: 0,
+          has_more: false,
+        },
+      }),
+    } as Response);
 
     const { result } = renderHook(() => useCuratedGallery());
 
@@ -55,15 +50,18 @@ describe('useCuratedGallery Hook', () => {
       },
     ];
 
-    mockCuratedImageAPI.getGallery.mockResolvedValue({
-      images: mockImages,
-      pagination: {
-        page: 1,
-        total_pages: 1,
-        total: mockImages.length,
-        has_more: true,
-      },
-    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        images: mockImages,
+        pagination: {
+          page: 1,
+          total_pages: 1,
+          total: mockImages.length,
+          has_more: true,
+        },
+      }),
+    } as Response);
 
     const { result } = renderHook(() => useCuratedGallery());
 
@@ -79,7 +77,7 @@ describe('useCuratedGallery Hook', () => {
   });
 
   it('should handle fetch error', async () => {
-    mockCuratedImageAPI.getGallery.mockRejectedValue(new Error('Failed to fetch images'));
+    mockFetch.mockRejectedValueOnce(new Error('Failed to fetch images'));
 
     const { result } = renderHook(() => useCuratedGallery());
 
@@ -114,25 +112,31 @@ describe('useCuratedGallery Hook', () => {
       },
     ];
 
-    mockCuratedImageAPI.getGallery
+    mockFetch
       .mockResolvedValueOnce({
-        images: initialImages,
-        pagination: {
-          page: 1,
-          total_pages: 2,
-          total: 2,
-          has_more: true,
-        },
-      })
+        ok: true,
+        json: async () => ({
+          images: initialImages,
+          pagination: {
+            page: 1,
+            total_pages: 2,
+            total: 2,
+            has_more: true,
+          },
+        }),
+      } as Response)
       .mockResolvedValueOnce({
-        images: moreImages,
-        pagination: {
-          page: 2,
-          total_pages: 2,
-          total: 2,
-          has_more: false,
-        },
-      });
+        ok: true,
+        json: async () => ({
+          images: moreImages,
+          pagination: {
+            page: 2,
+            total_pages: 2,
+            total: 2,
+            has_more: false,
+          },
+        }),
+      } as Response);
 
     const { result } = renderHook(() => useCuratedGallery());
 
@@ -159,7 +163,7 @@ describe('useCuratedGallery Hook', () => {
       resolveFetch = resolve;
     });
 
-    mockCuratedImageAPI.getGallery.mockReturnValueOnce(fetchPromise);
+    mockFetch.mockReturnValueOnce(fetchPromise);
 
     const { result } = renderHook(() => useCuratedGallery());
 
@@ -173,13 +177,16 @@ describe('useCuratedGallery Hook', () => {
     // Resolve fetch
     await act(async () => {
       resolveFetch!({
-        images: [],
-        pagination: {
-          page: 1,
-          total_pages: 1,
-          total: 0,
-          has_more: false,
-        },
+        ok: true,
+        json: async () => ({
+          images: [],
+          pagination: {
+            page: 1,
+            total_pages: 1,
+            total: 0,
+            has_more: false,
+          },
+        }),
       });
     });
 
