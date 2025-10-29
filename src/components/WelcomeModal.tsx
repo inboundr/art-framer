@@ -3,8 +3,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Star, Globe, Zap, Sparkles, Palette, Image as ImageIcon } from 'lucide-react';
+import { Play, Sparkles, Palette, ShoppingCart } from 'lucide-react';
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -20,93 +19,88 @@ export function WelcomeModal({ isOpen, onClose, onStartCreating }: WelcomeModalP
     }
   }, [isOpen]);
 
-  const features = [
+  const steps = [
     {
-      icon: <Star className="w-5 h-5 text-pink-primary" />,
-      title: "Create unlimited art frames",
-      description: "Generate as many custom frames as you want! No limits, no restrictions - just pure creativity."
+      icon: <Sparkles className="w-4 h-4 text-pink-primary" />,
+      text: "Generate AI art with simple prompts"
     },
     {
-      icon: <Globe className="w-5 h-5 text-primary" />,
-      title: "Your generations are private",
-      description: "All your generated images are private to you. The home page shows curated public images for inspiration."
+      icon: <Palette className="w-4 h-4 text-pink-primary" />,
+      text: "Choose your perfect frame style"
     },
     {
-      icon: <Zap className="w-5 h-5 text-pink-primary" />,
-      title: "Get premium features with a subscription",
-      description: "Learn about our advanced features like Upscale, Image Upload, and more in our Docs or Pricing page."
-    },
-    {
-      icon: <Palette className="w-5 h-5 text-primary" />,
-      title: "Advanced customization options",
-      description: "Control aspect ratios, models, styles, colors, and magic prompts for perfect results."
-    },
-    {
-      icon: <ImageIcon className="w-5 h-5 text-pink-primary" />,
-      title: "Image attachment support",
-      description: "Upload reference images to guide your AI generation and get more accurate results."
-    },
-    {
-      icon: <Sparkles className="w-5 h-5 text-primary" />,
-      title: "Magic prompt enhancement",
-      description: "Let AI enhance your prompts automatically for better, more creative results."
+      icon: <ShoppingCart className="w-4 h-4 text-pink-primary" />,
+      text: "Order and get it delivered to your door"
     }
   ];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="text-center pb-6">
-          <DialogTitle className="text-3xl font-bold text-foreground">
-            Welcome to Art Framer!
-          </DialogTitle>
-          <p className="text-lg text-muted-foreground mt-2">
-            Create AI art and order it framed to your house. Get to know your free plan:
-          </p>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          {features.map((feature, index) => (
-            <Card key={index} className="border border-border bg-card hover:bg-muted/30 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 mt-1">
-                    {feature.icon}
+      <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-hidden">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left side - Text content */}
+          <div className="flex-1 space-y-6">
+            <DialogHeader className="text-left">
+              <DialogTitle className="text-2xl font-bold text-foreground">
+                Welcome to Art Framer!
+              </DialogTitle>
+              <p className="text-base text-muted-foreground mt-2">
+                Create stunning AI art and order it framed to your house in just 3 simple steps:
+              </p>
+            </DialogHeader>
+            
+            <div className="space-y-3">
+              {steps.map((step, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    {step.icon}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground mb-1">
-                      {feature.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </div>
+                  <span className="text-sm text-foreground">
+                    {step.text}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              ))}
+            </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-border">
-          <Button 
-            onClick={onStartCreating}
-            className="flex-1 bg-pink-primary hover:bg-pink-primary/90 text-white font-semibold py-3"
-          >
-            Start Creating
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => window.open('/pricing', '_blank')}
-            className="flex-1 border-border text-foreground hover:bg-muted font-semibold py-3"
-          >
-            See Our Plans
-          </Button>
-        </div>
+            <div className="space-y-3">
+              <div className="bg-muted/30 rounded-lg p-4">
+                <h4 className="font-semibold text-foreground mb-2">✨ What makes us special:</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Unlimited free art generation</li>
+                  <li>• Your creations stay private</li>
+                  <li>• High-quality frames delivered worldwide</li>
+                  <li>• No subscription required to start</li>
+                </ul>
+              </div>
+            </div>
 
-        <div className="text-center pt-4">
-          <p className="text-sm text-muted-foreground">
-            Start creating your first frame today - it&apos;s completely free!
-          </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                onClick={onStartCreating}
+                className="flex-1 bg-pink-primary hover:bg-pink-primary/90 text-white font-semibold py-2.5"
+              >
+                Start Creating Now
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => window.open('/pricing', '_blank')}
+                className="flex-1 border-border text-foreground hover:bg-muted font-semibold py-2.5"
+              >
+                View Plans
+              </Button>
+            </div>
+          </div>
+
+          {/* Right side - Video/Demo placeholder */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-full max-w-md aspect-video bg-muted/20 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center p-6">
+              <Play className="w-12 h-12 text-muted-foreground/50 mb-3" />
+              <p className="text-sm text-muted-foreground text-center">
+                Demo video coming soon!<br />
+                Watch how easy it is to create and frame your art
+              </p>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
