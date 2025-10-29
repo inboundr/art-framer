@@ -81,10 +81,31 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
           await fetchProfile(refreshData.session.user.id);
         }
       } else if (session) {
-        setSession(session);
-        setUser(session.user);
-        // Fetch profile for current session
-        await fetchProfile(session.user.id);
+        // Check if session is expired or about to expire (within 5 minutes)
+        const expiresAt = session.expires_at ? session.expires_at * 1000 : null;
+        const now = Date.now();
+        const fiveMinutes = 5 * 60 * 1000;
+        
+        if (expiresAt && expiresAt < (now + fiveMinutes)) {
+          console.log('🔄 CentralizedAuth: Session expiring soon, refreshing...');
+          // Refresh session proactively
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (!refreshError && refreshData.session) {
+            setSession(refreshData.session);
+            setUser(refreshData.session.user);
+            await fetchProfile(refreshData.session.user.id);
+          } else {
+            // Refresh failed, use existing session
+            setSession(session);
+            setUser(session.user);
+            await fetchProfile(session.user.id);
+          }
+        } else {
+          setSession(session);
+          setUser(session.user);
+          // Fetch profile for current session
+          await fetchProfile(session.user.id);
+        }
       }
 
       setIsInitialized(true);
@@ -223,15 +244,30 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
 
   const refreshSession = useCallback(async () => {
     try {
+      console.log('🔄 CentralizedAuth: Refreshing session...');
       const { data, error } = await supabase.auth.refreshSession();
       if (!error && data.session) {
+        console.log('✅ CentralizedAuth: Session refreshed successfully');
         setSession(data.session);
         setUser(data.session.user);
+        // Fetch profile after session refresh
+        if (data.session.user) {
+          await fetchProfile(data.session.user.id);
+        }
+      } else if (error) {
+        console.error('❌ CentralizedAuth: Session refresh error:', error);
+        // If refresh fails, user might need to log in again
+        setUser(null);
+        setSession(null);
+        setProfile(null);
       }
     } catch (error) {
       console.error('❌ CentralizedAuth: Refresh error:', error);
+      setUser(null);
+      setSession(null);
+      setProfile(null);
     }
-  }, []);
+  }, [fetchProfile]);
 
   const value: AuthContextType = {
     user,
