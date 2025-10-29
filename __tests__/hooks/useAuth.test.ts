@@ -13,8 +13,8 @@ const mockAuthContext = {
   updateProfile: jest.fn(),
 };
 
-jest.mock('@/contexts/RobustAuthProvider', () => ({
-  useRobustAuth: () => mockAuthContext,
+jest.mock('@/contexts/CentralizedAuthProvider', () => ({
+  useCentralizedAuth: () => mockAuthContext,
 }));
 
 describe('useAuth Hook', () => {

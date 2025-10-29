@@ -14,22 +14,22 @@ jest.mock('next/navigation', () => ({
   useSearchParams: jest.fn(() => new URLSearchParams()),
 }))
 
-// Mock RobustAuthProvider
-jest.mock('@/contexts/RobustAuthProvider', () => ({
-  RobustAuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  useRobustAuth: () => ({
+// Mock CentralizedAuthProvider
+jest.mock('@/contexts/CentralizedAuthProvider', () => ({
+  CentralizedAuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  useCentralizedAuth: () => ({
     user: null,
-    profile: null,
     session: null,
     loading: false,
     isInitialized: true,
     signIn: jest.fn(),
+    signUp: jest.fn(),
     signOut: jest.fn(),
-    updateProfile: jest.fn(),
+    refreshSession: jest.fn(),
   }),
 }))
 
-// Mock useAuth hook (alias for useRobustAuth)
+// Mock useAuth hook (alias for useCentralizedAuth)
 jest.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
     user: null,

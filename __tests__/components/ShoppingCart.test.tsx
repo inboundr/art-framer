@@ -36,13 +36,18 @@ jest.mock('@/components/CheckoutFlow', () => ({
   },
 }));
 
-// Mock the RobustAuthProvider
-jest.mock('@/contexts/RobustAuthProvider', () => ({
-  RobustAuthProvider: ({ children }: { children: React.ReactNode }) => children,
-  useRobustAuth: () => ({
+// Mock the CentralizedAuthProvider
+jest.mock('@/contexts/CentralizedAuthProvider', () => ({
+  CentralizedAuthProvider: ({ children }: { children: React.ReactNode }) => children,
+  useCentralizedAuth: () => ({
     user: { id: 'user-1', email: 'test@example.com' },
     session: { access_token: 'mock-token' },
     loading: false,
+    isInitialized: true,
+    signIn: jest.fn(),
+    signUp: jest.fn(),
+    signOut: jest.fn(),
+    refreshSession: jest.fn(),
   }),
 }));
 
