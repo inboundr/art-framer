@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
+import { ensureSupabaseReady } from '@/lib/utils/supabaseReady';
 
 export interface CuratedImage {
   id: string;
@@ -49,18 +50,12 @@ export class CuratedImageAPI {
     filters?: CuratedImageFilters
   ): Promise<CuratedGalleryResponse> {
     console.log('🔍 CuratedImageAPI.getGallery called with:', { page, limit, filters });
-    console.log('🔍 Supabase client check:', { 
-      supabaseExists: !!supabase, 
-      supabaseFrom: !!supabase?.from,
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'exists' : 'missing',
-      windowDefined: typeof window !== 'undefined'
-    });
     
     try {
-      // Check if supabase is available
-      if (!supabase || !supabase.from) {
-        console.warn('❌ Supabase client not available, returning empty response');
+      // Ensure Supabase client is ready before proceeding
+      const isReady = await ensureSupabaseReady();
+      if (!isReady) {
+        console.warn('❌ Supabase client not ready, returning empty response');
         return {
           images: [],
           pagination: {

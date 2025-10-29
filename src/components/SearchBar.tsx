@@ -123,7 +123,7 @@ const convertColor = (uiColor: string): string => {
 };
 
 export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   // const [activeCategory, setActiveCategory] = useState('Poster'); // Hidden filter bar
   const [promptText, setPromptText] = useState('');
   const [aspectRatioDropdownOpen, setAspectRatioDropdownOpen] = useState(false);

@@ -78,12 +78,11 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
     }
   }, [user]);
 
-  // Check if user should see styles onboarding modal (for second-time users)
+  // Check for styles onboarding
   useEffect(() => {
-    if (user && profile && !localStorage.getItem('art-framer-styles-onboarding-seen')) {
-      // Check if user has generated images before (has creations)
-      const hasCreations = localStorage.getItem('art-framer-has-creations') === 'true';
-      if (hasCreations) {
+    if (user && profile) {
+      // Show styles onboarding for users with login_count >= 2 who haven't seen it yet
+      if (profile.login_count >= 2 && !profile.has_seen_styles_onboarding) {
         setStylesOnboardingVisible(true);
       }
     }
@@ -208,8 +207,18 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
       {/* Styles Onboarding Modal */}
       <StylesOnboardingModal
         isOpen={stylesOnboardingVisible}
-        onClose={() => setStylesOnboardingVisible(false)}
-        onTryNow={() => setStylesOnboardingVisible(false)}
+        onClose={async () => {
+          setStylesOnboardingVisible(false);
+          if (updateProfile) {
+            await updateProfile({ has_seen_styles_onboarding: true });
+          }
+        }}
+        onTryNow={async () => {
+          setStylesOnboardingVisible(false);
+          if (updateProfile) {
+            await updateProfile({ has_seen_styles_onboarding: true });
+          }
+        }}
       />
     </div>
   );
