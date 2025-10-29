@@ -205,6 +205,18 @@ export function CuratedImageGallery({
     });
   }, [images, loading, error, hasMore]);
 
+  // Add retry mechanism for failed image loads
+  useEffect(() => {
+    if (error && !loading && images.length === 0) {
+      console.log('🔄 CuratedImageGallery: Retrying after error...');
+      const retryTimer = setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+      
+      return () => clearTimeout(retryTimer);
+    }
+  }, [error, loading, images.length]);
+
   // Check for pending cart image after login
   useEffect(() => {
     if (user) {

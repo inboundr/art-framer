@@ -16,17 +16,17 @@ jest.mock('@/contexts/CartContext', () => ({
   }),
 }));
 
-// Mock the RobustAuthProvider
-jest.mock('@/contexts/RobustAuthProvider', () => ({
-  useRobustAuth: () => ({
+// Mock the CentralizedAuthProvider
+jest.mock('@/contexts/CentralizedAuthProvider', () => ({
+  useCentralizedAuth: () => ({
     user: { id: 'user-1', email: 'test@example.com' },
     session: { access_token: 'mock-token' },
     loading: false,
+    isInitialized: true,
     signIn: jest.fn(),
     signUp: jest.fn(),
     signOut: jest.fn(),
-    resetPassword: jest.fn(),
-    updateProfile: jest.fn(),
+    refreshSession: jest.fn(),
   }),
 }));
 

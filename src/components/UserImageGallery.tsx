@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
+import { ensureSupabaseReady } from '@/lib/utils/supabaseReady';
 import { CreationsModal } from './CreationsModal';
 import { FrameSelector } from './FrameSelector';
 import { Button } from '@/components/ui/button';
@@ -143,13 +144,15 @@ export function UserImageGallery() {
       return;
     }
 
-    if (!supabase || !supabase.from) {
-      console.error('❌ UserImageGallery: Supabase client not available');
-      setLoading(false);
-      return;
-    }
-
     try {
+      // Ensure Supabase client is ready before proceeding
+      const isReady = await ensureSupabaseReady();
+      if (!isReady) {
+        console.error('❌ UserImageGallery: Supabase client not ready');
+        setLoading(false);
+        return;
+      }
+
       const from = pageNum * IMAGES_PER_PAGE;
       const to = from + IMAGES_PER_PAGE - 1;
 
