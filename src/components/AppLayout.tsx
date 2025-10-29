@@ -83,6 +83,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, [user]);
 
   // Check if user should see styles onboarding modal (for second-time users)
+  // Check for styles onboarding
   useEffect(() => {
     if (user && profile) {
       // Show styles onboarding for users with login_count >= 2 who haven't seen it yet
@@ -280,14 +281,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           isOpen={stylesOnboardingVisible}
           onClose={async () => {
             setStylesOnboardingVisible(false);
-            // Mark as seen in database
             if (updateProfile) {
               await updateProfile({ has_seen_styles_onboarding: true });
             }
           }}
           onTryNow={async () => {
             setStylesOnboardingVisible(false);
-            // Mark as seen in database
             if (updateProfile) {
               await updateProfile({ has_seen_styles_onboarding: true });
             }

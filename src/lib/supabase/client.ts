@@ -110,6 +110,11 @@ export const supabase = (() => {
   }
   });
 
+  // Add a ready check method
+  (supabaseInstance as any).isReady = () => {
+    return !!(supabaseInstance && supabaseInstance.from);
+  };
+
   return supabaseInstance;
 })();
 

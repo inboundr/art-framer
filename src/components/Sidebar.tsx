@@ -105,15 +105,8 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
       console.log('🚪 signOut function:', signOut);
       console.log('🚪 user before logout:', user);
       
-      const { error } = await signOut();
-      console.log('🚪 signOut result:', { error });
-      
-      if (error) {
-        console.error('Logout error:', error);
-        // Still redirect even if there's an error
-      } else {
-        console.log('✅ Sidebar logout successful');
-      }
+      await signOut();
+      console.log('✅ Sidebar logout successful');
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);

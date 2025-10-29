@@ -45,12 +45,8 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
   const handleLogout = async () => {
     try {
       console.log('🚪 ProfilePopup logout initiated...');
-      const { error } = await signOut();
-      if (error) {
-        console.error('Logout error:', error);
-      } else {
-        console.log('✅ ProfilePopup logout successful');
-      }
+      await signOut();
+      console.log('✅ ProfilePopup logout successful');
       onClose();
       router.push('/');
     } catch (error) {

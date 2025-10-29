@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface SidebarAvatarProps {
   user: any;
-  profile: any;
+  profile?: any;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
