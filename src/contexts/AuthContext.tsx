@@ -294,12 +294,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.removeItem(key);
       });
       
-      // Clear all Supabase-related cookies by setting them to expire
-      document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-      });
-      
-      // Sign out from Supabase with scope: 'local' to clear local session only
+      // Ask server to clear auth cookies (middleware/server client)
+      try {
+        await fetch('/api/auth/signout', { method: 'POST', credentials: 'include' });
+      } catch {}
+
+      // Sign out locally to clear client state/tokens
       console.log('🚪 Calling supabase.auth.signOut()...');
       const { error } = await supabase.auth.signOut({ scope: 'local' });
       console.log('🚪 Supabase signOut result:', { error });
