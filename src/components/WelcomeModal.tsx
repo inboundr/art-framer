@@ -81,13 +81,6 @@ export function WelcomeModal({ isOpen, onClose, onStartCreating }: WelcomeModalP
               >
                 Start Creating Now
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => window.open('/pricing', '_blank')}
-                className="flex-1 border-border text-foreground hover:bg-muted font-semibold py-2.5"
-              >
-                View Plans
-              </Button>
             </div>
           </div>
 
