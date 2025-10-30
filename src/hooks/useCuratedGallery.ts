@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { curatedImageAPI, CuratedImage, CuratedImageFilters } from '@/lib/curated-images';
+import type { CuratedImage, CuratedImageFilters } from '@/lib/curated-images';
 
 export function useCuratedGallery(options: { 
   pageSize?: number; 
@@ -186,19 +186,26 @@ export function useCuratedGallery(options: {
     setError(null);
 
     try {
-      const response = await curatedImageAPI.searchImages(query, page, memoizedOptions.pageSize || 20);
-      console.log('✅ Search response:', response);
-      
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: (memoizedOptions.pageSize || 20).toString(),
+        search: query,
+      });
+      const res = await fetch(`/api/curated-images?${params.toString()}`);
+      if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+      const data = await res.json();
+      console.log('✅ Search response:', data);
+
       if (page === 1) {
-        setImages(response.images);
+        setImages(data.images);
       } else {
-        setImages(prev => [...prev, ...response.images]);
+        setImages(prev => [...prev, ...data.images]);
       }
-      
-      setCurrentPage(response.pagination.page);
-      setTotalPages(response.pagination.total_pages);
-      setTotalImages(response.pagination.total);
-      setHasMore(response.pagination.has_more);
+
+      setCurrentPage(data.pagination.page);
+      setTotalPages(data.pagination.total_pages);
+      setTotalImages(data.pagination.total);
+      setHasMore(data.pagination.has_more);
     } catch (err) {
       console.error('❌ Search error:', err);
       const error = err instanceof Error ? err : new Error('Failed to search images');
@@ -294,9 +301,11 @@ export function useFeaturedImages(limit: number = 12) {
     setError(null);
 
     try {
-      const featuredImages = await curatedImageAPI.getFeaturedImages(limit);
-      console.log('✅ Featured images loaded:', { count: featuredImages.length });
-      setImages(featuredImages);
+      const res = await fetch(`/api/curated-images/featured?limit=${limit}`);
+      if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+      const data = await res.json();
+      console.log('✅ Featured images loaded:', { count: data.images?.length || 0 });
+      setImages(data.images || []);
     } catch (err) {
       console.error('❌ Featured images loading error:', err);
       const error = err instanceof Error ? err : new Error('Failed to load featured images');
@@ -329,9 +338,12 @@ export function useCuratedCategories() {
     setError(null);
 
     try {
-      const categoriesList = await curatedImageAPI.getCategories();
-      console.log('✅ Categories loaded:', { count: categoriesList.length });
-      setCategories(categoriesList);
+      const res = await fetch(`/api/curated-images?limit=200`);
+      if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+      const data = await res.json();
+      const unique = Array.from(new Set((data.images || []).map((i: CuratedImage) => i.category).filter(Boolean)));
+      console.log('✅ Categories loaded:', { count: unique.length });
+      setCategories(unique);
     } catch (err) {
       console.error('❌ Categories loading error:', err);
       const error = err instanceof Error ? err : new Error('Failed to load categories');
@@ -364,9 +376,13 @@ export function useCuratedTags() {
     setError(null);
 
     try {
-      const tagsList = await curatedImageAPI.getTags();
-      console.log('✅ Tags loaded:', { count: tagsList.length });
-      setTags(tagsList);
+      const res = await fetch(`/api/curated-images?limit=200`);
+      if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+      const data = await res.json();
+      const all = (data.images || []).flatMap((i: CuratedImage) => i.tags || []);
+      const unique = Array.from(new Set(all));
+      console.log('✅ Tags loaded:', { count: unique.length });
+      setTags(unique);
     } catch (err) {
       console.error('❌ Tags loading error:', err);
       const error = err instanceof Error ? err : new Error('Failed to load tags');
