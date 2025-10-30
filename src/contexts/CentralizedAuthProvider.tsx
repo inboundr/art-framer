@@ -124,21 +124,8 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
       console.log('🔄 CentralizedAuth: Auth state change:', event, session?.user?.email);
       
       setSession(session);
-      // CRITICAL FIX: Only set user to null on explicit SIGNED_OUT event
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
-      } else {
-        setUser(session?.user ?? null);
-      }
-
-      // Fetch profile when user signs in
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-      }
-
-      // Handle specific events
+      
+      // Handle specific events first
       switch (event) {
         case 'SIGNED_OUT':
           console.log('🚪 CentralizedAuth: User signed out');
@@ -148,9 +135,28 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
           break;
         case 'TOKEN_REFRESHED':
           console.log('🔄 CentralizedAuth: Token refreshed');
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            await fetchProfile(session.user.id);
+          }
           break;
         case 'SIGNED_IN':
           console.log('✅ CentralizedAuth: User signed in');
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            await fetchProfile(session.user.id);
+          }
+          break;
+        default:
+          // For other events (like navigation), only update if we have a session
+          if (session?.user) {
+            setUser(session.user);
+            await fetchProfile(session.user.id);
+          } else if (event === 'INITIAL_SESSION' && !session) {
+            // Only clear user on initial session if there's no session
+            setUser(null);
+            setProfile(null);
+          }
           break;
       }
     });
