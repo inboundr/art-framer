@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase/client';
+import { supabase as browserSupabase } from '@/lib/supabase/client';
+import { createServiceClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
 import { ensureSupabaseReady } from '@/lib/utils/supabaseReady';
 
 export interface CuratedImage {
@@ -37,10 +39,34 @@ export interface CuratedImageFilters {
 }
 
 export class CuratedImageAPI {
+  private getClient() {
+    if (typeof window === 'undefined') {
+      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return createServiceClient();
+      }
+      return createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+        {
+          cookies: {
+            getAll() {
+              return [];
+            },
+            setAll() {
+              // no-op in API context
+            },
+          },
+        }
+      );
+    }
+    return browserSupabase;
+  }
+
   private resolvePublicUrl(path: string | null): string | null {
     if (!path) return null;
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    const { data } = supabase.storage.from('curated-images').getPublicUrl(path);
+    const client = this.getClient();
+    const { data } = client.storage.from('curated-images').getPublicUrl(path);
     return data?.publicUrl ?? path;
   }
   // Get curated images for home page gallery
@@ -52,25 +78,28 @@ export class CuratedImageAPI {
     console.log('🔍 CuratedImageAPI.getGallery called with:', { page, limit, filters });
     
     try {
-      // Ensure Supabase client is ready before proceeding
-      const isReady = await ensureSupabaseReady();
-      if (!isReady) {
-        console.warn('❌ Supabase client not ready, returning empty response');
-        return {
-          images: [],
-          pagination: {
-            page,
-            total_pages: 0,
-            total: 0,
-            has_more: false
-          }
-        };
+      // Only run readiness check in browser
+      if (typeof window !== 'undefined') {
+        const isReady = await ensureSupabaseReady();
+        if (!isReady) {
+          console.warn('❌ Supabase client not ready, returning empty response');
+          return {
+            images: [],
+            pagination: {
+              page,
+              total_pages: 0,
+              total: 0,
+              has_more: false
+            }
+          };
+        }
       }
 
       const offset = (page - 1) * limit;
       
       // Build query
-      let query = supabase
+      const client = this.getClient();
+      let query = client
         .from('curated_images')
         .select('*', { count: 'exact' })
         .eq('is_active', true)
@@ -97,9 +126,9 @@ export class CuratedImageAPI {
       // Execute query with pagination and timeout
       console.log('🔍 Executing curated images query...');
       console.log('🔍 Supabase client check:', { 
-        hasSupabase: !!supabase, 
-        hasFrom: !!supabase?.from,
-        isReady: supabase && (supabase as any).isReady ? (supabase as any).isReady() : 'no isReady method'
+        hasSupabase: !!client, 
+        hasFrom: !!client?.from,
+        context: typeof window === 'undefined' ? 'server' : 'browser'
       });
       
       const queryPromise = query.range(offset, offset + limit - 1);
@@ -164,13 +193,14 @@ export class CuratedImageAPI {
     console.log('🔍 CuratedImageAPI.getFeaturedImages called with limit:', limit);
     
     try {
+      const client = this.getClient();
       // Check if supabase is available
-      if (!supabase || !supabase.from) {
+      if (!client || !client.from) {
         console.warn('Supabase client not available, returning empty array');
         return [];
       }
 
-      const { data: images, error } = await supabase
+      const { data: images, error } = await client
         .from('curated_images')
         .select('*')
         .eq('is_active', true)
@@ -203,7 +233,8 @@ export class CuratedImageAPI {
     console.log('🔍 CuratedImageAPI.getImagesByCategory called with:', { category, limit });
     
     try {
-      const { data: images, error } = await supabase
+      const client = this.getClient();
+      const { data: images, error } = await client
         .from('curated_images')
         .select('*')
         .eq('is_active', true)
@@ -236,7 +267,8 @@ export class CuratedImageAPI {
     console.log('🔍 CuratedImageAPI.getCategories called');
     
     try {
-      const { data: categories, error } = await supabase
+      const client = this.getClient();
+      const { data: categories, error } = await client
         .from('curated_images')
         .select('category')
         .eq('is_active', true)
@@ -261,7 +293,8 @@ export class CuratedImageAPI {
     console.log('🔍 CuratedImageAPI.getTags called');
     
     try {
-      const { data: images, error } = await supabase
+      const client = this.getClient();
+      const { data: images, error } = await client
         .from('curated_images')
         .select('tags')
         .eq('is_active', true);
@@ -291,14 +324,12 @@ export class CuratedImageAPI {
     
     try {
       const offset = (page - 1) * limit;
-      
-      const { data: images, error, count } = await supabase
+      const client = this.getClient();
+
+      const { data: images, error, count } = await client
         .from('curated_images')
         .select('*', { count: 'exact' })
         .eq('is_active', true)
-        .or(`title.ilike.%${query}%,description.ilike.%${query}%,tags.cs.{${query}}`)
-        .order('display_order', { ascending: true })
-        .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
       if (error) {
