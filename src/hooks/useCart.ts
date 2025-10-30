@@ -89,7 +89,7 @@ export function useCart(): UseCartReturn {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/cart');
+      const response = await fetch('/api/cart', { credentials: 'include' });
       if (!response.ok) {
         if (response.status === 401) {
           // User not authenticated - this is expected, don't show as error
@@ -160,6 +160,7 @@ export function useCart(): UseCartReturn {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           productId,
           quantity,
@@ -226,6 +227,7 @@ export function useCart(): UseCartReturn {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           quantity,
         }),
@@ -264,6 +266,7 @@ export function useCart(): UseCartReturn {
 
       const response = await fetch(`/api/cart/${cartItemId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -304,7 +307,7 @@ export function useCart(): UseCartReturn {
 
       // Remove all items one by one
       const promises = cartItems.map(item => 
-        fetch(`/api/cart/${item.id}`, { method: 'DELETE' })
+        fetch(`/api/cart/${item.id}`, { method: 'DELETE', credentials: 'include' })
       );
 
       const responses = await Promise.all(promises);
