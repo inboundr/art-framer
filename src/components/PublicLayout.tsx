@@ -61,6 +61,18 @@ export function PublicLayout({ children }: PublicLayoutProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Show welcome modal once for brand new visitors (no sign-in required)
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('af_new_visitor_intro_shown');
+      if (!seen) {
+        setWelcomeModalVisible(true);
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, []);
+
   // Handle pending generation request after auth
   useEffect(() => {
     if (user && pendingGenerationRequest) {
@@ -211,8 +223,14 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       {/* Welcome Modal */}
       <WelcomeModal
         isOpen={welcomeModalVisible}
-        onClose={() => setWelcomeModalVisible(false)}
-        onStartCreating={() => setWelcomeModalVisible(false)}
+        onClose={() => {
+          try { localStorage.setItem('af_new_visitor_intro_shown', 'true'); } catch {}
+          setWelcomeModalVisible(false);
+        }}
+        onStartCreating={() => {
+          try { localStorage.setItem('af_new_visitor_intro_shown', 'true'); } catch {}
+          setWelcomeModalVisible(false);
+        }}
       />
       
       {/* Styles Onboarding Modal */}
