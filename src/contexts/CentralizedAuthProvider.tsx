@@ -124,7 +124,12 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
       console.log('🔄 CentralizedAuth: Auth state change:', event, session?.user?.email);
       
       setSession(session);
-      setUser(session?.user ?? null);
+      // CRITICAL FIX: Only set user to null on explicit SIGNED_OUT event
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+      } else {
+        setUser(session?.user ?? null);
+      }
 
       // Fetch profile when user signs in
       if (session?.user) {
