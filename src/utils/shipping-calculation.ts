@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+// Client shipping calculation should rely on cookie-based auth only.
 
 export interface ShippingAddress {
   firstName: string;
@@ -49,31 +49,13 @@ export const calculateShipping = async (address: ShippingAddress, retryCount = 0
       retryCount
     });
 
-    console.log('🔍 About to get session...');
-    // Get the session to access the token for authentication with proper timeout handling
-    let session;
-    try {
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Session timeout')), 5000)
-      );
-      
-      const result = await Promise.race([sessionPromise, timeoutPromise]);
-      session = (result as any).data.session;
-      console.log('🔐 Session retrieved successfully:', { hasSession: !!session, hasToken: !!session?.access_token });
-    } catch (sessionError) {
-      console.error('❌ Session retrieval failed:', sessionError);
-      session = null;
-    }
+    // Auth is enforced server-side via cookies; do not fetch session in the client
     
     console.log('🌐 Making API call to /api/cart/shipping...');
     const response = await fetch('/api/cart/shipping', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        ...(session?.access_token && {
-          'Authorization': `Bearer ${session.access_token}`
-        })
+        'Content-Type': 'application/json'
       },
       credentials: 'include',
       body: JSON.stringify({
@@ -91,6 +73,10 @@ export const calculateShipping = async (address: ShippingAddress, retryCount = 0
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        console.warn('❌ Unauthorized: user must be logged in to calculate shipping');
+        return null;
+      }
       // Handle retry logic for server errors with proper error handling
       if (response.status >= 500 && retryCount < 2) {
         console.log(`🔄 Server error, retrying... (attempt ${retryCount + 1}/2)`);

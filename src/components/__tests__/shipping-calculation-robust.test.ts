@@ -1,15 +1,6 @@
 import { calculateShipping } from '../../utils/shipping-calculation';
 import type { ShippingAddress } from '../../utils/shipping-calculation';
 
-// Mock dependencies
-jest.mock('@/lib/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getSession: jest.fn()
-    }
-  }
-}));
-
 global.fetch = jest.fn();
 
 describe('Shipping Calculation - Production Ready Tests', () => {
@@ -28,12 +19,7 @@ describe('Shipping Calculation - Production Ready Tests', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     
-    // Mock Supabase session
-    const { supabase } = await import('@/lib/supabase/client');
-    supabase.auth.getSession.mockResolvedValue({
-      data: { session: { access_token: 'mock-token' } },
-      error: null
-    });
+    // No client auth needed; server uses cookies
     
     // Default successful response
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -78,20 +64,11 @@ describe('Shipping Calculation - Production Ready Tests', () => {
   });
 
   describe('API Communication', () => {
-    it('should make correct API call with proper headers', async () => {
-      const { supabase } = await import('@/lib/supabase/client');
-      supabase.auth.getSession.mockResolvedValue({
-        data: { session: { access_token: 'mock-token' } }
-      });
-
+    it('should make correct API call with cookie-based auth', async () => {
       await calculateShipping(validAddress);
-
-      expect(global.fetch).toHaveBeenCalledWith('/api/cart/shipping', {
+      expect(global.fetch).toHaveBeenCalledWith('/api/cart/shipping', expect.objectContaining({
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock-token'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           countryCode: 'US',
@@ -99,7 +76,7 @@ describe('Shipping Calculation - Production Ready Tests', () => {
           postalCode: '12345',
           city: 'Test City'
         })
-      });
+      }));
     });
 
     it('should handle missing authentication gracefully', async () => {
@@ -112,14 +89,21 @@ describe('Shipping Calculation - Production Ready Tests', () => {
       expect(result).not.toBeNull();
     });
 
-    it('should handle session timeout gracefully', async () => {
-      const { supabase } = await import('@/lib/supabase/client');
-      supabase.auth.getSession.mockImplementation(() => 
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 100))
-      );
-
+    it('should proceed without client token handling (no timeouts)', async () => {
       const result = await calculateShipping(validAddress);
       expect(result).not.toBeNull();
+    });
+
+    it('should return null on 401 Unauthorized without retries', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized'
+      });
+
+      const result = await calculateShipping(validAddress);
+      expect(result).toBeNull();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
     });
   });
 
