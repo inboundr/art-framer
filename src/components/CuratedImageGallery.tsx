@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useCuratedGallery } from '@/hooks/useCuratedGallery';
-import { CuratedImage } from '@/lib/curated-images';
+import type { CuratedImage } from '@/lib/curated-images';
 import { Heart, Eye, Download, Share2, ShoppingCart, XCircle, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
