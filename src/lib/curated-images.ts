@@ -94,9 +94,33 @@ export class CuratedImageAPI {
         query = query.overlaps('tags', filters.tags);
       }
 
-      // Execute query with pagination
-      const { data: images, error, count } = await query
-        .range(offset, offset + limit - 1);
+      // Execute query with pagination and timeout
+      console.log('🔍 Executing curated images query...');
+      console.log('🔍 Supabase client check:', { 
+        hasSupabase: !!supabase, 
+        hasFrom: !!supabase?.from,
+        isReady: supabase && (supabase as any).isReady ? (supabase as any).isReady() : 'no isReady method'
+      });
+      
+      const queryPromise = query.range(offset, offset + limit - 1);
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Curated images query timeout')), 10000);
+      });
+      
+      console.log('🔍 Starting query race...');
+      const { data: images, error, count } = await Promise.race([
+        queryPromise,
+        timeoutPromise
+      ]) as any;
+      
+      console.log('🔍 Query completed:', { 
+        hasData: !!images, 
+        dataLength: images?.length, 
+        hasError: !!error, 
+        errorMessage: error?.message,
+        count 
+      });
 
       if (error) {
         console.error('❌ Curated images query failed:', error);
