@@ -1,14 +1,5 @@
 import { calculateShipping } from '../../utils/shipping-calculation';
 
-// Mock dependencies
-jest.mock('@/lib/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getSession: jest.fn()
-    }
-  }
-}));
-
 global.fetch = jest.fn();
 
 describe('Shipping Calculation Logic', () => {
@@ -26,13 +17,6 @@ describe('Shipping Calculation Logic', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    
-    // Mock Supabase session
-    const { supabase } = await import('@/lib/supabase/client');
-    supabase.auth.getSession.mockResolvedValue({
-      data: { session: { access_token: 'mock-token' } },
-      error: null
-    });
     
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
@@ -78,38 +62,8 @@ describe('Shipping Calculation Logic', () => {
   });
 
   describe('API Communication', () => {
-    it('makes correct API call with proper headers', async () => {
-      const { supabase } = await import('@/lib/supabase/client');
-      supabase.auth.getSession.mockResolvedValue({
-        data: { session: { access_token: 'mock-token' } }
-      });
-
+    it('makes correct API call with cookie-based auth', async () => {
       await calculateShipping(mockAddress);
-
-      expect(global.fetch).toHaveBeenCalledWith('/api/cart/shipping', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock-token'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          countryCode: 'US',
-          stateOrCounty: 'TS',
-          postalCode: '12345',
-          city: 'Test City'
-        })
-      });
-    });
-
-    it('handles missing authentication gracefully', async () => {
-      const { supabase } = await import('@/lib/supabase/client');
-      supabase.auth.getSession.mockResolvedValue({
-        data: { session: null }
-      });
-
-      await calculateShipping(mockAddress);
-
       expect(global.fetch).toHaveBeenCalledWith('/api/cart/shipping', {
         method: 'POST',
         headers: {
@@ -125,14 +79,20 @@ describe('Shipping Calculation Logic', () => {
       });
     });
 
-    it('handles session timeout', async () => {
-      const { supabase } = await import('@/lib/supabase/client');
-      supabase.auth.getSession.mockImplementation(() => 
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 100))
-      );
+    it('returns null on 401 (unauthenticated)', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized'
+      });
 
       const result = await calculateShipping(mockAddress);
-      // The function should continue even without session (for non-authenticated users)
+      expect(result).toBeNull();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not depend on client session resolution', async () => {
+      const result = await calculateShipping(mockAddress);
       expect(result).toEqual({
         cost: 9.99,
         currency: 'USD',
