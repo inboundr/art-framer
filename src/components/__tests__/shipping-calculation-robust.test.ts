@@ -79,15 +79,7 @@ describe('Shipping Calculation - Production Ready Tests', () => {
       }));
     });
 
-    it('should handle missing authentication gracefully', async () => {
-      const { supabase } = await import('@/lib/supabase/client');
-      supabase.auth.getSession.mockResolvedValue({
-        data: { session: null }
-      });
-
-      const result = await calculateShipping(validAddress);
-      expect(result).not.toBeNull();
-    });
+    // Client no longer handles tokens; server cookies enforce auth.
 
     it('should proceed without client token handling (no timeouts)', async () => {
       const result = await calculateShipping(validAddress);

@@ -45,7 +45,7 @@ describe('useCart', () => {
       expect(result.current.error).toBeNull(); // Should not set error for 401
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/cart');
+    expect(global.fetch).toHaveBeenCalledWith('/api/cart', { credentials: 'include' });
   });
 
   it('should handle other API errors and set error state', async () => {
@@ -63,7 +63,7 @@ describe('useCart', () => {
       expect(result.current.error).toBe('Failed to fetch cart (500)');
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/cart');
+    expect(global.fetch).toHaveBeenCalledWith('/api/cart', { credentials: 'include' });
   });
 
   it('should handle successful cart fetch', async () => {
@@ -99,7 +99,7 @@ describe('useCart', () => {
       expect(result.current.error).toBeNull();
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/cart');
+    expect(global.fetch).toHaveBeenCalledWith('/api/cart', { credentials: 'include' });
   });
 
   it('should not show badge when itemCount is 0', async () => {
