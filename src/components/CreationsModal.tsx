@@ -193,7 +193,7 @@ export function CreationsModal({
   const handleDownload = () => {
     // Implement download functionality
     const link = document.createElement('a');
-    link.href = getProxiedImageUrl(imageUrl);
+    link.href = getProxiedImageUrl(normalizedImageUrl);
     link.download = `ai-art-${Date.now()}.jpg`;
     document.body.appendChild(link);
     link.click();
@@ -245,7 +245,7 @@ export function CreationsModal({
                 }}
               >
                 <img
-                  src={getProxiedImageUrl(imageUrl)}
+                  src={getProxiedImageUrl(normalizedImageUrl)}
                   alt="Generated AI Image"
                   className="w-full h-full object-cover absolute left-0 top-0"
                 />

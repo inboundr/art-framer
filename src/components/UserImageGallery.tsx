@@ -31,6 +31,17 @@ interface UserImageCardProps {
 }
 
 function UserImageCard({ image, onImageClick, onBuyAsFrame }: UserImageCardProps) {
+  // Normalize any DB-stored storage path into a public URL
+  const normalizeImageUrl = useCallback((url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    try {
+      const { data } = supabase.storage.from('images').getPublicUrl(url);
+      return data?.publicUrl || url;
+    } catch {
+      return url;
+    }
+  }, []);
   const getAspectRatioClass = () => {
     // Map our aspect ratios to CSS classes
     switch (image.aspect_ratio) {
@@ -91,7 +102,7 @@ function UserImageCard({ image, onImageClick, onBuyAsFrame }: UserImageCardProps
 
             {/* Main Image */}
             <img
-              src={getProxiedImageUrl(image.image_url)}
+              src={getProxiedImageUrl(normalizeImageUrl(image.image_url))}
               alt={image.prompt}
               className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
               loading="lazy"
@@ -124,6 +135,17 @@ export function UserImageGallery() {
   const { toast } = useToast();
   const { addToCart } = useCart();
   const { showCartNotification } = useCartNotification();
+  // Normalize any DB-stored storage path into a public URL
+  const normalizeImageUrl = useCallback((url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    try {
+      const { data } = supabase.storage.from('images').getPublicUrl(url);
+      return data?.publicUrl || url;
+    } catch {
+      return url;
+    }
+  }, []);
   const [images, setImages] = useState<UserImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
@@ -394,7 +416,7 @@ export function UserImageGallery() {
         <CreationsModal
           isOpen={modalOpen}
           onClose={handleCloseModal}
-          imageUrl={selectedImage.image_url}
+          imageUrl={normalizeImageUrl(selectedImage.image_url)}
           promptText={selectedImage.prompt}
           imageId={selectedImage.id}
           isMobile={false} // You can add mobile detection here if needed
@@ -425,8 +447,8 @@ export function UserImageGallery() {
                 </div>
 
                 {/* Frame Selector */}
-                <FrameSelector
-                  imageUrl={frameSelectorImage.image_url}
+                  <FrameSelector
+                  imageUrl={normalizeImageUrl(frameSelectorImage.image_url)}
                   imagePrompt={frameSelectorImage.prompt}
                   onFrameSelect={(frame) => {
                     // Handle frame selection
