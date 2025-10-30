@@ -341,7 +341,11 @@ export function useCuratedCategories() {
       const res = await fetch(`/api/curated-images?limit=200`);
       if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
       const data = await res.json();
-      const unique = Array.from(new Set((data.images || []).map((i: CuratedImage) => i.category).filter(Boolean)));
+      const images = (data.images || []) as CuratedImage[];
+      const categories = images
+        .map((i) => i.category)
+        .filter((c): c is string => typeof c === 'string' && c.length > 0);
+      const unique: string[] = Array.from(new Set<string>(categories));
       console.log('✅ Categories loaded:', { count: unique.length });
       setCategories(unique);
     } catch (err) {
@@ -379,8 +383,9 @@ export function useCuratedTags() {
       const res = await fetch(`/api/curated-images?limit=200`);
       if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
       const data = await res.json();
-      const all = (data.images || []).flatMap((i: CuratedImage) => i.tags || []);
-      const unique = Array.from(new Set(all));
+      const images = (data.images || []) as CuratedImage[];
+      const all: string[] = images.flatMap((i) => (Array.isArray(i.tags) ? (i.tags as string[]) : []));
+      const unique: string[] = Array.from(new Set<string>(all));
       console.log('✅ Tags loaded:', { count: unique.length });
       setTags(unique);
     } catch (err) {
