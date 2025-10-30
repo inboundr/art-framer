@@ -110,6 +110,7 @@ export function ProductCatalog({
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           productId,
           quantity: 1,
@@ -117,6 +118,14 @@ export function ProductCatalog({
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          toast({
+            title: 'Authentication Required',
+            description: 'Please sign in to add items to your cart.',
+            variant: 'destructive',
+          });
+          return;
+        }
         throw new Error('Failed to add to cart');
       }
 
@@ -156,6 +165,7 @@ export function ProductCatalog({
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ productId }),
       });
 

@@ -18,6 +18,7 @@ export async function saveGeneratedImageToSupabase(params: SaveImageParams) {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify(params),
     });
 
