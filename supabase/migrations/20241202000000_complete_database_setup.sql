@@ -548,3 +548,5 @@ CREATE POLICY "Users can delete their own images" ON storage.objects
     bucket_id = 'images' AND
     auth.uid()::text = (storage.foldername(name))[1]
   );
+
+
