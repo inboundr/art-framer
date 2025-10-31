@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
-import { ensureSupabaseReady } from '@/lib/utils/supabaseReady';
 import { CreationsModal } from './CreationsModal';
 import { FrameSelector } from './FrameSelector';
 import { Button } from '@/components/ui/button';
@@ -171,78 +170,59 @@ export function UserImageGallery() {
     }
 
     try {
-      // Ensure Supabase client is ready before proceeding
-      const isReady = await ensureSupabaseReady();
-      if (!isReady) {
-        console.error('❌ UserImageGallery: Supabase client not ready');
+      const page = pageNum + 1; // API uses 1-based pagination
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: IMAGES_PER_PAGE.toString(),
+      });
+
+      console.log('📡 UserImageGallery: Calling API endpoint', { 
+        page,
+        limit: IMAGES_PER_PAGE,
+        userId: user.id
+      });
+
+      const response = await fetch(`/api/user-images?${params.toString()}`, {
+        method: 'GET',
+        credentials: 'include', // Include cookies for auth
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ UserImageGallery: API error', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        
         setLoading(false);
-        if (!append) {
+        
+        if (response.status === 401) {
           toast({
-            title: 'Connection Error',
-            description: 'Unable to connect to server. Please refresh the page.',
+            title: 'Authentication Required',
+            description: 'Please sign in to view your creations.',
             variant: 'destructive',
           });
-        }
-        return;
-      }
-
-      const from = pageNum * IMAGES_PER_PAGE;
-      const to = from + IMAGES_PER_PAGE - 1;
-
-      console.log('🔍 UserImageGallery: Making Supabase query', { from, to, userId: user.id });
-
-      // Verify session is available before querying (with retry)
-      let currentSession;
-      let sessionRetries = 0;
-      while (sessionRetries < 3 && !currentSession) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          currentSession = session;
-          break;
-        }
-        if (sessionRetries < 2) {
-          console.log(`⏳ Session not ready, waiting (attempt ${sessionRetries + 1}/3)...`);
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-        sessionRetries++;
-      }
-
-      if (!currentSession) {
-        console.error('❌ UserImageGallery: No session available after retries');
-        setLoading(false);
-        setImages([]);
-        toast({
-          title: 'Session Error',
-          description: 'Your session expired. Please sign in again.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('images')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-      if (error) {
-        console.error('❌ UserImageGallery: Supabase error:', error);
-        setLoading(false);
-        // Don't clear images on error, just stop loading
-        // Show error toast if this is the first load
-        if (!append) {
+          setImages([]);
+        } else if (!append) {
           toast({
             title: 'Failed to load images',
-            description: error.message || 'Please try refreshing the page.',
+            description: errorData.error || 'Please try refreshing the page.',
             variant: 'destructive',
           });
         }
         return;
       }
 
-      const newImages = data || [];
-      console.log('✅ UserImageGallery: Fetched images', { count: newImages.length });
+      const data = await response.json();
+      console.log('✅ UserImageGallery: API response received', {
+        imageCount: data.images?.length || 0,
+        total: data.pagination?.total || 0,
+        page: data.pagination?.page,
+        hasMore: data.pagination?.has_more
+      });
+
+      const newImages = data.images || [];
       
       if (append) {
         setImages(prev => [...prev, ...newImages]);
@@ -250,35 +230,67 @@ export function UserImageGallery() {
         setImages(newImages);
       }
       
-      setHasMore(newImages.length === IMAGES_PER_PAGE);
+      setHasMore(data.pagination?.has_more ?? false);
     } catch (error) {
       console.error('❌ UserImageGallery: Fetch error:', error);
+      setLoading(false);
+      if (!append) {
+        toast({
+          title: 'Network Error',
+          description: 'Failed to load images. Please check your connection.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, [user, IMAGES_PER_PAGE]);
+  }, [user, IMAGES_PER_PAGE, toast]);
+
+  // Track if we've attempted a fetch to avoid multiple attempts
+  const fetchAttemptedRef = useRef(false);
 
   useEffect(() => {
     // Only fetch when auth is fully initialized
     if (isInitialized && !authLoading) {
       if (user) {
-        console.log('✅ UserImageGallery: Auth initialized with user, fetching images');
-        setPage(0);
-        setLoading(true); // Set loading before fetch
-        fetchUserImages(0, false);
+        console.log('✅ UserImageGallery: Auth initialized with user, fetching images', {
+          userId: user.id,
+          email: user.email,
+          fetchAttempted: fetchAttemptedRef.current
+        });
+        
+        // Fetch images if we haven't attempted yet
+        if (!fetchAttemptedRef.current) {
+          setPage(0);
+          setLoading(true);
+          fetchAttemptedRef.current = true;
+          fetchUserImages(0, false);
+        }
       } else {
         console.log('✅ UserImageGallery: Auth initialized but no user, clearing images');
+        fetchAttemptedRef.current = false;
         setLoading(false);
         setImages([]);
       }
     } else if (isInitialized && !user) {
       // Auth initialized but no user (logged out)
       console.log('✅ UserImageGallery: Auth initialized, no user');
+      fetchAttemptedRef.current = false;
       setLoading(false);
       setImages([]);
+    } else {
+      console.log('⏳ UserImageGallery: Auth still initializing', {
+        isInitialized,
+        authLoading,
+        hasUser: !!user
+      });
     }
-    // If auth is still loading, keep the loading state
   }, [user, isInitialized, authLoading, fetchUserImages]);
+
+  // Reset fetchAttempted when user changes
+  useEffect(() => {
+    fetchAttemptedRef.current = false;
+  }, [user?.id]);
 
   const handleScroll = useCallback(() => {
     if (!galleryRef.current || !hasMore || loading) return;
