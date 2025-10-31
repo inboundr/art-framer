@@ -51,7 +51,7 @@ describe('/api/user-images', () => {
     // Mock Supabase client
     mockSupabase = {
       auth: {
-        getSession: jest.fn(),
+        getUser: jest.fn(),
       },
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
@@ -76,8 +76,8 @@ describe('/api/user-images', () => {
   describe('GET /api/user-images', () => {
     it('should fetch user images successfully', async () => {
       // Mock authentication
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: mockSession },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
         error: null,
       });
 
@@ -116,8 +116,8 @@ describe('/api/user-images', () => {
         likes: 0,
       }));
 
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: mockSession },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
         error: null,
       });
 
@@ -143,8 +143,8 @@ describe('/api/user-images', () => {
     });
 
     it('should use default pagination values when not provided', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: mockSession },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
         error: null,
       });
 
@@ -164,8 +164,8 @@ describe('/api/user-images', () => {
     });
 
     it('should return 401 when user is not authenticated', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: null },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: null },
         error: null,
       });
 
@@ -179,9 +179,9 @@ describe('/api/user-images', () => {
     });
 
     it('should return 401 when session error occurs', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: null },
-        error: { message: 'Session expired' },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: null },
+        error: { message: 'Authentication failed' },
       });
 
       const request = new NextRequest('http://localhost:3000/api/user-images');
@@ -193,8 +193,8 @@ describe('/api/user-images', () => {
     });
 
     it('should handle database query errors', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: mockSession },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
         error: null,
       });
 
@@ -217,8 +217,8 @@ describe('/api/user-images', () => {
     });
 
     it('should handle empty results', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: mockSession },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
         error: null,
       });
 
@@ -243,8 +243,8 @@ describe('/api/user-images', () => {
     });
 
     it('should query correct user_id', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: mockSession },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
         error: null,
       });
 
@@ -266,8 +266,8 @@ describe('/api/user-images', () => {
     });
 
     it('should handle page 2 correctly', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: mockSession },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
         error: null,
       });
 
@@ -287,8 +287,8 @@ describe('/api/user-images', () => {
     });
 
     it('should handle invalid page number by defaulting to 1', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: mockSession },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
         error: null,
       });
 
@@ -309,8 +309,8 @@ describe('/api/user-images', () => {
     });
 
     it('should handle invalid limit number by defaulting to 20', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: mockSession },
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
         error: null,
       });
 

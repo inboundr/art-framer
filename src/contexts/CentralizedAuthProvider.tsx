@@ -79,6 +79,12 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
           setUser(refreshData.session.user);
           // Fetch profile for refreshed session
           await fetchProfile(refreshData.session.user.id);
+          setIsInitialized(true);
+        } else {
+          // No valid session - user is logged out
+          setUser(null);
+          setSession(null);
+          setIsInitialized(true);
         }
       } else if (session) {
         // Check if session is expired or about to expire (within 5 minutes)
@@ -94,23 +100,30 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
             setSession(refreshData.session);
             setUser(refreshData.session.user);
             await fetchProfile(refreshData.session.user.id);
+            setIsInitialized(true);
           } else {
             // Refresh failed, use existing session
             setSession(session);
             setUser(session.user);
             await fetchProfile(session.user.id);
+            setIsInitialized(true);
           }
         } else {
           setSession(session);
           setUser(session.user);
           // Fetch profile for current session
           await fetchProfile(session.user.id);
+          setIsInitialized(true);
         }
+      } else {
+        // No session found - but don't clear user yet, let onAuthStateChange handle it
+        // (Supabase might still be restoring session from cookies)
+        setIsInitialized(true);
       }
-
-      setIsInitialized(true);
     } catch (error) {
       console.error('❌ CentralizedAuth: Initialization error:', error);
+      // Even on error, mark as initialized so app can continue
+      setIsInitialized(true);
     } finally {
       setLoading(false);
     }
@@ -132,10 +145,14 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
           setUser(null);
           setSession(null);
           setProfile(null);
+          setIsInitialized(true);
+          setLoading(false);
           break;
         case 'TOKEN_REFRESHED':
           console.log('🔄 CentralizedAuth: Token refreshed');
           setUser(session?.user ?? null);
+          setIsInitialized(true);
+          setLoading(false);
           if (session?.user) {
             await fetchProfile(session.user.id);
           }
@@ -143,6 +160,8 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
         case 'SIGNED_IN':
           console.log('✅ CentralizedAuth: User signed in');
           setUser(session?.user ?? null);
+          setIsInitialized(true);
+          setLoading(false);
           if (session?.user) {
             await fetchProfile(session.user.id);
           }
@@ -151,11 +170,24 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
           // For other events (like navigation), only update if we have a session
           if (session?.user) {
             setUser(session.user);
+            setIsInitialized(true);
+            setLoading(false);
             await fetchProfile(session.user.id);
-          } else if (event === 'INITIAL_SESSION' && !session) {
-            // Only clear user on initial session if there's no session
-            setUser(null);
-            setProfile(null);
+          } else if (event === 'INITIAL_SESSION') {
+            // Initial session event - Supabase restored session from storage
+            setIsInitialized(true);
+            setLoading(false);
+            if (session?.user) {
+              // If session was restored, set user
+              setUser(session.user);
+              setSession(session);
+              await fetchProfile(session.user.id);
+            } else {
+              // No session - user is logged out
+              setUser(null);
+              setSession(null);
+              setProfile(null);
+            }
           }
           break;
       }
