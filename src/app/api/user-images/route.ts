@@ -8,18 +8,18 @@ export async function GET(request: NextRequest) {
     // Create Supabase client for server-side
     const supabase = await createClient();
 
-    // Get authenticated user
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Get authenticated user - use getUser() for security (validates token server-side)
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (sessionError || !session?.user) {
-      console.error('❌ User images API: Not authenticated', sessionError);
+    if (authError || !user) {
+      console.error('❌ User images API: Not authenticated', authError);
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
     console.log('✅ User images API: Authenticated user', { userId });
 
     // Parse query parameters

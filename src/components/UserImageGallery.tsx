@@ -130,10 +130,11 @@ function UserImageCard({ image, onImageClick, onBuyAsFrame }: UserImageCardProps
 }
 
 export function UserImageGallery() {
-  const { user, loading: authLoading, isInitialized } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
   const { showCartNotification } = useCartNotification();
+  
   // Normalize any DB-stored storage path into a public URL
   const normalizeImageUrl = useCallback((url?: string | null) => {
     if (!url) return '';
@@ -155,16 +156,10 @@ export function UserImageGallery() {
   const galleryRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
   const IMAGES_PER_PAGE = 20;
+  const lastFetchedUserIdRef = useRef<string | null>(null);
 
   const fetchUserImages = useCallback(async (pageNum: number = 0, append: boolean = false) => {
-    console.log('🔍 UserImageGallery: fetchUserImages called', { 
-      pageNum, 
-      append, 
-      userId: user?.id
-    });
-    
     if (!user) {
-      console.log('❌ UserImageGallery: No user found, stopping fetch');
       setLoading(false);
       return;
     }
@@ -176,25 +171,13 @@ export function UserImageGallery() {
         limit: IMAGES_PER_PAGE.toString(),
       });
 
-      console.log('📡 UserImageGallery: Calling API endpoint', { 
-        page,
-        limit: IMAGES_PER_PAGE,
-        userId: user.id
-      });
-
       const response = await fetch(`/api/user-images?${params.toString()}`, {
         method: 'GET',
-        credentials: 'include', // Include cookies for auth
+        credentials: 'include',
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ UserImageGallery: API error', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData
-        });
-        
         setLoading(false);
         
         if (response.status === 401) {
@@ -215,12 +198,6 @@ export function UserImageGallery() {
       }
 
       const data = await response.json();
-      console.log('✅ UserImageGallery: API response received', {
-        imageCount: data.images?.length || 0,
-        total: data.pagination?.total || 0,
-        page: data.pagination?.page,
-        hasMore: data.pagination?.has_more
-      });
 
       const newImages = data.images || [];
       
@@ -246,51 +223,26 @@ export function UserImageGallery() {
     }
   }, [user, IMAGES_PER_PAGE, toast]);
 
-  // Track if we've attempted a fetch to avoid multiple attempts
-  const fetchAttemptedRef = useRef(false);
-
+  // Fetch images when user is available (including after page refresh)
   useEffect(() => {
-    // Only fetch when auth is fully initialized
-    if (isInitialized && !authLoading) {
-      if (user) {
-        console.log('✅ UserImageGallery: Auth initialized with user, fetching images', {
-          userId: user.id,
-          email: user.email,
-          fetchAttempted: fetchAttemptedRef.current
-        });
-        
-        // Fetch images if we haven't attempted yet
-        if (!fetchAttemptedRef.current) {
-          setPage(0);
-          setLoading(true);
-          fetchAttemptedRef.current = true;
-          fetchUserImages(0, false);
-        }
-      } else {
-        console.log('✅ UserImageGallery: Auth initialized but no user, clearing images');
-        fetchAttemptedRef.current = false;
-        setLoading(false);
-        setImages([]);
-      }
-    } else if (isInitialized && !user) {
-      // Auth initialized but no user (logged out)
-      console.log('✅ UserImageGallery: Auth initialized, no user');
-      fetchAttemptedRef.current = false;
+    const userId = user?.id;
+    
+    // If we have a user and haven't fetched for this user yet, fetch
+    if (userId && lastFetchedUserIdRef.current !== userId) {
+      console.log('📡 UserImageGallery: User available, fetching images', { userId });
+      lastFetchedUserIdRef.current = userId;
+      setLoading(true);
+      setPage(0);
+      fetchUserImages(0, false);
+    } else if (user === null && lastFetchedUserIdRef.current !== null) {
+      // User was logged out - clear everything
+      console.log('🚪 UserImageGallery: User logged out, clearing images');
+      lastFetchedUserIdRef.current = null;
       setLoading(false);
       setImages([]);
-    } else {
-      console.log('⏳ UserImageGallery: Auth still initializing', {
-        isInitialized,
-        authLoading,
-        hasUser: !!user
-      });
+      setPage(0);
     }
-  }, [user, isInitialized, authLoading, fetchUserImages]);
-
-  // Reset fetchAttempted when user changes
-  useEffect(() => {
-    fetchAttemptedRef.current = false;
-  }, [user?.id]);
+  }, [user?.id, fetchUserImages, user]);
 
   const handleScroll = useCallback(() => {
     if (!galleryRef.current || !hasMore || loading) return;
@@ -410,18 +362,6 @@ export function UserImageGallery() {
       });
     }
   };
-
-  // Show loading while auth is initializing
-  if (authLoading || !isInitialized) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your creations...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (!user) {
     return (
