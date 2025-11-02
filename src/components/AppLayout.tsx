@@ -9,7 +9,6 @@ import { NotificationBar } from './NotificationBar';
 import { CuratedImageGallery } from './CuratedImageGallery';
 import { AuthModal } from './AuthModal';
 import { WelcomeModal } from './WelcomeModal';
-import { StylesOnboardingModal } from './StylesOnboardingModal';
 import { useAuth } from '@/hooks/useAuth';
 // Temporarily simplified imports to resolve bundler issues
 // import { DynamicThemeProvider, ThemeToggle, DynamicStatusIndicator } from './DynamicThemeProvider';
@@ -28,7 +27,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [authRedirectPath, setAuthRedirectPath] = useState<string | null>(null);
   const [welcomeModalVisible, setWelcomeModalVisible] = useState(false);
-  const [stylesOnboardingVisible, setStylesOnboardingVisible] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [generationSettings, setGenerationSettings] = useState({
     aspectRatio: '1x1',
@@ -82,16 +80,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   }, [user]);
 
-  // Check if user should see styles onboarding modal (for second-time users)
-  // Check for styles onboarding
-  useEffect(() => {
-    if (user && profile) {
-      // Show styles onboarding for users with login_count >= 2 who haven't seen it yet
-      if (profile.login_count >= 2 && !profile.has_seen_styles_onboarding) {
-        setStylesOnboardingVisible(true);
-      }
-    }
-  }, [user, profile]);
 
   // Check for pending generation from localStorage (when coming from creations page)
   useEffect(() => {
@@ -276,23 +264,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           }}
         />
         
-        {/* Styles Onboarding Modal */}
-        <StylesOnboardingModal
-          isOpen={stylesOnboardingVisible}
-          onClose={async () => {
-            setStylesOnboardingVisible(false);
-            if (updateProfile) {
-              await updateProfile({ has_seen_styles_onboarding: true });
-            }
-          }}
-          onTryNow={async () => {
-            setStylesOnboardingVisible(false);
-            if (updateProfile) {
-              await updateProfile({ has_seen_styles_onboarding: true });
-            }
-            // Focus on the style dropdown or show style-related UI
-          }}
-        />
         
         {/* Development Status Indicator - Temporarily disabled */}
         {/* <DynamicStatusIndicator /> */}
