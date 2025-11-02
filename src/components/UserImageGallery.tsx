@@ -279,7 +279,15 @@ export function UserImageGallery() {
   };
 
   const handleAddToCart = async (frame: any) => {
+    console.log('🛒 UserImageGallery: handleAddToCart called', { 
+      hasUser: !!user, 
+      hasFrameSelectorImage: !!frameSelectorImage,
+      frameSelectorImageId: frameSelectorImage?.id,
+      frame 
+    });
+    
     if (!user) {
+      console.error('❌ UserImageGallery: No user');
       toast({
         title: 'Authentication Required',
         description: 'Please sign in to add items to your cart.',
@@ -289,6 +297,7 @@ export function UserImageGallery() {
     }
 
     if (!frameSelectorImage?.id) {
+      console.error('❌ UserImageGallery: frameSelectorImage or image ID missing', { frameSelectorImage });
       toast({
         title: 'Image Error',
         description: 'Image ID is missing. Please try again.',
@@ -297,8 +306,38 @@ export function UserImageGallery() {
       return;
     }
 
+    if (!frame || !frame.size || !frame.style || !frame.material || typeof frame.price !== 'number') {
+      console.error('❌ UserImageGallery: Invalid frame object', frame);
+      toast({
+        title: 'Error',
+        description: 'Invalid frame selection. Please try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🛒 UserImageGallery: Starting API call to /api/products', {
+        imageId: frameSelectorImage.id,
+        frameSize: frame.size,
+        frameStyle: frame.style,
+        frameMaterial: frame.material,
+        price: frame.price
+      });
+      
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('❌ UserImageGallery: Session error', sessionError);
+        throw new Error('Authentication error. Please try signing in again.');
+      }
+      
+      if (!session) {
+        console.error('❌ UserImageGallery: No session');
+        throw new Error('Please sign in to add items to your cart.');
+      }
+      
+      console.log('✅ UserImageGallery: Session obtained', { hasToken: !!session.access_token });
       
       const response = await fetch('/api/products', {
         method: 'POST',
@@ -332,10 +371,23 @@ export function UserImageGallery() {
       }
 
       const data = await response.json();
+      console.log('✅ UserImageGallery: API response received', { 
+        status: response.status, 
+        hasProduct: !!data.product,
+        productId: data.product?.id 
+      });
       
+      if (!data.product || !data.product.id) {
+        console.error('❌ UserImageGallery: Invalid API response', data);
+        throw new Error('Invalid product data received from server.');
+      }
+      
+      console.log('🛒 UserImageGallery: Calling addToCart', { productId: data.product.id, quantity: 1 });
       const success = await addToCart(data.product.id, 1);
+      console.log('🛒 UserImageGallery: addToCart result', { success });
 
       if (!success) {
+        console.error('❌ UserImageGallery: addToCart returned false');
         throw new Error('Failed to add to cart');
       }
 
@@ -478,11 +530,11 @@ export function UserImageGallery() {
                   imageUrl={normalizeImageUrl(frameSelectorImage.image_url)}
                   imagePrompt={frameSelectorImage.prompt}
                   onFrameSelect={(frame) => {
-                    // Handle frame selection
-                    console.log('Frame selected:', frame);
+                    // Handle frame selection - this is just for preview/display
+                    console.log('🎨 UserImageGallery: Frame selected for preview', frame);
                   }}
                   onAddToCart={handleAddToCart}
-                  selectedFrame={null}
+                  selectedFrame={null} // Let FrameSelector auto-select first matching frame
                   showPreview={true}
                 />
               </div>

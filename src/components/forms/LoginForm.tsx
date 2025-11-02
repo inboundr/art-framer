@@ -27,13 +27,32 @@ export function LoginForm({ onSwitchToSignup }: LoginFormProps) {
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
+      console.log('📝 LoginForm: Submitting form', { email, passwordLength: password.length });
+      
+      // Basic validation
+      if (!email.trim()) {
+        setError('Email is required');
+        setLoading(false);
+        return;
+      }
+      
+      if (!password.trim()) {
+        setError('Password is required');
+        setLoading(false);
+        return;
+      }
+      
+      const { error } = await signIn(email.trim(), password);
       
       if (error) {
-        setError(error.message);
+        console.error('❌ LoginForm: Sign in failed', error);
+        setError(error.message || 'Invalid login credentials. Please check your email and password.');
+      } else {
+        console.log('✅ LoginForm: Sign in successful');
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      console.error('❌ LoginForm: Unexpected error', err);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }

@@ -8,7 +8,6 @@ import { SearchBar } from './SearchBar';
 import { NotificationBar } from './NotificationBar';
 import { AuthModal } from './AuthModal';
 import { WelcomeModal } from './WelcomeModal';
-import { StylesOnboardingModal } from './StylesOnboardingModal';
 import { useAuth } from '@/hooks/useAuth';
 
 interface AuthenticatedLayoutProps {
@@ -24,7 +23,6 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [authRedirectPath, setAuthRedirectPath] = useState<string | null>(null);
   const [welcomeModalVisible, setWelcomeModalVisible] = useState(false);
-  const [stylesOnboardingVisible, setStylesOnboardingVisible] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [generationSettings, setGenerationSettings] = useState({
     aspectRatio: '1x1',
@@ -78,15 +76,6 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
     }
   }, [user]);
 
-  // Check for styles onboarding
-  useEffect(() => {
-    if (user && profile) {
-      // Show styles onboarding for users with login_count >= 2 who haven't seen it yet
-      if (profile.login_count >= 2 && !profile.has_seen_styles_onboarding) {
-        setStylesOnboardingVisible(true);
-      }
-    }
-  }, [user, profile]);
 
   // Handle pending generation request after auth
   useEffect(() => {
@@ -204,22 +193,6 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
         onStartCreating={() => setWelcomeModalVisible(false)}
       />
       
-      {/* Styles Onboarding Modal */}
-      <StylesOnboardingModal
-        isOpen={stylesOnboardingVisible}
-        onClose={async () => {
-          setStylesOnboardingVisible(false);
-          if (updateProfile) {
-            await updateProfile({ has_seen_styles_onboarding: true });
-          }
-        }}
-        onTryNow={async () => {
-          setStylesOnboardingVisible(false);
-          if (updateProfile) {
-            await updateProfile({ has_seen_styles_onboarding: true });
-          }
-        }}
-      />
     </div>
   );
 }

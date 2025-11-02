@@ -8,7 +8,6 @@ import { NotificationBar } from './NotificationBar';
 import { CuratedImageGallery } from './CuratedImageGallery';
 import { AuthModal } from './AuthModal';
 import { WelcomeModal } from './WelcomeModal';
-import { StylesOnboardingModal } from './StylesOnboardingModal';
 import { useAuth } from '@/hooks/useAuth';
 
 interface PublicLayoutProps {
@@ -23,7 +22,6 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [authRedirectPath, setAuthRedirectPath] = useState<string | null>(null);
   const [welcomeModalVisible, setWelcomeModalVisible] = useState(false);
-  const [stylesOnboardingVisible, setStylesOnboardingVisible] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [generationSettings, setGenerationSettings] = useState({
     aspectRatio: '1x1',
@@ -233,12 +231,6 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         }}
       />
       
-      {/* Styles Onboarding Modal */}
-      <StylesOnboardingModal
-        isOpen={stylesOnboardingVisible}
-        onClose={() => setStylesOnboardingVisible(false)}
-        onTryNow={() => setStylesOnboardingVisible(false)}
-      />
     </div>
   );
 }

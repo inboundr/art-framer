@@ -104,14 +104,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [user, session]);
 
   const addToCart = async (productId: string, quantity: number = 1): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      console.error('Cart: addToCart called without user');
+      return false;
+    }
 
     try {
+      // Get fresh session before making API call
+      const { data: { session: freshSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Cart: Session error in addToCart:', sessionError);
+        return false;
+      }
+      
+      if (!freshSession) {
+        console.error('Cart: No session available in addToCart');
+        return false;
+      }
+
+      console.log('Cart: addToCart - Making API call', { 
+        productId, 
+        quantity, 
+        hasToken: !!freshSession.access_token 
+      });
+
       const response = await fetch('/api/cart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+          'Authorization': `Bearer ${freshSession.access_token}`
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -120,13 +142,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }),
       });
 
-      if (response.ok) {
-        await fetchCart(); // Refresh cart data
-        return true;
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = 'Failed to add to cart';
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Failed to add to cart (${response.status})`;
+        }
+        
+        console.error('Cart: addToCart API error', { 
+          status: response.status, 
+          statusText: response.statusText,
+          error: errorMessage 
+        });
+        return false;
       }
-      return false;
+
+      const data = await response.json();
+      console.log('Cart: addToCart success', { productId, quantity });
+      
+      await fetchCart(); // Refresh cart data
+      return true;
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      console.error('Cart: addToCart exception:', error);
       return false;
     }
   };

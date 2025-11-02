@@ -180,7 +180,10 @@ export function FrameSelector({
     
     // Auto-select the first matching frame
     if (filtered.length > 0) {
+      console.log('🎨 FrameSelector: Auto-selecting frame', filtered[0]);
       onFrameSelect(filtered[0]);
+    } else {
+      console.warn('⚠️ FrameSelector: No matching frames found', { selectedSize, selectedStyle, selectedMaterial });
     }
   }, [selectedSize, selectedStyle, selectedMaterial, onFrameSelect]);
 
@@ -207,6 +210,8 @@ export function FrameSelector({
   }, [selectedSize, selectedStyle, selectedMaterial]);
 
   const handleAddToCart = (frame: FrameOption) => {
+    console.log('🛒 FrameSelector: handleAddToCart called', { frame, hasUser: !!user, hasOnAddToCart: !!onAddToCart });
+    
     if (!user) {
       toast({
         title: 'Authentication Required',
@@ -215,7 +220,38 @@ export function FrameSelector({
       });
       return;
     }
-    onAddToCart(frame);
+    
+    if (!onAddToCart) {
+      console.error('❌ FrameSelector: onAddToCart prop is not defined!');
+      toast({
+        title: 'Error',
+        description: 'Add to cart handler is not available. Please refresh the page.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!frame || !frame.size || !frame.style || !frame.material || !frame.price) {
+      console.error('❌ FrameSelector: Invalid frame object', frame);
+      toast({
+        title: 'Error',
+        description: 'Invalid frame selection. Please try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    console.log('✅ FrameSelector: Calling onAddToCart with frame', frame);
+    try {
+      onAddToCart(frame);
+    } catch (error) {
+      console.error('❌ FrameSelector: Error calling onAddToCart', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to add to cart. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -275,7 +311,21 @@ export function FrameSelector({
     return sizes[size as keyof typeof sizes] || sizes.medium;
   };
 
-  const currentFrame = selectedFrame || filteredFrames[0];
+  // Determine current frame - use selectedFrame if provided, otherwise use first filtered frame
+  const currentFrame = selectedFrame || (filteredFrames.length > 0 ? filteredFrames[0] : null);
+  
+  // Log current frame state for debugging
+  useEffect(() => {
+    console.log('🎨 FrameSelector: Current frame state', {
+      hasSelectedFrame: !!selectedFrame,
+      selectedFrame: selectedFrame,
+      filteredFramesCount: filteredFrames.length,
+      firstFilteredFrame: filteredFrames[0],
+      currentFrame: currentFrame,
+      hasCurrentFrame: !!currentFrame
+    });
+  }, [selectedFrame, filteredFrames, currentFrame]);
+  
   const previewSize = getPreviewSize(selectedSize);
 
   return (
@@ -590,9 +640,22 @@ export function FrameSelector({
 
                   <div className="flex items-center justify-between">
                     <Button 
-                      onClick={() => handleAddToCart(currentFrame)}
+                      onClick={() => {
+                        console.log('🛒 Add to Cart button clicked', { currentFrame, hasCurrentFrame: !!currentFrame });
+                        if (currentFrame) {
+                          handleAddToCart(currentFrame);
+                        } else {
+                          console.error('❌ currentFrame is undefined!', { selectedFrame, filteredFrames });
+                          toast({
+                            title: 'Error',
+                            description: 'No frame selected. Please select a frame.',
+                            variant: 'destructive',
+                          });
+                        }
+                      }}
                       className="min-w-32 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg"
                       size="lg"
+                      disabled={!currentFrame}
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
                       Add to Cart
