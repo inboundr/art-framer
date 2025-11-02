@@ -179,7 +179,20 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               label="Creations"
               active={pathname === '/creations'}
               badge={activeGenerations > 0 ? activeGenerations : undefined}
-              onClick={() => handleNavClick('/creations')}
+              onClick={() => {
+                if (!user) {
+                  // Show auth modal for non-authenticated users with redirect path
+                  if (onOpenAuthModal) {
+                    onOpenAuthModal('/creations');
+                    if (isMobile && onClose) {
+                      onClose();
+                    }
+                  }
+                } else {
+                  // Navigate to creations for authenticated users
+                  handleNavClick('/creations');
+                }
+              }}
             />
 
             <NavItem
@@ -192,7 +205,20 @@ export function Sidebar({ isMobile = false, isOpen = false, onClose, onOpenAuthM
               }
               label="Orders"
               active={pathname === '/orders'}
-              onClick={() => handleNavClick('/orders')}
+              onClick={() => {
+                if (!user) {
+                  // Show auth modal for non-authenticated users with redirect path
+                  if (onOpenAuthModal) {
+                    onOpenAuthModal('/orders');
+                    if (isMobile && onClose) {
+                      onClose();
+                    }
+                  }
+                } else {
+                  // Navigate to orders for authenticated users
+                  handleNavClick('/orders');
+                }
+              }}
             />
             
             {/* Cart Button for Mobile - Always visible */}
