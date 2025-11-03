@@ -91,8 +91,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Cart: fetchCart success', { 
+          itemCount: data.cartItems?.length || 0,
+          total: data.totals?.total || 0
+        });
         setCartData(data);
       } else {
+        console.warn('Cart: fetchCart failed', { status: response.status });
         setCartData(null);
       }
     } catch (error) {
@@ -162,9 +167,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
-      console.log('Cart: addToCart success', { productId, quantity });
+      console.log('Cart: addToCart API response', { 
+        productId, 
+        quantity,
+        response: data,
+        hasCartItem: !!data.cartItem,
+        message: data.message
+      });
       
-      await fetchCart(); // Refresh cart data
+      // Validate response contains cart item
+      if (!data.cartItem) {
+        console.error('Cart: addToCart - API returned success but no cartItem in response', data);
+        return false;
+      }
+      
+      // Refresh cart data and wait for it to complete
+      console.log('Cart: addToCart - Refreshing cart data...');
+      await fetchCart();
+      console.log('Cart: addToCart - Cart data refreshed successfully');
+      
       return true;
     } catch (error) {
       console.error('Cart: addToCart exception:', error);

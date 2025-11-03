@@ -134,6 +134,32 @@ export function UserImageGallery() {
   const { toast } = useToast();
   const { addToCart } = useCart();
   const { showCartNotification } = useCartNotification();
+
+  // Debug function - expose to window for testing
+  useEffect(() => {
+    (window as any).testAddToCartFunction = async () => {
+      console.log('🧪 TEST: Calling addToCart directly');
+      if (!user) {
+        console.error('🧪 TEST: No user');
+        return;
+      }
+      try {
+        console.log('🧪 TEST: Making direct fetch to /api/cart');
+        const response = await fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ productId: 'test-product-id', quantity: 1 }),
+        });
+        console.log('🧪 TEST: Fetch response', response.status, await response.text());
+      } catch (error) {
+        console.error('🧪 TEST: Fetch error', error);
+      }
+    };
+    return () => {
+      delete (window as any).testAddToCartFunction;
+    };
+  }, [user]);
   
   // Normalize any DB-stored storage path into a public URL
   const normalizeImageUrl = useCallback((url?: string | null) => {
@@ -279,15 +305,23 @@ export function UserImageGallery() {
   };
 
   const handleAddToCart = async (frame: any) => {
-    console.log('🛒 UserImageGallery: handleAddToCart called', { 
+    console.log('🔥🔥🔥 UserImageGallery.handleAddToCart CALLED 🔥🔥🔥');
+    console.log('🛒 UserImageGallery: handleAddToCart CALLED', { 
       hasUser: !!user, 
       hasFrameSelectorImage: !!frameSelectorImage,
       frameSelectorImageId: frameSelectorImage?.id,
-      frame 
+      frame,
+      frameDetails: frame ? {
+        size: frame.size,
+        style: frame.style,
+        material: frame.material,
+        price: frame.price,
+        hasAllProps: !!(frame.size && frame.style && frame.material && typeof frame.price === 'number')
+      } : null
     });
     
     if (!user) {
-      console.error('❌ UserImageGallery: No user');
+      console.error('❌ UserImageGallery: No user - STOPPING HERE');
       toast({
         title: 'Authentication Required',
         description: 'Please sign in to add items to your cart.',
@@ -295,9 +329,14 @@ export function UserImageGallery() {
       });
       return;
     }
+    console.log('✅ UserImageGallery: User check passed');
 
     if (!frameSelectorImage?.id) {
-      console.error('❌ UserImageGallery: frameSelectorImage or image ID missing', { frameSelectorImage });
+      console.error('❌ UserImageGallery: frameSelectorImage or image ID missing - STOPPING HERE', { 
+        frameSelectorImage,
+        hasFrameSelectorImage: !!frameSelectorImage,
+        imageId: frameSelectorImage?.id
+      });
       toast({
         title: 'Image Error',
         description: 'Image ID is missing. Please try again.',
@@ -305,9 +344,18 @@ export function UserImageGallery() {
       });
       return;
     }
+    console.log('✅ UserImageGallery: frameSelectorImage check passed', { imageId: frameSelectorImage.id });
 
     if (!frame || !frame.size || !frame.style || !frame.material || typeof frame.price !== 'number') {
-      console.error('❌ UserImageGallery: Invalid frame object', frame);
+      console.error('❌ UserImageGallery: Invalid frame object - STOPPING HERE', {
+        frame,
+        hasFrame: !!frame,
+        hasSize: !!frame?.size,
+        hasStyle: !!frame?.style,
+        hasMaterial: !!frame?.material,
+        hasPrice: typeof frame?.price === 'number',
+        priceType: typeof frame?.price
+      });
       toast({
         title: 'Error',
         description: 'Invalid frame selection. Please try again.',
@@ -315,14 +363,16 @@ export function UserImageGallery() {
       });
       return;
     }
+    console.log('✅ UserImageGallery: Frame validation passed');
 
     try {
-      console.log('🛒 UserImageGallery: Starting API call to /api/products', {
+      console.log('🛒 UserImageGallery: About to make API call to /api/products', {
         imageId: frameSelectorImage.id,
         frameSize: frame.size,
         frameStyle: frame.style,
         frameMaterial: frame.material,
-        price: frame.price
+        price: frame.price,
+        timestamp: new Date().toISOString()
       });
       
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -339,6 +389,26 @@ export function UserImageGallery() {
       
       console.log('✅ UserImageGallery: Session obtained', { hasToken: !!session.access_token });
       
+      console.log('🚀 UserImageGallery: MAKING FETCH REQUEST NOW to /api/products', {
+        url: '/api/products',
+        method: 'POST',
+        hasToken: !!session.access_token,
+        body: {
+          imageId: frameSelectorImage.id,
+          frameSize: frame.size,
+          frameStyle: frame.style,
+          frameMaterial: frame.material,
+          price: frame.price
+        }
+      });
+      
+      // Test if fetch is available
+      if (typeof fetch === 'undefined') {
+        console.error('❌❌❌ FETCH IS NOT AVAILABLE! ❌❌❌');
+        throw new Error('Fetch API is not available');
+      }
+      
+      console.log('✅ Fetch is available, making request...');
       const response = await fetch('/api/products', {
         method: 'POST',
         headers: {
@@ -391,20 +461,32 @@ export function UserImageGallery() {
         throw new Error('Failed to add to cart');
       }
 
+      console.log('✅ UserImageGallery: Item successfully added to cart, showing notification');
+
       // Show enhanced cart notification with action buttons
-      showCartNotification({
-        itemName: `${frame.size} ${frame.style} Frame`,
-        itemImage: frameSelectorImage.image_url,
-        onViewCart: () => {
-          // Close the frame selector and navigate to cart
-          setShowFrameSelector(false);
-          window.location.href = '/cart';
-        },
-        onContinueShopping: () => {
-          // Just close the frame selector
-          setShowFrameSelector(false);
-        }
-      });
+      try {
+        showCartNotification({
+          itemName: `${frame.size} ${frame.style} Frame`,
+          itemImage: frameSelectorImage.image_url,
+          onViewCart: () => {
+            // Close the frame selector and navigate to cart
+            setShowFrameSelector(false);
+            window.location.href = '/cart';
+          },
+          onContinueShopping: () => {
+            // Just close the frame selector
+            setShowFrameSelector(false);
+          }
+        });
+        console.log('✅ UserImageGallery: Cart notification displayed');
+      } catch (notificationError) {
+        console.error('❌ UserImageGallery: Error showing cart notification', notificationError);
+        // Fallback to simple toast notification
+        toast({
+          title: 'Added to Cart',
+          description: `${frame.size} ${frame.style} Frame has been added to your cart.`,
+        });
+      }
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast({
