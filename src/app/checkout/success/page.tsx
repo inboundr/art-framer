@@ -18,41 +18,69 @@ function CheckoutSuccessContent() {
   const addressRetrievedRef = useRef(false);
 
   // Enhanced authentication handling for post-redirect scenarios
+  // But don't block the page if we have sessionId - show success regardless
   useEffect(() => {
     const handleAuthRestoration = async () => {
-      // Wait for auth persistence to initialize
-      if (!isInitialized) return;
-      
-      // If user is not authenticated, try to restore session
-      if (!isAuthenticated && isInitialized) {
+      // If we have a sessionId, we can show success even without full auth
+      // The order is already saved (webhook processed it)
+      if (sessionId) {
+        // Set a timeout to show success page even if auth is slow
+        const timeoutId = setTimeout(() => {
+          console.log('⏰ Showing success page despite auth delay (order is saved)');
+          setAuthChecked(true);
+        }, 3000); // 3 second timeout
+        
+        // Wait for auth persistence to initialize
+        if (!isInitialized) {
+          return () => clearTimeout(timeoutId);
+        }
+        
+        // If user is authenticated, we're good
+        if (isAuthenticated) {
+          clearTimeout(timeoutId);
+          setAuthChecked(true);
+          return;
+        }
+        
+        // If user is not authenticated, try to restore session (but don't block)
         console.log('🔐 No user found after redirect, attempting session restoration...');
         
         // Try to restore session with multiple attempts
         let attempts = 0;
-        const maxAttempts = 3;
+        const maxAttempts = 2; // Reduced attempts since we have timeout
         
         const attemptRestore = async () => {
           attempts++;
           console.log(`🔄 Restoration attempt ${attempts}/${maxAttempts}`);
           
-          await restoreSession();
+          try {
+            await restoreSession();
+          } catch (error) {
+            console.warn('Session restoration error:', error);
+          }
           
           // If still not authenticated and we have attempts left, try again
           if (!isAuthenticated && attempts < maxAttempts) {
             setTimeout(attemptRestore, 1000 * attempts); // Exponential backoff
           } else {
+            clearTimeout(timeoutId);
             setAuthChecked(true);
           }
         };
         
         attemptRestore();
+        
+        return () => clearTimeout(timeoutId);
       } else {
-        setAuthChecked(true);
+        // No sessionId - we need auth to proceed
+        if (isInitialized) {
+          setAuthChecked(true);
+        }
       }
     };
 
     handleAuthRestoration();
-  }, [isInitialized, isAuthenticated, restoreSession]);
+  }, [isInitialized, isAuthenticated, restoreSession, sessionId]);
 
   // Retrieve stored shipping address when session ID is available
   // Note: This works with or without authentication (fallback for post-payment scenarios)
@@ -82,7 +110,11 @@ function CheckoutSuccessContent() {
   }, [sessionId]); // Only depend on sessionId
 
   // Show loading state while checking authentication
-  if (!isInitialized || !authChecked) {
+  // But if we have sessionId, show success after timeout (order is already saved via webhook)
+  // The order is already in the database, so we don't need to wait for full auth
+  if (!authChecked) {
+    // If we have sessionId, show a message that payment was successful
+    // The timeout will show the success page after 3 seconds
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
         <div className="max-w-2xl w-full">
@@ -90,6 +122,11 @@ function CheckoutSuccessContent() {
             <CardContent className="p-8 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <p className="text-gray-600">Verifying your order...</p>
+              {sessionId && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Your payment was successful. Loading order details...
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -97,8 +134,9 @@ function CheckoutSuccessContent() {
     );
   }
 
-  // If no user after auth check, redirect to login
-  if (!isAuthenticated && authChecked) {
+  // If no user after auth check but we have sessionId, still show success (order is saved)
+  // Only show login prompt if we don't have sessionId
+  if (!isAuthenticated && authChecked && !sessionId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
         <div className="max-w-2xl w-full">

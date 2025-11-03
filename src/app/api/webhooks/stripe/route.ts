@@ -691,7 +691,7 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
       tracking_url: prodigiResponse.trackingUrl,
       estimated_delivery: prodigiResponse.estimatedDelivery ? new Date(prodigiResponse.estimatedDelivery) : null,
       provider_response: prodigiResponse,
-      status: prodigiResponse.status.toLowerCase(),
+      status: (prodigiResponse.status || 'pending').toLowerCase(), // Safe fallback if status is undefined
       updated_at: new Date().toISOString(),
     };
 
