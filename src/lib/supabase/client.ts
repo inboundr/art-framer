@@ -40,13 +40,16 @@ export const supabase = (() => {
       flowType: 'pkce',
       // Use localStorage for session persistence
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      // Explicit storage key to ensure consistency
+      storageKey: 'sb-auth-token',
     },
     global: {
       headers: {
         'X-Client-Info': 'art-framer-web'
       }
-      // Don't override fetch - Supabase SSR handles cookies automatically
-      // The middleware syncs cookies, and the browser client reads from localStorage
+      // Note: Don't override fetch - Supabase SSR automatically handles cookies
+      // via the cookie configuration in middleware and server-side client
+      // The browser client reads from localStorage which is synced from cookies
     }
   });
 

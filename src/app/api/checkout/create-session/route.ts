@@ -108,6 +108,29 @@ function getCurrencyForCountry(countryCode: string): string {
   return COUNTRY_CURRENCY_MAP[countryCode.toUpperCase()] || 'usd';
 }
 
+// Get base URL from request headers (handles production/development dynamically)
+function getBaseUrl(request: NextRequest): string {
+  // Try to get the origin from headers first (most reliable in production)
+  const origin = request.headers.get("origin");
+  if (origin) {
+    return origin;
+  }
+
+  // Fallback to host header
+  const host = request.headers.get("host");
+  if (host) {
+    // Determine protocol based on host
+    const protocol =
+      host.includes("localhost") || host.includes("127.0.0.1")
+        ? "http"
+        : "https";
+    return `${protocol}://${host}`;
+  }
+
+  // Final fallback to environment variable
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Check if Stripe is properly configured
@@ -399,8 +422,8 @@ export async function POST(request: NextRequest) {
         shippingAmount: shippingAmount.toString(),
         total: total.toString(),
       },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cart`,
+      success_url: `${getBaseUrl(request)}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${getBaseUrl(request)}/cart`,
     });
 
     // Store shipping address with Stripe session ID for later retrieval
