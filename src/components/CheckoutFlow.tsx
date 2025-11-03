@@ -58,7 +58,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
   const { cartData } = useCart();
   const cartItems = cartData?.cartItems || [];
   const totals = cartData?.totals || { subtotal: 0, taxAmount: 0, shippingAmount: 0, total: 0, itemCount: 0 };
-  const { user } = useAuth();
+  const { user, session: contextSession } = useAuth();
   const { toast } = useToast();
   const { getDefaultAddress, saveAddress } = useAddresses();
   
@@ -557,21 +557,57 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       }
       console.log('✅ CheckoutFlow: Address validation passed');
 
-      // Get the session to access the token for authentication
-      console.log('🔍 CheckoutFlow: About to get session...');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Use session from auth context instead of fetching again (to avoid hanging)
+      console.log('🔍 CheckoutFlow: Checking session from auth context...', { 
+        hasContextSession: !!contextSession,
+        hasToken: !!contextSession?.access_token
+      });
       
-      if (sessionError) {
-        console.error('❌ CheckoutFlow: Session error', sessionError);
-        throw new Error('Authentication error. Please try signing in again.');
-      }
+      let session = contextSession;
       
       if (!session) {
-        console.error('❌ CheckoutFlow: No session');
-        throw new Error('Please sign in to complete your order.');
+        console.error('❌ CheckoutFlow: No session in context, trying to get fresh session...');
+        // Fallback: try to get session with short timeout
+        try {
+          const quickSessionPromise = supabase.auth.getSession();
+          const quickTimeout = new Promise<never>((_, reject) => 
+            setTimeout(() => {
+              console.error('⏰ CheckoutFlow: Session retrieval timeout after 3 seconds');
+              reject(new Error('Session timeout'));
+            }, 3000)
+          );
+          
+          console.log('🔄 CheckoutFlow: Racing session promise with 3s timeout...');
+          const result = await Promise.race([quickSessionPromise, quickTimeout]);
+          console.log('🔄 CheckoutFlow: Session race completed', { hasResult: !!result });
+          
+          session = result?.data?.session || null;
+          
+          if (!session) {
+            console.error('❌ CheckoutFlow: No session available after retrieval attempt');
+            setProcessing(false);
+            toast({
+              title: 'Authentication Required',
+              description: 'Please sign in to complete your order.',
+              variant: 'destructive',
+            });
+            return;
+          }
+          
+          console.log('✅ CheckoutFlow: Got fresh session', { hasToken: !!session.access_token });
+        } catch (sessionError) {
+          console.error('❌ CheckoutFlow: Session retrieval failed', sessionError);
+          setProcessing(false);
+          toast({
+            title: 'Authentication Error',
+            description: 'Please sign in to complete your order.',
+            variant: 'destructive',
+          });
+          return;
+        }
+      } else {
+        console.log('✅ CheckoutFlow: Using session from context', { hasToken: !!session.access_token });
       }
-      
-      console.log('✅ CheckoutFlow: Session obtained', { hasToken: !!session.access_token });
 
       console.log('🚀 CheckoutFlow: MAKING FETCH REQUEST NOW to /api/checkout/create-session', {
         url: '/api/checkout/create-session',
@@ -595,6 +631,14 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       }
       
       console.log('✅ Fetch is available, making request...');
+      
+      // Create checkout session with timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('❌ CheckoutFlow: Request timeout after 30 seconds');
+        setProcessing(false);
+      }, 30000); // 30 second timeout
       
       // Create checkout session
       const response = await fetch('/api/checkout/create-session', {
@@ -624,14 +668,27 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
             postalCode: shippingAddress.zip,
           },
         }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId); // Clear timeout on success
+      
+      console.log('📡 CheckoutFlow: API Response received', { 
+        status: response.status, 
+        statusText: response.statusText,
+        ok: response.ok 
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create checkout session');
+        const errorMessage = errorData.error || 'Failed to create checkout session';
+        console.error('❌ CheckoutFlow: API error response', { status: response.status, error: errorMessage });
+        setProcessing(false); // Reset processing state on API error
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      console.log('✅ CheckoutFlow: API response parsed', { hasUrl: !!data.url });
 
       // Save address for future use
       try {
@@ -654,18 +711,27 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
       // Redirect to Stripe Checkout
       if (data.url) {
+        console.log('✅ CheckoutFlow: Redirecting to Stripe checkout', { url: data.url });
+        // Reset processing before redirect (though user won't see it)
+        setProcessing(false);
         window.location.href = data.url;
       } else {
-        throw new Error('No checkout URL received');
+        console.error('❌ CheckoutFlow: No checkout URL in response', data);
+        setProcessing(false);
+        throw new Error('No checkout URL received from server');
       }
     } catch (error) {
-      console.error('Checkout error:', error);
+      console.error('❌ CheckoutFlow: Checkout error:', error);
+      console.error('❌ CheckoutFlow: Error stack', error instanceof Error ? error.stack : 'No stack');
+      setProcessing(false); // Explicitly reset processing state on error
       toast({
         title: 'Checkout Failed',
-        description: error instanceof Error ? error.message : 'An error occurred during checkout.',
+        description: error instanceof Error ? error.message : 'An error occurred during checkout. Please try again.',
         variant: 'destructive',
       });
     } finally {
+      // Always reset processing state, even if redirect happens
+      console.log('✅ CheckoutFlow: Resetting processing state in finally block');
       setProcessing(false);
     }
   };
@@ -993,17 +1059,17 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
               </Button>
             ) : (
               <Button 
-                onClick={(e) => {
+                onClick={async (e) => {
                   console.log('🔥🔥🔥 CHECKOUT BUTTON CLICKED - START 🔥🔥🔥');
                   e.preventDefault();
                   e.stopPropagation();
                   try {
                     console.log('💳 CheckoutFlow: Button clicked, calling handleCheckout...');
-                    handleCheckout();
-                    console.log('✅ CheckoutFlow: handleCheckout called');
+                    await handleCheckout(); // MUST await the async function!
+                    console.log('✅ CheckoutFlow: handleCheckout completed');
                   } catch (error) {
                     console.error('🔥🔥🔥 ERROR IN CHECKOUT BUTTON CLICK HANDLER 🔥🔥🔥', error);
-                    throw error;
+                    console.error('🔥🔥🔥 Error stack', error instanceof Error ? error.stack : 'No stack');
                   }
                   console.log('🔥🔥🔥 CHECKOUT BUTTON CLICKED - END 🔥🔥🔥');
                 }}
