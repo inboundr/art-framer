@@ -115,7 +115,7 @@ export default function OrdersPage() {
           'Content-Type': 'application/json',
           // Add Authorization header if available, but cookies will work too
           ...(session?.access_token && {
-            'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${session.access_token}`
           })
         }
       });
