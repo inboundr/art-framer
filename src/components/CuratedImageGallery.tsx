@@ -446,19 +446,19 @@ export function CuratedImageGallery({
 
       // Show enhanced cart notification with action buttons
       try {
-        showCartNotification({
-          itemName: `${frame.size} ${frame.style} Frame`,
-          itemImage: frameSelectorImage.image_url,
-          onViewCart: () => {
-            // Close the frame selector and navigate to cart
-            setShowFrameSelector(false);
-            window.location.href = '/cart';
-          },
-          onContinueShopping: () => {
-            // Just close the frame selector
-            setShowFrameSelector(false);
-          }
-        });
+      showCartNotification({
+        itemName: `${frame.size} ${frame.style} Frame`,
+        itemImage: frameSelectorImage.image_url,
+        onViewCart: () => {
+          // Close the frame selector and navigate to cart
+          setShowFrameSelector(false);
+          window.location.href = '/cart';
+        },
+        onContinueShopping: () => {
+          // Just close the frame selector
+          setShowFrameSelector(false);
+        }
+      });
         console.log('✅ CuratedImageGallery: Cart notification displayed');
       } catch (notificationError) {
         console.error('❌ CuratedImageGallery: Error showing cart notification', notificationError);
