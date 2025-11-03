@@ -243,39 +243,13 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         retryCount
       });
 
-      console.log('🔍 About to get session...');
-      // Get the session to access the token for authentication with proper timeout handling
-      let session;
-      try {
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Session timeout')), 10000) // Increased timeout to 10 seconds
-        );
-        
-        const result = await Promise.race([sessionPromise, timeoutPromise]);
-        session = result?.data?.session || null;
-        console.log('🔐 Session retrieved successfully:', { hasSession: !!session, hasToken: !!session?.access_token });
-      } catch (sessionError) {
-        console.error('❌ Session retrieval failed:', sessionError);
-        // Try to refresh the session if it failed
-        try {
-          const refreshResult = await supabase.auth.refreshSession();
-          session = refreshResult?.data?.session || null;
-          console.log('🔄 Session refreshed:', { hasSession: !!session, hasToken: !!session?.access_token });
-        } catch (refreshError) {
-          console.error('❌ Session refresh failed:', refreshError);
-          session = null;
-        }
-      }
-      
-      console.log('🌐 Making API call to /api/cart/shipping...');
+      // API uses cookie-based authentication, no need to get session token
+      // This matches the pattern used in shipping-calculation.ts utility
+      console.log('🌐 Making API call to /api/cart/shipping (using cookie auth)...');
       const response = await fetch('/api/cart/shipping', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token && {
-            'Authorization': `Bearer ${session.access_token}`
-          })
+          'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify({
