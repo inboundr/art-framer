@@ -512,7 +512,15 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
   };
 
   const handleCheckout = async () => {
+    console.log('🔥🔥🔥 CheckoutFlow.handleCheckout CALLED 🔥🔥🔥');
+    console.log('💳 CheckoutFlow: handleCheckout called', {
+      hasUser: !!user,
+      cartItemsCount: cartItems.length,
+      hasCartItems: cartItems.length > 0
+    });
+    
     if (!user) {
+      console.error('❌ CheckoutFlow: No user - STOPPING HERE');
       toast({
         title: 'Authentication Required',
         description: 'Please sign in to complete your order.',
@@ -520,8 +528,10 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       });
       return;
     }
+    console.log('✅ CheckoutFlow: User check passed');
 
     if (cartItems.length === 0) {
+      console.error('❌ CheckoutFlow: Cart is empty - STOPPING HERE');
       toast({
         title: 'Empty Cart',
         description: 'Your cart is empty.',
@@ -529,19 +539,63 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       });
       return;
     }
+    console.log('✅ CheckoutFlow: Cart check passed', { itemCount: cartItems.length });
 
     try {
       setProcessing(true);
+      console.log('✅ CheckoutFlow: Processing state set to true');
 
       // Validate shipping address before proceeding
-      if (!validateShippingAddress()) {
+      console.log('🔍 CheckoutFlow: Validating shipping address...');
+      const isValidAddress = validateShippingAddress();
+      console.log('🔍 CheckoutFlow: Address validation result', { isValidAddress });
+      
+      if (!isValidAddress) {
+        console.error('❌ CheckoutFlow: Address validation failed - STOPPING HERE');
         setProcessing(false);
         return;
       }
+      console.log('✅ CheckoutFlow: Address validation passed');
 
       // Get the session to access the token for authentication
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔍 CheckoutFlow: About to get session...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('❌ CheckoutFlow: Session error', sessionError);
+        throw new Error('Authentication error. Please try signing in again.');
+      }
+      
+      if (!session) {
+        console.error('❌ CheckoutFlow: No session');
+        throw new Error('Please sign in to complete your order.');
+      }
+      
+      console.log('✅ CheckoutFlow: Session obtained', { hasToken: !!session.access_token });
 
+      console.log('🚀 CheckoutFlow: MAKING FETCH REQUEST NOW to /api/checkout/create-session', {
+        url: '/api/checkout/create-session',
+        method: 'POST',
+        hasToken: !!session.access_token,
+        cartItemIds: cartItems.map(item => item.id),
+        shippingAddress: {
+          firstName: shippingAddress.firstName,
+          lastName: shippingAddress.lastName,
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          zip: shippingAddress.zip,
+          country: shippingAddress.country
+        }
+      });
+      
+      // Test if fetch is available
+      if (typeof fetch === 'undefined') {
+        console.error('❌❌❌ FETCH IS NOT AVAILABLE! ❌❌❌');
+        throw new Error('Fetch API is not available');
+      }
+      
+      console.log('✅ Fetch is available, making request...');
+      
       // Create checkout session
       const response = await fetch('/api/checkout/create-session', {
         method: 'POST',
@@ -939,7 +993,20 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
               </Button>
             ) : (
               <Button 
-                onClick={handleCheckout}
+                onClick={(e) => {
+                  console.log('🔥🔥🔥 CHECKOUT BUTTON CLICKED - START 🔥🔥🔥');
+                  e.preventDefault();
+                  e.stopPropagation();
+                  try {
+                    console.log('💳 CheckoutFlow: Button clicked, calling handleCheckout...');
+                    handleCheckout();
+                    console.log('✅ CheckoutFlow: handleCheckout called');
+                  } catch (error) {
+                    console.error('🔥🔥🔥 ERROR IN CHECKOUT BUTTON CLICK HANDLER 🔥🔥🔥', error);
+                    throw error;
+                  }
+                  console.log('🔥🔥🔥 CHECKOUT BUTTON CLICKED - END 🔥🔥🔥');
+                }}
                 disabled={processing}
                 className="min-w-32"
               >
