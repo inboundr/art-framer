@@ -169,20 +169,20 @@ export function CreationsModal({
 
       // Show enhanced cart notification with action buttons
       try {
-        showCartNotification({
-          itemName: `${frame.size} ${frame.style} Frame`,
-          itemImage: imageUrl,
-          onViewCart: () => {
-            // Close the modal and navigate to cart
-            setShowFrameSelector(false);
-            onClose();
-            window.location.href = '/cart';
-          },
-          onContinueShopping: () => {
-            // Just close the frame selector
-            setShowFrameSelector(false);
-          }
-        });
+      showCartNotification({
+        itemName: `${frame.size} ${frame.style} Frame`,
+        itemImage: imageUrl,
+        onViewCart: () => {
+          // Close the modal and navigate to cart
+          setShowFrameSelector(false);
+          onClose();
+          window.location.href = '/cart';
+        },
+        onContinueShopping: () => {
+          // Just close the frame selector
+          setShowFrameSelector(false);
+        }
+      });
         console.log('✅ CreationsModal: Cart notification displayed');
       } catch (notificationError) {
         console.error('❌ CreationsModal: Error showing cart notification', notificationError);

@@ -639,7 +639,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         console.error('❌ CheckoutFlow: Request timeout after 30 seconds');
         setProcessing(false);
       }, 30000); // 30 second timeout
-      
+
       // Create checkout session
       const response = await fetch('/api/checkout/create-session', {
         method: 'POST',

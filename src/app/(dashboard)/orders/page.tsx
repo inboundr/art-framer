@@ -23,7 +23,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { AuthenticatedLayout } from '@/components/AuthenticatedLayout';
 import { FramePreview } from '@/components/FramePreview';
-import { supabase } from '@/lib/supabase/client';
 
 interface OrderItem {
   id: string;
@@ -78,7 +77,7 @@ interface Order {
 }
 
 export default function OrdersPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth(); // Use session from context instead of fetching
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,15 +90,34 @@ export default function OrdersPage() {
       setLoading(true);
       console.log('Frontend: Fetching orders for user', user?.id);
       
-      // Get the session to access the token
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Frontend: Session data', { hasSession: !!session, hasToken: !!session?.access_token });
+      // Use session from auth context (already available, no need to fetch)
+      // This avoids hanging on getSession() calls
+      console.log('Frontend: Using session from context', { 
+        hasSession: !!session, 
+        hasToken: !!session?.access_token,
+        userId: user?.id
+      });
+      
+      // Make API call - cookie-based auth will work even without Authorization header
+      // The API route checks cookies first (which are always sent with credentials: 'include')
+      console.log('Frontend: Making fetch request to /api/orders...');
+      console.log('Frontend: Request details', {
+        url: '/api/orders',
+        hasToken: !!session?.access_token,
+        willUseCookies: true,
+        credentials: 'include'
+      });
       
       const response = await fetch('/api/orders', {
         credentials: 'include',
-        headers: session?.access_token ? {
-          'Authorization': `Bearer ${session.access_token}`
-        } : {}
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add Authorization header if available, but cookies will work too
+          ...(session?.access_token && {
+            'Authorization': `Bearer ${session.access_token}`
+          })
+        }
       });
       
       console.log('Frontend: Orders API response', { 
@@ -126,7 +144,7 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, session, toast]);
 
   useEffect(() => {
     if (user) {

@@ -178,7 +178,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Validate response contains cart item
       if (!data.cartItem) {
         console.error('Cart: addToCart - API returned success but no cartItem in response', data);
-        return false;
+      return false;
       }
       
       // Refresh cart data and wait for it to complete

@@ -711,16 +711,16 @@ export function FrameSelector({
                             disabled: !currentFrame,
                             buttonType: 'button'
                           });
-                          if (currentFrame) {
+                        if (currentFrame) {
                             console.log('✅ FrameSelector: Calling handleAddToCart...');
-                            handleAddToCart(currentFrame);
-                          } else {
-                            console.error('❌ currentFrame is undefined!', { selectedFrame, filteredFrames });
-                            toast({
-                              title: 'Error',
-                              description: 'No frame selected. Please select a frame.',
-                              variant: 'destructive',
-                            });
+                          handleAddToCart(currentFrame);
+                        } else {
+                          console.error('❌ currentFrame is undefined!', { selectedFrame, filteredFrames });
+                          toast({
+                            title: 'Error',
+                            description: 'No frame selected. Please select a frame.',
+                            variant: 'destructive',
+                          });
                           }
                           console.log('🔥🔥🔥 BUTTON CLICKED - END 🔥🔥🔥');
                         } catch (error) {
