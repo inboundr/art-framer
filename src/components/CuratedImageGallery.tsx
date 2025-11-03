@@ -302,7 +302,23 @@ export function CuratedImageGallery({
   };
 
   const handleAddToCart = async (frame: any) => {
+    console.log('🔥🔥🔥 CuratedImageGallery.handleAddToCart CALLED 🔥🔥🔥');
+    console.log('🛒 CuratedImageGallery: handleAddToCart called', { 
+      hasUser: !!user, 
+      hasFrameSelectorImage: !!frameSelectorImage,
+      frameSelectorImageId: frameSelectorImage?.id,
+      frame,
+      frameDetails: frame ? {
+        size: frame.size,
+        style: frame.style,
+        material: frame.material,
+        price: frame.price,
+        hasAllProps: !!(frame.size && frame.style && frame.material && typeof frame.price === 'number')
+      } : null
+    });
+    
     if (!user) {
+      console.error('❌ CuratedImageGallery: No user - STOPPING HERE');
       toast({
         title: 'Authentication Required',
         description: 'Please sign in to add items to your cart.',
@@ -310,8 +326,14 @@ export function CuratedImageGallery({
       });
       return;
     }
+    console.log('✅ CuratedImageGallery: User check passed');
 
     if (!frameSelectorImage?.id) {
+      console.error('❌ CuratedImageGallery: frameSelectorImage or image ID missing - STOPPING HERE', { 
+        frameSelectorImage,
+        hasFrameSelectorImage: !!frameSelectorImage,
+        imageId: frameSelectorImage?.id
+      });
       toast({
         title: 'Image Error',
         description: 'Image ID is missing. Please try again.',
@@ -319,10 +341,64 @@ export function CuratedImageGallery({
       });
       return;
     }
+    console.log('✅ CuratedImageGallery: frameSelectorImage check passed', { imageId: frameSelectorImage.id });
+
+    if (!frame || !frame.size || !frame.style || !frame.material || typeof frame.price !== 'number') {
+      console.error('❌ CuratedImageGallery: Invalid frame object - STOPPING HERE', {
+        frame,
+        hasFrame: !!frame,
+        hasSize: !!frame?.size,
+        hasStyle: !!frame?.style,
+        hasMaterial: !!frame?.material,
+        hasPrice: typeof frame?.price === 'number',
+        priceType: typeof frame?.price
+      });
+      toast({
+        title: 'Error',
+        description: 'Invalid frame selection. Please try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    console.log('✅ CuratedImageGallery: Frame validation passed');
 
     try {
+      console.log('🛒 CuratedImageGallery: About to get session...');
       // Get the session to access the token
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('❌ CuratedImageGallery: Session error', sessionError);
+        throw new Error('Authentication error. Please try signing in again.');
+      }
+      
+      if (!session) {
+        console.error('❌ CuratedImageGallery: No session');
+        throw new Error('Please sign in to add items to your cart.');
+      }
+      
+      console.log('✅ CuratedImageGallery: Session obtained', { hasToken: !!session.access_token });
+      
+      console.log('🚀 CuratedImageGallery: MAKING FETCH REQUEST NOW to /api/curated-products', {
+        url: '/api/curated-products',
+        method: 'POST',
+        hasToken: !!session.access_token,
+        body: {
+          curatedImageId: frameSelectorImage.id,
+          frameSize: frame.size,
+          frameStyle: frame.style,
+          frameMaterial: frame.material,
+          price: frame.price
+        }
+      });
+      
+      // Test if fetch is available
+      if (typeof fetch === 'undefined') {
+        console.error('❌❌❌ FETCH IS NOT AVAILABLE! ❌❌❌');
+        throw new Error('Fetch API is not available');
+      }
+      
+      console.log('✅ Fetch is available, making request...');
       
       // Use curated products API for curated images
       const response = await fetch('/api/curated-products', {
@@ -366,20 +442,32 @@ export function CuratedImageGallery({
         throw new Error('Failed to add to cart');
       }
 
+      console.log('✅ CuratedImageGallery: Item successfully added to cart, showing notification');
+
       // Show enhanced cart notification with action buttons
-      showCartNotification({
-        itemName: `${frame.size} ${frame.style} Frame`,
-        itemImage: frameSelectorImage.image_url,
-        onViewCart: () => {
-          // Close the frame selector and navigate to cart
-          setShowFrameSelector(false);
-          window.location.href = '/cart';
-        },
-        onContinueShopping: () => {
-          // Just close the frame selector
-          setShowFrameSelector(false);
-        }
-      });
+      try {
+        showCartNotification({
+          itemName: `${frame.size} ${frame.style} Frame`,
+          itemImage: frameSelectorImage.image_url,
+          onViewCart: () => {
+            // Close the frame selector and navigate to cart
+            setShowFrameSelector(false);
+            window.location.href = '/cart';
+          },
+          onContinueShopping: () => {
+            // Just close the frame selector
+            setShowFrameSelector(false);
+          }
+        });
+        console.log('✅ CuratedImageGallery: Cart notification displayed');
+      } catch (notificationError) {
+        console.error('❌ CuratedImageGallery: Error showing cart notification', notificationError);
+        // Fallback to simple toast notification
+        toast({
+          title: 'Added to Cart',
+          description: `${frame.size} ${frame.style} Frame has been added to your cart.`,
+        });
+      }
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast({

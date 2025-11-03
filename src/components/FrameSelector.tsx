@@ -32,7 +32,7 @@ interface FrameSelectorProps {
   imageUrl: string;
   imagePrompt: string;
   onFrameSelect: (frame: FrameOption) => void;
-  onAddToCart: (frame: FrameOption) => void;
+  onAddToCart: (frame: FrameOption) => void | Promise<void>;
   selectedFrame?: FrameOption | null;
   showPreview?: boolean;
 }
@@ -210,9 +210,25 @@ export function FrameSelector({
   }, [selectedSize, selectedStyle, selectedMaterial]);
 
   const handleAddToCart = (frame: FrameOption) => {
-    console.log('🛒 FrameSelector: handleAddToCart called', { frame, hasUser: !!user, hasOnAddToCart: !!onAddToCart });
+    console.log('🔥🔥🔥 handleAddToCart FUNCTION CALLED 🔥🔥🔥');
+    console.log('🛒 FrameSelector: handleAddToCart called', { 
+      frame, 
+      hasUser: !!user, 
+      hasOnAddToCart: !!onAddToCart,
+      frameDetails: frame ? {
+        size: frame.size,
+        style: frame.style,
+        material: frame.material,
+        price: frame.price,
+        hasSize: !!frame.size,
+        hasStyle: !!frame.style,
+        hasMaterial: !!frame.material,
+        hasPrice: typeof frame.price === 'number'
+      } : null
+    });
     
     if (!user) {
+      console.error('❌ FrameSelector: No user, cannot add to cart');
       toast({
         title: 'Authentication Required',
         description: 'Please sign in to add items to your cart.',
@@ -222,7 +238,9 @@ export function FrameSelector({
     }
     
     if (!onAddToCart) {
-      console.error('❌ FrameSelector: onAddToCart prop is not defined!');
+      console.error('❌ FrameSelector: onAddToCart prop is not defined!', {
+        props: { onAddToCart, onFrameSelect, imageUrl, imagePrompt }
+      });
       toast({
         title: 'Error',
         description: 'Add to cart handler is not available. Please refresh the page.',
@@ -231,8 +249,16 @@ export function FrameSelector({
       return;
     }
     
-    if (!frame || !frame.size || !frame.style || !frame.material || !frame.price) {
-      console.error('❌ FrameSelector: Invalid frame object', frame);
+    if (!frame || !frame.size || !frame.style || !frame.material || typeof frame.price !== 'number') {
+      console.error('❌ FrameSelector: Invalid frame object', {
+        frame,
+        hasFrame: !!frame,
+        hasSize: !!frame?.size,
+        hasStyle: !!frame?.style,
+        hasMaterial: !!frame?.material,
+        hasPrice: typeof frame?.price === 'number',
+        priceValue: frame?.price
+      });
       toast({
         title: 'Error',
         description: 'Invalid frame selection. Please try again.',
@@ -241,11 +267,39 @@ export function FrameSelector({
       return;
     }
     
-    console.log('✅ FrameSelector: Calling onAddToCart with frame', frame);
+    console.log('✅ FrameSelector: All validations passed, calling onAddToCart with frame', frame);
     try {
-      onAddToCart(frame);
+      // Call the async function - we need to handle the promise
+      console.log('🔄 FrameSelector: About to call onAddToCart...');
+      const result = onAddToCart(frame);
+      console.log('✅ FrameSelector: onAddToCart returned', { 
+        hasResult: result !== undefined,
+        resultType: typeof result,
+        isPromise: result !== undefined && result !== null && typeof result === 'object' && 'then' in result
+      });
+      
+      // If it's a promise (async function), we MUST handle it
+      if (result !== undefined && result !== null && typeof result === 'object' && 'then' in result) {
+        console.log('🔄 FrameSelector: Detected Promise, awaiting result...');
+        (result as Promise<any>)
+          .then(() => {
+            console.log('✅ FrameSelector: onAddToCart Promise resolved successfully');
+          })
+          .catch((error) => {
+            console.error('❌ FrameSelector: Error in onAddToCart promise', error);
+            console.error('❌ FrameSelector: Error stack', error?.stack);
+            toast({
+              title: 'Error',
+              description: error instanceof Error ? error.message : 'Failed to add to cart. Please try again.',
+              variant: 'destructive',
+            });
+          });
+      } else {
+        console.log('⚠️ FrameSelector: onAddToCart did not return a Promise');
+      }
     } catch (error) {
-      console.error('❌ FrameSelector: Error calling onAddToCart', error);
+      console.error('❌ FrameSelector: Synchronous error calling onAddToCart', error);
+      console.error('❌ FrameSelector: Error stack', error instanceof Error ? error.stack : 'No stack');
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to add to cart. Please try again.',
@@ -640,22 +694,45 @@ export function FrameSelector({
 
                   <div className="flex items-center justify-between">
                     <Button 
-                      onClick={() => {
-                        console.log('🛒 Add to Cart button clicked', { currentFrame, hasCurrentFrame: !!currentFrame });
-                        if (currentFrame) {
-                          handleAddToCart(currentFrame);
-                        } else {
-                          console.error('❌ currentFrame is undefined!', { selectedFrame, filteredFrames });
-                          toast({
-                            title: 'Error',
-                            description: 'No frame selected. Please select a frame.',
-                            variant: 'destructive',
+                      onClick={(e) => {
+                        console.log('🔥🔥🔥 BUTTON CLICKED - START 🔥🔥🔥');
+                        try {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('🛒 Add to Cart button clicked', { 
+                            currentFrame, 
+                            hasCurrentFrame: !!currentFrame,
+                            frameDetails: currentFrame ? {
+                              size: currentFrame.size,
+                              style: currentFrame.style,
+                              material: currentFrame.material,
+                              price: currentFrame.price
+                            } : null,
+                            disabled: !currentFrame,
+                            buttonType: 'button'
                           });
+                          if (currentFrame) {
+                            console.log('✅ FrameSelector: Calling handleAddToCart...');
+                            handleAddToCart(currentFrame);
+                          } else {
+                            console.error('❌ currentFrame is undefined!', { selectedFrame, filteredFrames });
+                            toast({
+                              title: 'Error',
+                              description: 'No frame selected. Please select a frame.',
+                              variant: 'destructive',
+                            });
+                          }
+                          console.log('🔥🔥🔥 BUTTON CLICKED - END 🔥🔥🔥');
+                        } catch (error) {
+                          console.error('🔥🔥🔥 ERROR IN BUTTON CLICK HANDLER 🔥🔥🔥', error);
+                          throw error;
                         }
                       }}
                       className="min-w-32 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg"
                       size="lg"
                       disabled={!currentFrame}
+                      type="button"
+                      data-testid="add-to-cart-button"
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
                       Add to Cart

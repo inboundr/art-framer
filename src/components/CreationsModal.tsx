@@ -165,21 +165,33 @@ export function CreationsModal({
         throw new Error('Failed to add to cart');
       }
 
+      console.log('✅ CreationsModal: Item successfully added to cart, showing notification');
+
       // Show enhanced cart notification with action buttons
-      showCartNotification({
-        itemName: `${frame.size} ${frame.style} Frame`,
-        itemImage: imageUrl,
-        onViewCart: () => {
-          // Close the modal and navigate to cart
-          setShowFrameSelector(false);
-          onClose();
-          window.location.href = '/cart';
-        },
-        onContinueShopping: () => {
-          // Just close the frame selector
-          setShowFrameSelector(false);
-        }
-      });
+      try {
+        showCartNotification({
+          itemName: `${frame.size} ${frame.style} Frame`,
+          itemImage: imageUrl,
+          onViewCart: () => {
+            // Close the modal and navigate to cart
+            setShowFrameSelector(false);
+            onClose();
+            window.location.href = '/cart';
+          },
+          onContinueShopping: () => {
+            // Just close the frame selector
+            setShowFrameSelector(false);
+          }
+        });
+        console.log('✅ CreationsModal: Cart notification displayed');
+      } catch (notificationError) {
+        console.error('❌ CreationsModal: Error showing cart notification', notificationError);
+        // Fallback to simple toast notification
+        toast({
+          title: 'Added to Cart',
+          description: `${frame.size} ${frame.style} Frame has been added to your cart.`,
+        });
+      }
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast({
