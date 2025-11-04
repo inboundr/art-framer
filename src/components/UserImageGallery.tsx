@@ -190,6 +190,21 @@ export function UserImageGallery() {
       return;
     }
 
+    // If session is not available, try to get it fresh
+    let authToken = session?.access_token;
+    if (!authToken) {
+      console.log('🔄 UserImageGallery: No session token, fetching fresh session...');
+      try {
+        const { data: { session: freshSession } } = await supabase.auth.getSession();
+        if (freshSession?.access_token) {
+          authToken = freshSession.access_token;
+          console.log('✅ UserImageGallery: Got fresh session token');
+        }
+      } catch (error) {
+        console.warn('⚠️ UserImageGallery: Failed to get fresh session', error);
+      }
+    }
+
     try {
       const page = pageNum + 1; // API uses 1-based pagination
       const params = new URLSearchParams({
@@ -197,11 +212,17 @@ export function UserImageGallery() {
         limit: IMAGES_PER_PAGE.toString(),
       });
 
+      console.log('📡 UserImageGallery: Fetching images', {
+        page,
+        hasToken: !!authToken,
+        userId: user.id
+      });
+
       const response = await fetch(`/api/user-images?${params.toString()}`, {
         method: 'GET',
         credentials: 'include',
-        headers: session?.access_token ? {
-          'Authorization': `Bearer ${session.access_token}`
+        headers: authToken ? {
+          'Authorization': `Bearer ${authToken}`
         } : {}
       });
 
