@@ -243,10 +243,39 @@ export class OrderRetryManager {
           throw new Error(`Invalid SKU for product ${item.products?.id}: ${item.products?.sku}`);
         }
         
+        // CRITICAL: Convert image URL to public URL if it's a storage path
+        // Prodigi requires publicly accessible absolute URLs
+        const rawImageUrl = item.products?.images?.image_url || item.products?.images?.thumbnail_url || '';
+        
+        // Helper function to get public URL
+        const getPublicImageUrl = (imageUrl: string | null | undefined): string | null => {
+          if (!imageUrl) return null;
+          if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) return imageUrl;
+          
+          // Try to determine bucket
+          let bucket = 'images';
+          if (imageUrl.includes('curated') || imageUrl.includes('public-')) {
+            bucket = 'curated-images';
+          }
+          
+          try {
+            const { data } = supabase.storage.from(bucket).getPublicUrl(imageUrl);
+            return data?.publicUrl || imageUrl;
+          } catch {
+            return imageUrl;
+          }
+        };
+        
+        const publicImageUrl = getPublicImageUrl(rawImageUrl);
+        
+        if (!publicImageUrl) {
+          throw new Error(`Missing or invalid image URL for product ${item.products?.id}`);
+        }
+        
         return {
           productSku: baseSku,
           quantity: item.quantity,
-          imageUrl: item.products?.images?.image_url || '',
+          imageUrl: publicImageUrl, // Use public URL instead of raw path
           frameSize: item.products?.frame_size || 'medium',
           frameStyle: item.products?.frame_style || 'black',
           frameMaterial: item.products?.frame_material || 'wood',

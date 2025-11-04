@@ -1,18 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
+import { Database } from '@/lib/supabase/client';
 
 export async function GET(request: NextRequest) {
+  let response = NextResponse.next({
+    request,
+  });
+
   try {
     console.log('🔍 User images API called');
 
-    // Create Supabase client for server-side
-    const supabase = await createClient();
+    // Create Supabase client using request cookies directly (like middleware does)
+    // This ensures cookies are properly read from the incoming request
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            // Update request cookies
+            cookiesToSet.forEach(({ name, value }) => {
+              request.cookies.set(name, value);
+            });
+            // Create new response to update cookies
+            response = NextResponse.next({
+              request,
+            });
+            // Set cookies on response with proper options
+            cookiesToSet.forEach(({ name, value, options }) => {
+              const cookieOptions = {
+                ...options,
+                httpOnly: false,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax' as const,
+                path: '/',
+                maxAge: options?.maxAge || 60 * 60 * 24 * 7, // 7 days default
+              };
+              response.cookies.set(name, value, cookieOptions);
+            });
+          },
+        },
+      }
+    );
 
     // Get authenticated user - use getUser() for security (validates token server-side)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    let { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    // If getUser fails, try to refresh the session (might be expired token)
+    if (authError && authError.message?.includes('Auth session missing')) {
+      console.log('🔄 User images API: Session missing, attempting refresh...');
+      const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (!refreshError && session) {
+        console.log('✅ User images API: Session refreshed');
+        // Try getUser again after refresh
+        const retryResult = await supabase.auth.getUser();
+        user = retryResult.data.user;
+        authError = retryResult.error;
+      }
+    }
     
     if (authError || !user) {
-      console.error('❌ User images API: Not authenticated', authError);
+      console.error('❌ User images API: Not authenticated', {
+        error: authError?.message,
+        errorCode: authError?.status,
+        hasUser: !!user,
+        cookies: request.cookies.getAll().map(c => c.name),
+      });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -68,7 +125,8 @@ export async function GET(request: NextRequest) {
       total_pages 
     });
 
-    return NextResponse.json({
+    // Create JSON response with data
+    const jsonResponse = NextResponse.json({
       images: images || [],
       pagination: {
         page,
@@ -77,6 +135,18 @@ export async function GET(request: NextRequest) {
         has_more,
       },
     });
+
+    // Copy cookies from the response object (which may have been updated by Supabase)
+    response.cookies.getAll().forEach(({ name, value }) => {
+      jsonResponse.cookies.set(name, value, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+    });
+
+    return jsonResponse;
 
   } catch (error) {
     console.error('❌ User images API: Error', error);
