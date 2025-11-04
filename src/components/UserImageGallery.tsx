@@ -130,7 +130,7 @@ function UserImageCard({ image, onImageClick, onBuyAsFrame }: UserImageCardProps
 }
 
 export function UserImageGallery() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
   const { showCartNotification } = useCartNotification();
@@ -200,6 +200,9 @@ export function UserImageGallery() {
       const response = await fetch(`/api/user-images?${params.toString()}`, {
         method: 'GET',
         credentials: 'include',
+        headers: session?.access_token ? {
+          'Authorization': `Bearer ${session.access_token}`
+        } : {}
       });
 
       if (!response.ok) {
@@ -247,7 +250,7 @@ export function UserImageGallery() {
     } finally {
       setLoading(false);
     }
-  }, [user, IMAGES_PER_PAGE, toast]);
+  }, [user, session, IMAGES_PER_PAGE, toast]);
 
   // Fetch images when user is available (including after page refresh)
   useEffect(() => {
