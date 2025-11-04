@@ -8,11 +8,58 @@ export async function GET(request: NextRequest) {
     // Create Supabase client for server-side
     const supabase = await createClient();
 
-    // Get authenticated user - use getUser() for security (validates token server-side)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Check authentication - try multiple methods (same pattern as cart API)
+    let user = null;
+    let authError = null;
+    
+    // Method 1: Try cookie-based auth
+    const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
+    
+    if (!cookieError && cookieAuth.user) {
+      user = cookieAuth.user;
+    } else {
+      // Method 2: Try Authorization header
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { data: headerAuth, error: headerError } = await supabase.auth.getUser(token);
+        if (!headerError && headerAuth.user) {
+          user = headerAuth.user;
+        } else {
+          authError = headerError;
+        }
+      } else {
+        // Method 3: Try to get session from cookies directly
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (!sessionError && sessionData.session?.user) {
+          console.log('✅ User images API: Authenticated via session');
+          user = sessionData.session.user;
+        } else {
+          // Method 4: Try to refresh the session
+          console.log('🔄 User images API: Attempting session refresh');
+          try {
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            if (!refreshError && refreshData.session?.user) {
+              console.log('✅ User images API: Session refreshed successfully');
+              user = refreshData.session.user;
+            } else {
+              console.log('❌ User images API: Session refresh failed', refreshError?.message);
+              authError = cookieError || sessionError || refreshError;
+            }
+          } catch (refreshError) {
+            console.log('❌ User images API: Session refresh error', refreshError);
+            authError = cookieError || sessionError || refreshError;
+          }
+        }
+      }
+    }
     
     if (authError || !user) {
-      console.error('❌ User images API: Not authenticated', authError);
+      console.error('❌ User images API: Not authenticated', {
+        error: authError instanceof Error ? authError.message : (authError as any)?.message || String(authError),
+        hasUser: !!user,
+        cookies: request.cookies.getAll().map(c => c.name),
+      });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
