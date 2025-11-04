@@ -67,38 +67,9 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
         return;
       }
 
-      // Check if we're returning from external site (like Stripe)
-      const { isReturningFromExternalSite } = await import('@/lib/supabase/sessionSync');
-      const isExternalRedirect = isReturningFromExternalSite();
-      
-      if (isExternalRedirect) {
-        console.log('🔄 CentralizedAuth: Detected return from external site - forcing cookie sync...');
-      }
-
-      // CRITICAL: Force explicit cookie-to-localStorage sync BEFORE any auth operations
-      // This ensures cookies are synced before we try to read from localStorage
-      const { forceCookieSync } = await import('@/lib/supabase/sessionSync');
-      
-      // Use longer delay if returning from external site (cookies might need more time)
-      const syncResult = await forceCookieSync(
-        isExternalRedirect ? 8 : 5, // More attempts for external redirects
-        isExternalRedirect ? 300 : 200 // Longer delay for external redirects
-      );
-      
-      if (syncResult.success && syncResult.session) {
-        console.log('✅ CentralizedAuth: Cookie sync successful - session restored', {
-          userId: syncResult.session.user.id
-        });
-        setSession(syncResult.session);
-        setUser(syncResult.session.user);
-        await fetchProfile(syncResult.session.user.id);
-        setIsInitialized(true);
-        setLoading(false);
-        return; // Early return - we're done!
-      } else if (!syncResult.success) {
-        console.log('⚠️ CentralizedAuth: Cookie sync did not find valid session - user may be logged out');
-        // Continue to normal auth flow below to be sure
-      }
+      // Wait a bit for Supabase to restore session from storage/cookies
+      // This is important because Supabase SSR needs time to restore cookies and sync to localStorage
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // Try to trigger cookie sync by making a request to Supabase auth endpoint
       // This ensures cookies are read and synced to localStorage
