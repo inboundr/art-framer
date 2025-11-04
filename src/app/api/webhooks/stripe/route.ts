@@ -5,6 +5,52 @@ import { prodigiClient } from "@/lib/prodigi";
 import { orderRetryManager } from "@/lib/orderRetry";
 import Stripe from "stripe";
 
+/**
+ * Converts a Supabase storage path to a public URL
+ * Prodigi requires publicly accessible absolute URLs
+ */
+function getPublicImageUrl(imageUrl: string | null | undefined, supabase: any): string | null {
+  if (!imageUrl) {
+    console.warn('⚠️ No image URL provided');
+    return null;
+  }
+
+  // If already a full URL, return it
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    console.log('✅ Image URL is already a full URL:', imageUrl);
+    return imageUrl;
+  }
+
+  // Try to determine which bucket based on path/URL patterns
+  let bucket = 'images'; // Default bucket
+  
+  // Check if it's a curated image (might have different patterns)
+  if (imageUrl.includes('curated') || imageUrl.includes('public-')) {
+    bucket = 'curated-images';
+  }
+
+  try {
+    // Convert storage path to public URL
+    const { data } = supabase.storage.from(bucket).getPublicUrl(imageUrl);
+    const publicUrl = data?.publicUrl;
+    
+    if (publicUrl) {
+      console.log('✅ Converted storage path to public URL:', {
+        original: imageUrl,
+        publicUrl,
+        bucket
+      });
+      return publicUrl;
+    } else {
+      console.warn('⚠️ Failed to get public URL for:', imageUrl);
+      return imageUrl; // Return original as fallback
+    }
+  } catch (error) {
+    console.error('❌ Error converting image URL:', error);
+    return imageUrl; // Return original as fallback
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Try to get the raw request body using the body stream
@@ -663,10 +709,32 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
         // Extract base SKU from stored SKU (remove image ID suffix if present)
         const baseSku = prodigiClient.extractBaseProdigiSku(item.products?.sku || '');
         
+        // CRITICAL: Convert image URL to public URL if it's a storage path
+        // Prodigi requires publicly accessible absolute URLs
+        const rawImageUrl = item.products?.images?.image_url || item.products?.images?.thumbnail_url || '';
+        const publicImageUrl = getPublicImageUrl(rawImageUrl, supabase);
+        
+        if (!publicImageUrl) {
+          console.error('❌ No valid image URL for Prodigi order item:', {
+            productId: item.products?.id,
+            imageId: item.products?.images?.id,
+            rawImageUrl,
+            hasImage: !!item.products?.images
+          });
+          throw new Error(`Missing or invalid image URL for product ${item.products?.id}`);
+        }
+        
+        console.log('🖼️ Image URL for Prodigi:', {
+          productId: item.products?.id,
+          rawUrl: rawImageUrl,
+          publicUrl: publicImageUrl,
+          isFullUrl: publicImageUrl.startsWith('http')
+        });
+        
         return {
           productSku: baseSku, // Changed from productUid to productSku to match the interface
           quantity: item.quantity,
-          imageUrl: item.products?.images?.image_url || '',
+          imageUrl: publicImageUrl, // Use public URL instead of raw path
           frameSize: item.products?.frame_size || 'medium',
           frameStyle: item.products?.frame_style || 'black',
           frameMaterial: item.products?.frame_material || 'wood',

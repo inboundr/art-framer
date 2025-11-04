@@ -3,6 +3,52 @@ import { createClient } from "@/lib/supabase/server";
 import { prodigiClient } from "@/lib/prodigi";
 import { z } from "zod";
 
+/**
+ * Converts a Supabase storage path to a public URL
+ * Prodigi requires publicly accessible absolute URLs
+ */
+function getPublicImageUrl(imageUrl: string | null | undefined, supabase: any): string | null {
+  if (!imageUrl) {
+    console.warn('⚠️ No image URL provided');
+    return null;
+  }
+
+  // If already a full URL, return it
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    console.log('✅ Image URL is already a full URL:', imageUrl);
+    return imageUrl;
+  }
+
+  // Try to determine which bucket based on path/URL patterns
+  let bucket = 'images'; // Default bucket
+  
+  // Check if it's a curated image (might have different patterns)
+  if (imageUrl.includes('curated') || imageUrl.includes('public-')) {
+    bucket = 'curated-images';
+  }
+
+  try {
+    // Convert storage path to public URL
+    const { data } = supabase.storage.from(bucket).getPublicUrl(imageUrl);
+    const publicUrl = data?.publicUrl;
+    
+    if (publicUrl) {
+      console.log('✅ Converted storage path to public URL:', {
+        original: imageUrl,
+        publicUrl,
+        bucket
+      });
+      return publicUrl;
+    } else {
+      console.warn('⚠️ Failed to get public URL for:', imageUrl);
+      return imageUrl; // Return original as fallback
+    }
+  } catch (error) {
+    console.error('❌ Error converting image URL:', error);
+    return imageUrl; // Return original as fallback
+  }
+}
+
 const CreateProdigiOrderSchema = z.object({
   orderId: z.string().uuid(),
 });
@@ -74,18 +120,42 @@ export async function POST(request: NextRequest) {
     // Prepare order data for Prodigi
     const prodigiOrderData = {
       orderReference: (order as any).order_number,
-      items: await Promise.all((order as any).order_items.map(async (item: any) => ({
-        productSku: await prodigiClient.getProductSku(
-          item.products.frame_size,
-          item.products.frame_style,
-          item.products.frame_material
-        ),
-        quantity: item.quantity,
-        imageUrl: item.products.images.image_url,
-        frameSize: item.products.frame_size,
-        frameStyle: item.products.frame_style,
-        frameMaterial: item.products.frame_material,
-      }))),
+      items: await Promise.all((order as any).order_items.map(async (item: any) => {
+        // CRITICAL: Convert image URL to public URL if it's a storage path
+        // Prodigi requires publicly accessible absolute URLs
+        const rawImageUrl = item.products?.images?.image_url || item.products?.images?.thumbnail_url || '';
+        const publicImageUrl = getPublicImageUrl(rawImageUrl, supabase);
+        
+        if (!publicImageUrl) {
+          console.error('❌ No valid image URL for Prodigi order item:', {
+            productId: item.products?.id,
+            imageId: item.products?.images?.id,
+            rawImageUrl,
+            hasImage: !!item.products?.images
+          });
+          throw new Error(`Missing or invalid image URL for product ${item.products?.id}`);
+        }
+        
+        console.log('🖼️ Image URL for Prodigi:', {
+          productId: item.products?.id,
+          rawUrl: rawImageUrl,
+          publicUrl: publicImageUrl,
+          isFullUrl: publicImageUrl.startsWith('http')
+        });
+        
+        return {
+          productSku: await prodigiClient.getProductSku(
+            item.products.frame_size,
+            item.products.frame_style,
+            item.products.frame_material
+          ),
+          quantity: item.quantity,
+          imageUrl: publicImageUrl, // Use public URL instead of raw path
+          frameSize: item.products.frame_size,
+          frameStyle: item.products.frame_style,
+          frameMaterial: item.products.frame_material,
+        };
+      })),
       shippingAddress: (order as any).shipping_address,
       customerEmail: (order as any).customer_email,
       customerPhone: (order as any).customer_phone,
