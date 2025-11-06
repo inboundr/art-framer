@@ -5,6 +5,16 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 User images API called');
 
+    // Debug: Log all cookies
+    const allCookies = request.cookies.getAll();
+    const authCookies = allCookies.filter(c => 
+      c.name.includes('sb-') || c.name.includes('auth') || c.name.includes('supabase')
+    );
+    console.log('🔍 User images API: Cookies found', {
+      totalCookies: allCookies.length,
+      authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length })),
+    });
+
     // Create Supabase client for server-side
     const supabase = await createClient();
 
@@ -12,13 +22,35 @@ export async function GET(request: NextRequest) {
     let user = null;
     let authError = null;
     
-    // Method 1: Try cookie-based auth
-    const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
+    // Method 0: Try to parse sb-auth-token cookie manually (if Supabase SSR doesn't recognize it)
+    const sbAuthTokenCookie = request.cookies.get('sb-auth-token');
+    if (sbAuthTokenCookie?.value) {
+      try {
+        // Decode base64 and parse JSON
+        const decoded = Buffer.from(sbAuthTokenCookie.value, 'base64').toString('utf-8');
+        const sessionData = JSON.parse(decoded);
+        if (sessionData?.access_token) {
+          console.log('🔍 User images API: Found access_token in sb-auth-token cookie');
+          const { data: tokenAuth, error: tokenError } = await supabase.auth.getUser(sessionData.access_token);
+          if (!tokenError && tokenAuth.user) {
+            console.log('✅ User images API: Authenticated via sb-auth-token cookie');
+            user = tokenAuth.user;
+          }
+        }
+      } catch (parseError) {
+        console.warn('⚠️ User images API: Failed to parse sb-auth-token cookie', parseError);
+      }
+    }
     
-    if (!cookieError && cookieAuth.user) {
-      user = cookieAuth.user;
-    } else {
-      // Method 2: Try Authorization header
+    // Method 1: Try cookie-based auth (Supabase SSR standard cookies)
+    if (!user) {
+      const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
+      
+      if (!cookieError && cookieAuth.user) {
+        console.log('✅ User images API: Authenticated via Supabase SSR cookies');
+        user = cookieAuth.user;
+      } else {
+        // Method 2: Try Authorization header
       const authHeader = request.headers.get('authorization');
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
