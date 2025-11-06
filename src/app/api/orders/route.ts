@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/auth/jwtAuth";
 import { z } from "zod";
 
 const GetOrdersSchema = z.object({
@@ -23,39 +24,6 @@ const GetOrdersSchema = z.object({
   }),
 });
 
-async function authenticateUser(request: NextRequest) {
-  // First try server-side client (cookies)
-  const supabaseServer = await createClient();
-  const { data: { user: serverUser }, error: serverError } = await supabaseServer.auth.getUser();
-  
-  if (serverUser && !serverError) {
-    console.log('Orders API: Authenticated via server client');
-    return { user: serverUser, supabase: supabaseServer };
-  }
-  
-  // If server auth fails, try Authorization header
-  const authHeader = request.headers.get('authorization');
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    console.log('Orders API: Trying Authorization header authentication');
-    
-    // Use service client to verify the token
-    const serviceSupabase = createServiceClient();
-    const { data: { user: clientUser }, error: clientError } = await serviceSupabase.auth.getUser(token);
-    
-    if (clientUser && !clientError) {
-      console.log('Orders API: Authenticated via Authorization header');
-      return { user: clientUser, supabase: serviceSupabase };
-    }
-  }
-  
-  console.log('Orders API: Authentication failed', { 
-    serverError: serverError?.message,
-    hasAuthHeader: !!authHeader 
-  });
-  
-  return { user: null, error: 'Authentication failed' };
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -66,18 +34,19 @@ export async function GET(request: NextRequest) {
       userAgent: request.headers.get('user-agent')
     });
     
-    // Authenticate user with both cookies and Authorization header support
-    const authResult = await authenticateUser(request);
+    // JWT-only authentication
+    const { user: authenticatedUser, error: authError } = await authenticateRequest(request);
     
-    if (!authResult.user) {
-      console.log('Orders API: Authentication failed');
+    if (authError || !authenticatedUser) {
+      console.log('Orders API: Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
     
-    const { user: authenticatedUser, supabase } = authResult;
+    console.log('Orders API: User authenticated', { userId: authenticatedUser.id });
+    const supabase = createServiceClient();
     console.log('Orders API: Authenticated user', { 
       userId: authenticatedUser.id, 
       userEmail: authenticatedUser.email 
