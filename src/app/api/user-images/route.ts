@@ -26,8 +26,14 @@ export async function GET(request: NextRequest) {
     const sbAuthTokenCookie = request.cookies.get('sb-auth-token');
     if (sbAuthTokenCookie?.value) {
       try {
+        // Cookie value may have 'base64-' prefix, strip it if present
+        let cookieValue = sbAuthTokenCookie.value;
+        if (cookieValue.startsWith('base64-')) {
+          cookieValue = cookieValue.substring(7); // Remove 'base64-' prefix
+        }
+        
         // Decode base64 and parse JSON
-        const decoded = Buffer.from(sbAuthTokenCookie.value, 'base64').toString('utf-8');
+        const decoded = Buffer.from(cookieValue, 'base64').toString('utf-8');
         const sessionData = JSON.parse(decoded);
         if (sessionData?.access_token) {
           console.log('🔍 User images API: Found access_token in sb-auth-token cookie');
@@ -35,7 +41,11 @@ export async function GET(request: NextRequest) {
           if (!tokenError && tokenAuth.user) {
             console.log('✅ User images API: Authenticated via sb-auth-token cookie');
             user = tokenAuth.user;
+          } else {
+            console.warn('⚠️ User images API: Failed to authenticate with token from cookie', tokenError?.message);
           }
+        } else {
+          console.warn('⚠️ User images API: No access_token found in sb-auth-token cookie');
         }
       } catch (parseError) {
         console.warn('⚠️ User images API: Failed to parse sb-auth-token cookie', parseError);
