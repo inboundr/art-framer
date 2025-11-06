@@ -95,26 +95,59 @@ export async function GET(request: NextRequest) {
     }
     
     // Method 1: Try cookie-based auth (Supabase SSR standard cookies)
+    // Only try this if we haven't authenticated yet AND we have Supabase SSR cookies
     if (!user) {
-      const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
+      // Check if we have any Supabase SSR standard cookies before trying getUser()
+      const hasSupabaseCookies = allCookies.some(c => 
+        c.name.startsWith('sb-') && 
+        (c.name.includes('auth-token') || c.name.includes('access-token') || c.name.includes('refresh-token'))
+      );
       
-      if (!cookieError && cookieAuth.user) {
-        console.log('✅ User images API: Authenticated via Supabase SSR cookies');
-        user = cookieAuth.user;
-      } else {
-        // Method 2: Try Authorization header
-      const authHeader = request.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        const { data: headerAuth, error: headerError } = await supabase.auth.getUser(token);
-        if (!headerError && headerAuth.user) {
-          user = headerAuth.user;
-        } else {
-          authError = headerError;
+      if (hasSupabaseCookies) {
+        console.log('🔍 User images API: Trying Supabase SSR standard cookie auth');
+        try {
+          const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
+          
+          if (!cookieError && cookieAuth.user) {
+            console.log('✅ User images API: Authenticated via Supabase SSR cookies');
+            user = cookieAuth.user;
+          } else {
+            console.warn('⚠️ User images API: Supabase SSR cookie auth failed', {
+              error: cookieError?.message,
+              errorStatus: (cookieError as any)?.status,
+            });
+            authError = cookieError;
+          }
+        } catch (getUserError) {
+          console.error('❌ User images API: Error calling getUser()', {
+            error: getUserError instanceof Error ? getUserError.message : String(getUserError),
+          });
+          authError = getUserError;
         }
       } else {
-        // Method 3: Try to get session from cookies directly
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        console.log('⚠️ User images API: No Supabase SSR standard cookies found, skipping getUser()');
+      }
+      
+      // Method 2: Try Authorization header
+      if (!user) {
+        const authHeader = request.headers.get('authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          const token = authHeader.substring(7);
+          console.log('🔍 User images API: Trying Authorization header auth');
+          const { data: headerAuth, error: headerError } = await supabase.auth.getUser(token);
+          if (!headerError && headerAuth.user) {
+            console.log('✅ User images API: Authenticated via Authorization header');
+            user = headerAuth.user;
+          } else {
+            console.warn('⚠️ User images API: Authorization header auth failed', {
+              error: headerError?.message,
+            });
+            authError = headerError;
+          }
+        } else {
+          // Method 3: Try to get session from cookies directly
+          console.log('🔍 User images API: Trying getSession()');
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         if (!sessionError && sessionData.session?.user) {
           console.log('✅ User images API: Authenticated via session');
           user = sessionData.session.user;
