@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/auth/jwtAuth";
 import { prodigiClient } from "@/lib/prodigi";
 import { z } from "zod";
 
@@ -55,16 +56,21 @@ const CreateProdigiOrderSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // JWT-only authentication (admin only for now)
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication (admin only for now)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Dropship Prodigi API: Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    console.log('Dropship Prodigi API: User authenticated', { userId: user.id });
+    
+    // Use service client for database operations (bypasses RLS)
+    const supabase = createServiceClient();
 
     const body = await request.json();
     const validatedData = CreateProdigiOrderSchema.parse(body);
@@ -244,16 +250,21 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Dropship Prodigi API (GET): Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    console.log('Dropship Prodigi API (GET): User authenticated', { userId: user.id });
+    
+    // Use service client for database operations
+    const supabase = createServiceClient();
 
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');

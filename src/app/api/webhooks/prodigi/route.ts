@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 // CloudEvents schema for Prodigi webhooks
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       stage: cloudEvent.data.status.stage,
     });
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Find the order by Prodigi order ID
     const { data: dropshipOrder, error: dropshipError } = await supabase
