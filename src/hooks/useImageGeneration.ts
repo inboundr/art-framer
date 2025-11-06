@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { ideogramAPI, IdeogramImageGenerationRequest, IdeogramImageGenerationResponse } from '@/lib/ideogram/api';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { createIdeogramAPI, IdeogramImageGenerationRequest, IdeogramImageGenerationResponse } from '@/lib/ideogram/api';
 import { useAuth } from '@/hooks/useAuth';
 
 interface UseImageGenerationOptions {
@@ -15,7 +15,14 @@ export function useImageGeneration(options: UseImageGenerationOptions = {}) {
   const [currentGeneration, setCurrentGeneration] = useState<IdeogramImageGenerationResponse | null>(null);
   const [generationHistory, setGenerationHistory] = useState<IdeogramImageGenerationResponse[]>([]);
   const [error, setError] = useState<Error | null>(null);
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+
+  // Create ideogram API instance with auth token getter
+  const ideogramAPI = useMemo(() => {
+    return createIdeogramAPI(async () => {
+      return session?.access_token || null;
+    });
+  }, [session?.access_token]);
 
   const generateImage = useCallback(async (request: IdeogramImageGenerationRequest) => {
     if (!user) {

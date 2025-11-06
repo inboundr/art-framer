@@ -201,11 +201,13 @@ export interface IdeogramCollectionsResponse {
 class IdeogramAPI {
   private baseURL: string;
   private apiKey: string;
+  private getAuthToken?: () => Promise<string | null>;
 
-  constructor() {
+  constructor(getAuthToken?: () => Promise<string | null>) {
     // Use our local API proxy to avoid CORS issues
     this.baseURL = '/api/ideogram';
     this.apiKey = process.env.IDEOGRAM_API_KEY || '';
+    this.getAuthToken = getAuthToken;
   }
 
   private async request<T>(
@@ -220,6 +222,18 @@ class IdeogramAPI {
       ...options.headers,
     };
     
+    // Add Authorization header with JWT token if available
+    if (this.getAuthToken) {
+      try {
+        const token = await this.getAuthToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('Failed to get auth token:', error);
+      }
+    }
+    
     // Only add Content-Type for non-FormData requests
     if (!(options.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
@@ -228,6 +242,7 @@ class IdeogramAPI {
     const config: RequestInit = {
       ...options,
       headers,
+      credentials: 'include', // Include cookies for fallback
     };
 
     try {
@@ -235,7 +250,7 @@ class IdeogramAPI {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       return await response.json();
@@ -615,6 +630,11 @@ class IdeogramAPI {
   }
 }
 
-// Export singleton instance
+// Export factory function that creates an instance with auth token getter
+export function createIdeogramAPI(getAuthToken?: () => Promise<string | null>) {
+  return new IdeogramAPI(getAuthToken);
+}
+
+// Export singleton instance (for backwards compatibility, but won't have auth)
 export const ideogramAPI = new IdeogramAPI();
 
