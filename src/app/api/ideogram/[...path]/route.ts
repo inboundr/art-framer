@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { authenticateRequest } from '@/lib/auth/jwtAuth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
+    // JWT-only authentication to prevent abuse
+    const { user, error: authError } = await authenticateRequest(request);
+    
+    if (authError || !user) {
+      console.log('Ideogram API: Authentication failed', { error: authError });
+      return NextResponse.json(
+        { error: 'Unauthorized - Please log in to generate images' },
+        { status: 401 }
+      );
+    }
+    
+    console.log('Ideogram API: User authenticated', { userId: user.id, email: user.email });
+    
     const { path } = await params;
     const pathString = path.join('/');
     const searchParams = request.nextUrl.searchParams;
@@ -50,6 +64,19 @@ export async function POST(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
+    // JWT-only authentication to prevent abuse
+    const { user, error: authError } = await authenticateRequest(request);
+    
+    if (authError || !user) {
+      console.log('Ideogram API: Authentication failed', { error: authError });
+      return NextResponse.json(
+        { error: 'Unauthorized - Please log in to generate images' },
+        { status: 401 }
+      );
+    }
+    
+    console.log('Ideogram API: User authenticated', { userId: user.id, email: user.email });
+    
     const { path } = await params;
     const pathString = path.join('/');
     
@@ -79,10 +106,22 @@ export async function POST(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('Ideogram API error response:', errorText);
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      throw new Error(`Ideogram API error: ${response.status} - ${errorText}`);
+      console.error('❌ Ideogram API error response:', errorText);
+      console.error('❌ Response status:', response.status);
+      console.error('❌ Response headers:', Object.fromEntries(response.headers.entries()));
+      console.error('❌ Request path:', pathString);
+      console.error('❌ FormData sent:', Array.from(formData.entries()));
+      
+      // Return more detailed error to client
+      return NextResponse.json(
+        { 
+          error: 'Failed to generate image',
+          details: errorText,
+          status: response.status,
+          message: 'Ideogram API returned an error. Please check your API key and request parameters.'
+        },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
