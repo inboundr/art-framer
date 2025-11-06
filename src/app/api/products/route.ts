@@ -24,34 +24,9 @@ const GetProductsSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    
-    // Check authentication - try both cookie and header methods
-    let user = null;
-    let authError = null;
-    
-    // Method 1: Try cookie-based auth
-    const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
-    if (!cookieError && cookieAuth.user) {
-      user = cookieAuth.user;
-    } else {
-      // Method 2: Try Authorization header
-      const authHeader = request.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        const { data: headerAuth, error: headerError } = await supabase.auth.getUser(token);
-        if (!headerError && headerAuth.user) {
-          user = headerAuth.user;
-        } else {
-          authError = headerError;
-        }
-      } else {
-        authError = cookieError;
-      }
-    }
-    
     // Allow unauthenticated GET requests for public product listing
-    // Authentication is only required for POST requests (creating products)
+    // Use service client to bypass RLS for public queries
+    const serviceSupabase = createServiceClient();
     
     const { searchParams } = new URL(request.url);
     
@@ -65,7 +40,7 @@ export async function GET(request: NextRequest) {
       offset: searchParams.get('offset') || undefined,
     });
 
-    let query = supabase
+    let query = serviceSupabase
       .from('products')
       .select(`
         *,
@@ -124,35 +99,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    
-    // Check authentication - try both cookie and header methods
-    let user = null;
-    let authError = null;
-    
-    // Method 1: Try cookie-based auth
-    const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
-    if (!cookieError && cookieAuth.user) {
-      user = cookieAuth.user;
-    } else {
-      // Method 2: Try Authorization header
-      const authHeader = request.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        const { data: headerAuth, error: headerError } = await supabase.auth.getUser(token);
-        if (!headerError && headerAuth.user) {
-          user = headerAuth.user;
-        } else {
-          authError = headerError;
-        }
-      } else {
-        authError = cookieError;
-      }
-    }
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
     if (authError || !user) {
-      console.log('Auth failed:', { authError: authError?.message, user: !!user });
-      console.log('Auth header present:', !!request.headers.get('authorization'));
+      console.log('Products API POST: Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
