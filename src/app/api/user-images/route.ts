@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
     
     // Method 1: Try cookie-based auth (Supabase SSR standard cookies)
     // Only try this if we haven't authenticated yet AND we have Supabase SSR cookies
+    let cookieError: any = null;
     if (!user) {
       // Check if we have any Supabase SSR standard cookies before trying getUser()
       const hasSupabaseCookies = allCookies.some(c => 
@@ -106,17 +107,18 @@ export async function GET(request: NextRequest) {
       if (hasSupabaseCookies) {
         console.log('🔍 User images API: Trying Supabase SSR standard cookie auth');
         try {
-          const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
+          const { data: cookieAuth, error: cookieAuthError } = await supabase.auth.getUser();
+          cookieError = cookieAuthError;
           
-          if (!cookieError && cookieAuth.user) {
+          if (!cookieAuthError && cookieAuth.user) {
             console.log('✅ User images API: Authenticated via Supabase SSR cookies');
             user = cookieAuth.user;
           } else {
             console.warn('⚠️ User images API: Supabase SSR cookie auth failed', {
-              error: cookieError?.message,
-              errorStatus: (cookieError as any)?.status,
+              error: cookieAuthError?.message,
+              errorStatus: (cookieAuthError as any)?.status,
             });
-            authError = cookieError;
+            authError = cookieAuthError;
           }
         } catch (getUserError) {
           console.error('❌ User images API: Error calling getUser()', {
