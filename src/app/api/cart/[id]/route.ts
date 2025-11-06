@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { z } from "zod";
+import { NextRequest, NextResponse } from 'next/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { authenticateRequest } from '@/lib/auth/jwtAuth';
+import { z } from 'zod';
 
 const UpdateCartItemSchema = z.object({
   quantity: z.number().int().min(1).max(10),
@@ -13,37 +14,10 @@ export async function PUT(
   try {
     const { id } = await params;
     
-    // Try to get user from Authorization header first
-    const authHeader = request.headers.get('authorization');
-    let user = null;
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const supabase = createServiceClient();
-        const token = authHeader.substring(7);
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && authUser) {
-          user = authUser;
-        }
-      } catch (error) {
-        console.error('Error verifying token:', error);
-      }
-    }
-    
-    // Fallback: try to get user from cookies
-    if (!user) {
-      try {
-        const supabase = await createClient();
-        const { data: { user: cookieUser }, error: authError } = await supabase.auth.getUser();
-        if (!authError && cookieUser) {
-          user = cookieUser;
-        }
-      } catch (error) {
-        console.error('Error getting user from cookies:', error);
-      }
-    }
-    
-    if (!user) {
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -53,7 +27,7 @@ export async function PUT(
     const body = await request.json();
     const validatedData = UpdateCartItemSchema.parse(body);
 
-    // Use service client for verification
+    // Use service client for verification and update
     const serviceSupabase = createServiceClient();
 
     // Verify cart item belongs to user
@@ -71,9 +45,8 @@ export async function PUT(
       );
     }
 
-    // Use regular client for update operation to avoid typing issues
-    const supabase = await createClient();
-    const { data: updatedItem, error: updateError } = await (supabase as any)
+    // Update cart item
+    const { data: updatedItem, error: updateError } = await serviceSupabase
       .from('cart_items')
       .update({
         quantity: validatedData.quantity,
@@ -127,37 +100,10 @@ export async function DELETE(
   try {
     const { id } = await params;
     
-    // Try to get user from Authorization header first
-    const authHeader = request.headers.get('authorization');
-    let user = null;
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const supabase = createServiceClient();
-        const token = authHeader.substring(7);
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && authUser) {
-          user = authUser;
-        }
-      } catch (error) {
-        console.error('Error verifying token:', error);
-      }
-    }
-    
-    // Fallback: try to get user from cookies
-    if (!user) {
-      try {
-        const supabase = await createClient();
-        const { data: { user: cookieUser }, error: authError } = await supabase.auth.getUser();
-        if (!authError && cookieUser) {
-          user = cookieUser;
-        }
-      } catch (error) {
-        console.error('Error getting user from cookies:', error);
-      }
-    }
-    
-    if (!user) {
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
