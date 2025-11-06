@@ -279,7 +279,28 @@ export function UserImageGallery() {
     
     // If we have a user and haven't fetched for this user yet, fetch
     if (userId && lastFetchedUserIdRef.current !== userId) {
-      console.log('📡 UserImageGallery: User available, fetching images', { userId });
+      console.log('📡 UserImageGallery: User available, checking session before fetching', { 
+        userId,
+        hasSession: !!session,
+        hasToken: !!session?.access_token,
+      });
+      
+      // Wait a bit for session to be available if it's not ready yet
+      if (!session?.access_token) {
+        console.log('⏳ UserImageGallery: Session not ready, waiting 100ms...');
+        const timeoutId = setTimeout(() => {
+          console.log('📡 UserImageGallery: Retrying fetch after session wait', {
+            hasSession: !!session,
+            hasToken: !!session?.access_token,
+          });
+          lastFetchedUserIdRef.current = userId;
+          setLoading(true);
+          setPage(0);
+          fetchUserImages(0, false);
+        }, 100);
+        return () => clearTimeout(timeoutId);
+      }
+      
       lastFetchedUserIdRef.current = userId;
       setLoading(true);
       setPage(0);
@@ -292,7 +313,7 @@ export function UserImageGallery() {
       setImages([]);
       setPage(0);
     }
-  }, [user?.id, fetchUserImages, user]);
+  }, [user?.id, session, fetchUserImages, user]);
 
   const handleScroll = useCallback(() => {
     if (!galleryRef.current || !hasMore || loading) return;
