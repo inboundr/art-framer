@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { authenticateRequest } from '@/lib/auth/jwtAuth';
 import { z } from 'zod';
 
 const CreateCuratedProductSchema = z.object({
@@ -23,41 +24,24 @@ const getFrameDimensions = (size: string) => {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    
-    // Check authentication
-    let user = null;
-    let authError = null;
-    
-    // Method 1: Try cookie-based auth
-    const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
-    if (!cookieError && cookieAuth.user) {
-      user = cookieAuth.user;
-    } else {
-      // Method 2: Try Authorization header
-      const authHeader = request.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        const { data: headerAuth, error: headerError } = await supabase.auth.getUser(token);
-        if (!headerError && headerAuth.user) {
-          user = headerAuth.user;
-        } else {
-          authError = headerError;
-        }
-      } else {
-        authError = cookieError;
-      }
-    }
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
     if (authError || !user) {
+      console.log('Curated Products API: Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    console.log('Curated Products API: User authenticated', { userId: user.id });
 
     const body = await request.json();
     const validatedData = CreateCuratedProductSchema.parse(body);
+
+    // Use service client for database operations
+    const supabase = createServiceClient();
 
     // Verify the curated image exists and is active
     const { data: curatedImage, error: curatedImageError } = await supabase
