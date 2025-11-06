@@ -117,7 +117,7 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
     console.log('👂 CentralizedAuth: Setting up auth state listener...');
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: any, session: Session | null) => {
+      async (event: any, session: any) => {
         console.log('🔔 CentralizedAuth: Auth state changed', { 
           event, 
           hasSession: !!session,
