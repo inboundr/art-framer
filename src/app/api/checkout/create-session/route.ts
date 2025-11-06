@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/auth/jwtAuth";
 import { z } from "zod";
 import Stripe from "stripe";
 import type { PricingItem } from "@/lib/pricing";
@@ -141,85 +142,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    console.log('Checkout API: Starting checkout session creation');
     
-    // Check authentication - try multiple methods
-    let user = null;
-    let authError = null;
-    
-    // Method 1: Try cookie-based auth
-    const { data: cookieAuth, error: cookieError } = await supabase.auth.getUser();
-    console.log('Checkout API: Cookie auth check', { 
-      hasUser: !!cookieAuth.user, 
-      userId: cookieAuth.user?.id, 
-      userEmail: cookieAuth.user?.email,
-      cookieError: cookieError?.message 
-    });
-    
-    // Debug: Check if we have session cookies
-    const cookies = request.cookies.getAll();
-    const authCookies = cookies.filter(cookie => 
-      cookie.name.includes('sb-') || cookie.name.includes('supabase')
-    );
-    console.log('Checkout API: Auth cookies found', {
-      totalCookies: cookies.length,
-      authCookies: authCookies.length,
-      cookieNames: authCookies.map(c => c.name)
-    });
-    
-    if (!cookieError && cookieAuth.user) {
-      user = cookieAuth.user;
-    } else {
-      // Method 2: Try Authorization header
-      const authHeader = request.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        console.log('Checkout API: Trying Authorization header authentication');
-        // Use service client to verify the token
-        const serviceSupabase = createServiceClient();
-        const { data: headerAuth, error: headerError } = await serviceSupabase.auth.getUser(token);
-        if (!headerError && headerAuth.user) {
-          console.log('Checkout API: Authenticated via Authorization header');
-          user = headerAuth.user;
-        } else {
-          authError = headerError;
-        }
-      } else {
-        // Method 3: Try to get session from cookies directly
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (!sessionError && sessionData.session?.user) {
-          console.log('Checkout API: Authenticated via session');
-          user = sessionData.session.user;
-        } else {
-          // Method 4: Try to refresh the session
-          console.log('Checkout API: Attempting session refresh');
-          try {
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-            if (!refreshError && refreshData.session?.user) {
-              console.log('Checkout API: Session refreshed successfully');
-              user = refreshData.session.user;
-            } else {
-              console.log('Checkout API: Session refresh failed', refreshError?.message);
-              authError = cookieError || sessionError || refreshError;
-            }
-          } catch (refreshError) {
-            console.log('Checkout API: Session refresh error', refreshError);
-            authError = cookieError || sessionError || refreshError;
-          }
-        }
-      }
-    }
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
     if (authError || !user) {
-      console.log('Checkout API: Authentication failed', { 
-        authError: authError instanceof Error ? authError.message : String(authError),
-        hasUser: !!user 
-      });
+      console.log('Checkout API: Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    console.log('Checkout API: User authenticated', { userId: user.id, email: user.email });
     
     console.log('Checkout API: Authenticated user', { 
       userId: user.id, 
