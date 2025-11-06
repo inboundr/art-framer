@@ -148,24 +148,25 @@ export async function GET(request: NextRequest) {
           // Method 3: Try to get session from cookies directly
           console.log('🔍 User images API: Trying getSession()');
           const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (!sessionError && sessionData.session?.user) {
-          console.log('✅ User images API: Authenticated via session');
-          user = sessionData.session.user;
-        } else {
-          // Method 4: Try to refresh the session
-          console.log('🔄 User images API: Attempting session refresh');
-          try {
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-            if (!refreshError && refreshData.session?.user) {
-              console.log('✅ User images API: Session refreshed successfully');
-              user = refreshData.session.user;
-            } else {
-              console.log('❌ User images API: Session refresh failed', refreshError?.message);
+          if (!sessionError && sessionData.session?.user) {
+            console.log('✅ User images API: Authenticated via session');
+            user = sessionData.session.user;
+          } else {
+            // Method 4: Try to refresh the session
+            console.log('🔄 User images API: Attempting session refresh');
+            try {
+              const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+              if (!refreshError && refreshData.session?.user) {
+                console.log('✅ User images API: Session refreshed successfully');
+                user = refreshData.session.user;
+              } else {
+                console.log('❌ User images API: Session refresh failed', refreshError?.message);
+                authError = cookieError || sessionError || refreshError;
+              }
+            } catch (refreshError) {
+              console.log('❌ User images API: Session refresh error', refreshError);
               authError = cookieError || sessionError || refreshError;
             }
-          } catch (refreshError) {
-            console.log('❌ User images API: Session refresh error', refreshError);
-            authError = cookieError || sessionError || refreshError;
           }
         }
       }
