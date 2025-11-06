@@ -46,7 +46,7 @@ export async function PUT(
     }
 
     // Update cart item
-    const { data: updatedItem, error: updateError } = await serviceSupabase
+    const { data: updatedItem, error: updateError } = await (serviceSupabase as any)
       .from('cart_items')
       .update({
         quantity: validatedData.quantity,
