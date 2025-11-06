@@ -5,14 +5,17 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 User images API called');
 
-    // Debug: Log all cookies
+    // Debug: Log all cookies and headers
     const allCookies = request.cookies.getAll();
     const authCookies = allCookies.filter(c => 
       c.name.includes('sb-') || c.name.includes('auth') || c.name.includes('supabase')
     );
-    console.log('🔍 User images API: Cookies found', {
+    const authHeader = request.headers.get('authorization');
+    console.log('🔍 User images API: Request details', {
       totalCookies: allCookies.length,
-      authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length })),
+      authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length, valuePreview: c.value?.substring(0, 50) })),
+      hasAuthorizationHeader: !!authHeader,
+      authorizationHeaderPreview: authHeader ? authHeader.substring(0, 50) + '...' : null,
     });
 
     // Create Supabase client for server-side
@@ -24,32 +27,71 @@ export async function GET(request: NextRequest) {
     
     // Method 0: Try to parse sb-auth-token cookie manually (if Supabase SSR doesn't recognize it)
     const sbAuthTokenCookie = request.cookies.get('sb-auth-token');
+    console.log('🔍 User images API: Checking sb-auth-token cookie', {
+      cookieExists: !!sbAuthTokenCookie,
+      hasValue: !!sbAuthTokenCookie?.value,
+      valueStartsWith: sbAuthTokenCookie?.value?.substring(0, 20),
+    });
+    
     if (sbAuthTokenCookie?.value) {
       try {
         // Cookie value may have 'base64-' prefix, strip it if present
         let cookieValue = sbAuthTokenCookie.value;
+        console.log('🔍 User images API: Processing cookie value', {
+          originalLength: cookieValue.length,
+          startsWithBase64: cookieValue.startsWith('base64-'),
+        });
+        
         if (cookieValue.startsWith('base64-')) {
           cookieValue = cookieValue.substring(7); // Remove 'base64-' prefix
+          console.log('🔍 User images API: Stripped base64- prefix', {
+            newLength: cookieValue.length,
+          });
         }
         
         // Decode base64 and parse JSON
         const decoded = Buffer.from(cookieValue, 'base64').toString('utf-8');
+        console.log('🔍 User images API: Decoded cookie', {
+          decodedLength: decoded.length,
+          decodedPreview: decoded.substring(0, 100),
+        });
+        
         const sessionData = JSON.parse(decoded);
+        console.log('🔍 User images API: Parsed session data', {
+          hasAccessToken: !!sessionData?.access_token,
+          hasRefreshToken: !!sessionData?.refresh_token,
+          hasUser: !!sessionData?.user,
+          accessTokenPreview: sessionData?.access_token?.substring(0, 50),
+        });
+        
         if (sessionData?.access_token) {
-          console.log('🔍 User images API: Found access_token in sb-auth-token cookie');
+          console.log('🔍 User images API: Found access_token in sb-auth-token cookie, validating...');
           const { data: tokenAuth, error: tokenError } = await supabase.auth.getUser(sessionData.access_token);
           if (!tokenError && tokenAuth.user) {
-            console.log('✅ User images API: Authenticated via sb-auth-token cookie');
+            console.log('✅ User images API: Authenticated via sb-auth-token cookie', {
+              userId: tokenAuth.user.id,
+              email: tokenAuth.user.email,
+            });
             user = tokenAuth.user;
           } else {
-            console.warn('⚠️ User images API: Failed to authenticate with token from cookie', tokenError?.message);
+            console.warn('⚠️ User images API: Failed to authenticate with token from cookie', {
+              error: tokenError?.message,
+              errorStatus: (tokenError as any)?.status,
+            });
           }
         } else {
-          console.warn('⚠️ User images API: No access_token found in sb-auth-token cookie');
+          console.warn('⚠️ User images API: No access_token found in sb-auth-token cookie', {
+            sessionDataKeys: Object.keys(sessionData || {}),
+          });
         }
       } catch (parseError) {
-        console.warn('⚠️ User images API: Failed to parse sb-auth-token cookie', parseError);
+        console.error('❌ User images API: Failed to parse sb-auth-token cookie', {
+          error: parseError instanceof Error ? parseError.message : String(parseError),
+          stack: parseError instanceof Error ? parseError.stack : undefined,
+        });
       }
+    } else {
+      console.log('⚠️ User images API: sb-auth-token cookie not found or empty');
     }
     
     // Method 1: Try cookie-based auth (Supabase SSR standard cookies)
