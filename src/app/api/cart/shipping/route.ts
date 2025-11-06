@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { authenticateRequest } from '@/lib/auth/jwtAuth';
 import { z } from 'zod';
 import type { ShippingItem } from '@/lib/shipping';
 
@@ -50,70 +51,19 @@ const ShippingAddressSchema = z.object({
   city: z.string().optional(),
 });
 
-async function authenticateUser(request: NextRequest) {
-  // First try server-side client (cookies)
-  const supabaseServer = await createClient();
-  const { data: { user: serverUser }, error: serverError } = await supabaseServer.auth.getUser();
-  
-  if (serverUser && !serverError) {
-    console.log('Cart Shipping API: Authenticated via server client');
-    return { user: serverUser, supabase: supabaseServer };
-  }
-  
-  // If server auth fails, try Authorization header
-  const authHeader = request.headers.get('authorization');
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    console.log('Cart Shipping API: Trying Authorization header authentication');
-    
-    // Create a new client with the token
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabaseWithToken = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
-    );
-    
-    const { data: { user: clientUser }, error: clientError } = await supabaseWithToken.auth.getUser();
-    
-    if (clientUser && !clientError) {
-      console.log('Cart Shipping API: Authenticated via Authorization header');
-      return { user: clientUser, supabase: supabaseWithToken };
-    }
-  }
-  
-  console.log('Cart Shipping API: Authentication failed', { 
-    serverError: serverError?.message,
-    hasAuthHeader: !!authHeader 
-  });
-  
-  return { user: null, error: 'Authentication failed' };
-}
 
 export async function POST(request: NextRequest) {
   try {
     console.log('Cart Shipping API: Starting request');
-    console.log('Cart Shipping API: Request headers', {
-      authorization: request.headers.get('authorization'),
-      cookie: request.headers.get('cookie'),
-      userAgent: request.headers.get('user-agent')
-    });
     
-    // Authenticate user with both cookies and Authorization header support
-    const authResult = await authenticateUser(request);
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
-    if (!authResult.user) {
-      console.log('Cart Shipping API: Authentication failed');
+    if (authError || !user) {
+      console.log('Cart Shipping API: Authentication failed', { error: authError });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const { user } = authResult;
     console.log('Cart Shipping API: Authenticated user', { 
       userId: user.id, 
       userEmail: user.email 
