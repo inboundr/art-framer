@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/auth/jwtAuth";
 import { z } from "zod";
 
 const OrderStatusUpdateSchema = z.object({
@@ -23,14 +24,16 @@ const OrderQuerySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { searchParams } = new URL(request.url);
+    // JWT-only authentication (admin only)
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Order Management API: Authentication failed', { error: authError });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createServiceClient();
+    const { searchParams } = new URL(request.url);
 
     // Parse and validate query parameters
     const queryParams = {
@@ -108,14 +111,16 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // JWT-only authentication (admin only for order updates)
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication (admin only for order updates)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Order Management Update API: Authentication failed', { error: authError });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabase = createServiceClient();
+    
     // Check if user is admin (you might want to implement proper admin check)
     const { data: profile } = await supabase
       .from('profiles')

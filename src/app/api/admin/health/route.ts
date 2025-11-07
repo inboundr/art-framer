@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/auth/jwtAuth";
 import { prodigiClient } from "@/lib/prodigi";
 import { orderRetryManager } from "@/lib/orderRetry";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // JWT-only authentication (admin only)
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication (admin only)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Admin Health API: Authentication failed', { error: authError });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabase = createServiceClient();
+    
     // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
@@ -66,7 +69,7 @@ export async function GET() {
   }
 }
 
-async function checkDatabaseHealth(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function checkDatabaseHealth(supabase: ReturnType<typeof createServiceClient>) {
   try {
     const startTime = Date.now();
     
@@ -161,7 +164,7 @@ async function checkProdigiHealth() {
   }
 }
 
-async function checkRetrySystemHealth(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function checkRetrySystemHealth(supabase: ReturnType<typeof createServiceClient>) {
   try {
     // Get retry system statistics
     const { data: stats, error: statsError } = await supabase
@@ -230,7 +233,7 @@ async function checkRetrySystemHealth(supabase: Awaited<ReturnType<typeof create
   }
 }
 
-async function checkOrderSystemHealth(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function checkOrderSystemHealth(supabase: ReturnType<typeof createServiceClient>) {
   try {
     // Check recent order processing
     const { data: recentOrders, error: ordersError } = await supabase
@@ -289,7 +292,7 @@ async function checkOrderSystemHealth(supabase: Awaited<ReturnType<typeof create
   }
 }
 
-async function checkNotificationSystemHealth(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function checkNotificationSystemHealth(supabase: ReturnType<typeof createServiceClient>) {
   try {
     // Check notification system
     const { data: notifications, error: notificationsError } = await supabase
@@ -327,14 +330,16 @@ async function checkNotificationSystemHealth(supabase: Awaited<ReturnType<typeof
 // POST endpoint to trigger manual health checks and cleanup
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // JWT-only authentication (admin only)
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication (admin only)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Admin Health Action API: Authentication failed', { error: authError });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabase = createServiceClient();
+    
     // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
