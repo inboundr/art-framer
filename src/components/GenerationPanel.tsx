@@ -35,7 +35,7 @@ export function GenerationPanel({
   color = 'AUTO',
   referenceImages = []
 }: GenerationPanelProps) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { setActiveGenerations, setIsGenerating } = useGeneration();
   const [isExpanded, setIsExpanded] = useState(true);
   const [localPromptText, setLocalPromptText] = useState(promptText);
@@ -95,7 +95,7 @@ export function GenerationPanel({
           });
           
           // Save each generated image to Supabase Storage and update IDs
-          if (user) {
+          if (user && session?.access_token) {
             console.log('💾 Saving images to Supabase...');
             setGenerationStatus('Saving images...');
             
@@ -111,6 +111,7 @@ export function GenerationPanel({
                   style: style !== 'AUTO' ? style : undefined,
                   color: color !== 'AUTO' ? color : undefined,
                   userId: user.id,
+                  accessToken: session.access_token, // Pass JWT token
                 });
                 console.log('✅ Image saved to Supabase with ID:', savedImage.id);
                 savedImages.push({
