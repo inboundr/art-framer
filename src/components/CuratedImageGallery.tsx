@@ -433,10 +433,14 @@ export function CuratedImageGallery({
         }
       }
 
+      console.log('📦 Parsing response JSON...');
       const data = await response.json();
+      console.log('✅ Response parsed:', { hasProduct: !!data.product, productId: data.product?.id });
       
+      console.log('🛒 Calling addToCart...');
       // Use the cart context to add to cart
       const success = await addToCart(data.product.id, 1);
+      console.log('✅ addToCart completed:', { success });
 
       if (!success) {
         throw new Error('Failed to add to cart');
