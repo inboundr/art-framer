@@ -1,22 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/auth/jwtAuth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { id } = await params;
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Order Details API: Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    const { id } = await params;
+    const supabase = createServiceClient();
 
     const { data: order, error } = await supabase
       .from('orders')
