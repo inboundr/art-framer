@@ -24,18 +24,27 @@ const getFrameDimensions = (size: string) => {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔥 Curated Products API: Request received');
+    console.log('🔑 Curated Products API: Starting authentication...');
+    
     // JWT-only authentication
     const { user, error: authError } = await authenticateRequest(request);
     
+    console.log('🔑 Curated Products API: Authentication result', { 
+      hasUser: !!user, 
+      hasError: !!authError,
+      userId: user?.id 
+    });
+    
     if (authError || !user) {
-      console.log('Curated Products API: Authentication failed', { error: authError });
+      console.error('❌ Curated Products API: Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
     
-    console.log('Curated Products API: User authenticated', { userId: user.id });
+    console.log('✅ Curated Products API: User authenticated', { userId: user.id });
 
     const body = await request.json();
     const validatedData = CreateCuratedProductSchema.parse(body);
