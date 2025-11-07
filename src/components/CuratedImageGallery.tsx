@@ -394,6 +394,7 @@ export function CuratedImageGallery({
       console.log('✅ Fetch is available, making request...');
       
       // Use curated products API for curated images
+      console.log('🚀 Starting fetch to /api/curated-products...');
       const response = await fetch('/api/curated-products', {
         method: 'POST',
         headers: {
@@ -408,6 +409,12 @@ export function CuratedImageGallery({
           frameMaterial: frame.material,
           price: frame.price,
         }),
+      });
+
+      console.log('✅ Fetch completed, response received:', { 
+        status: response.status, 
+        ok: response.ok,
+        statusText: response.statusText 
       });
 
       if (!response.ok) {
