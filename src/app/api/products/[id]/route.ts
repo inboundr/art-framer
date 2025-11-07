@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/auth/jwtAuth";
 import { z } from "zod";
 
 const UpdateProductSchema = z.object({
@@ -13,7 +14,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
+    // Public access for product details (no auth required for GET)
+    const supabase = createServiceClient();
     const { id } = await params;
     
     const { data: product, error } = await supabase
@@ -61,17 +63,19 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { id } = await params;
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Product Update API: Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    const { id } = await params;
+    const supabase = createServiceClient();
 
     const body = await request.json();
     const validatedData = UpdateProductSchema.parse(body);
@@ -146,17 +150,19 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { id } = await params;
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Product Delete API: Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    const { id } = await params;
+    const supabase = createServiceClient();
 
     // Verify the product belongs to the user (through the image)
     const { data: product, error: productError } = await supabase

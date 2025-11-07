@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/auth/jwtAuth";
 import { prodigiClient } from "@/lib/prodigi";
 import { z } from "zod";
 
@@ -12,15 +13,16 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Order Status API: Authentication failed', { error: authError });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
+    const supabase = createServiceClient();
     const validatedParams = OrderIdSchema.parse({ id });
 
     // Fetch order with all related data
@@ -195,14 +197,16 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
+    // JWT-only authentication (admin only for manual status updates)
+    const { user, error: authError } = await authenticateRequest(request);
     
-    // Check authentication (admin only for manual status updates)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('Order Status Update API: Authentication failed', { error: authError });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabase = createServiceClient();
+    
     // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
