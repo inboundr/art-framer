@@ -365,13 +365,12 @@ export function CuratedImageGallery({
     try {
       console.log('🛒 CuratedImageGallery: Checking session from useAuth...');
       
-      // Use session from useAuth hook instead of calling getSession()
-      if (!session || !session.access_token) {
+      if (!session?.access_token) {
         console.error('❌ CuratedImageGallery: No session or access token');
         throw new Error('Please sign in to add items to your cart.');
       }
       
-      console.log('✅ CuratedImageGallery: Session validated', { hasToken: !!session.access_token });
+      console.log('✅ CuratedImageGallery: Session obtained from useAuth', { hasToken: !!session.access_token });
       
       console.log('🚀 CuratedImageGallery: MAKING FETCH REQUEST NOW to /api/curated-products', {
         url: '/api/curated-products',
