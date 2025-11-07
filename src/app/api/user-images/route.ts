@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,8 +19,9 @@ export async function GET(request: NextRequest) {
     const token = authHeader.substring(7);
     console.log('🔍 User images API: Authenticating with JWT token');
 
-    // Create Supabase client and verify JWT token
-    const supabase = await createClient();
+    // Create service client and verify JWT token
+    // Use service client to bypass RLS after we verify the user manually
+    const supabase = createServiceClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
