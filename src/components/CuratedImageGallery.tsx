@@ -172,7 +172,7 @@ export function CuratedImageGallery({
   onOpenAuthModal
 }: CuratedImageGalleryProps) {
   const { images, loading, error, hasMore, loadMore } = useCuratedGallery();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   
   // Debug logging
   useEffect(() => {
@@ -363,21 +363,15 @@ export function CuratedImageGallery({
     console.log('✅ CuratedImageGallery: Frame validation passed');
 
     try {
-      console.log('🛒 CuratedImageGallery: About to get session...');
-      // Get the session to access the token
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🛒 CuratedImageGallery: Checking session from useAuth...');
       
-      if (sessionError) {
-        console.error('❌ CuratedImageGallery: Session error', sessionError);
-        throw new Error('Authentication error. Please try signing in again.');
-      }
-      
-      if (!session) {
-        console.error('❌ CuratedImageGallery: No session');
+      // Use session from useAuth hook instead of calling getSession()
+      if (!session || !session.access_token) {
+        console.error('❌ CuratedImageGallery: No session or access token');
         throw new Error('Please sign in to add items to your cart.');
       }
       
-      console.log('✅ CuratedImageGallery: Session obtained', { hasToken: !!session.access_token });
+      console.log('✅ CuratedImageGallery: Session validated', { hasToken: !!session.access_token });
       
       console.log('🚀 CuratedImageGallery: MAKING FETCH REQUEST NOW to /api/curated-products', {
         url: '/api/curated-products',
