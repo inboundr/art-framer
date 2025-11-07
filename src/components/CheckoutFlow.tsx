@@ -243,13 +243,21 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         retryCount
       });
 
-      // API uses cookie-based authentication, no need to get session token
-      // This matches the pattern used in shipping-calculation.ts utility
-      console.log('🌐 Making API call to /api/cart/shipping (using cookie auth)...');
+      // Get JWT token for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
+      
+      if (!authToken) {
+        console.error('❌ No auth token available for shipping calculation');
+        throw new Error('Please sign in to calculate shipping');
+      }
+
+      console.log('🌐 Making API call to /api/cart/shipping (using JWT auth)...');
       const response = await fetch('/api/cart/shipping', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
         credentials: 'include',
         body: JSON.stringify({

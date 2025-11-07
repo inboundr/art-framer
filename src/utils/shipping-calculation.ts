@@ -49,13 +49,22 @@ export const calculateShipping = async (address: ShippingAddress, retryCount = 0
       retryCount
     });
 
-    // Auth is enforced server-side via cookies; do not fetch session in the client
+    // Get JWT token for authentication
+    const { supabase } = await import('@/lib/supabase/client');
+    const { data: { session } } = await supabase.auth.getSession();
+    const authToken = session?.access_token;
     
-    console.log('🌐 Making API call to /api/cart/shipping...');
+    if (!authToken) {
+      console.error('❌ No auth token available for shipping calculation');
+      return null;
+    }
+    
+    console.log('🌐 Making API call to /api/cart/shipping (with JWT auth)...');
     const response = await fetch('/api/cart/shipping', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
       },
       credentials: 'include',
       body: JSON.stringify({
