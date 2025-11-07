@@ -73,11 +73,11 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
       const { data: { session }, error } = await supabase.auth.getSession();
       
       console.log('📥 CentralizedAuth: Session check complete', {
-        hasSession: !!session,
-        hasError: !!error,
+          hasSession: !!session,
+          hasError: !!error,
         userId: session?.user?.id
-      });
-
+        });
+      
       if (error) {
         console.error('❌ CentralizedAuth: Session error:', error);
         setUser(null);
@@ -85,18 +85,18 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
         setProfile(null);
       } else if (session) {
         console.log('✅ CentralizedAuth: Session found', { userId: session.user.id });
-        setSession(session);
-        setUser(session.user);
-        await fetchProfile(session.user.id);
+          setSession(session);
+          setUser(session.user);
+          await fetchProfile(session.user.id);
       } else {
         console.log('ℹ️ CentralizedAuth: No session - user not logged in');
         setUser(null);
         setSession(null);
         setProfile(null);
-      }
-
-      setIsInitialized(true);
-      setLoading(false);
+        }
+        
+        setIsInitialized(true);
+        setLoading(false);
     } catch (error) {
       console.error('❌ CentralizedAuth: Initialization error:', error);
       setUser(null);
@@ -120,7 +120,7 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
       async (event: any, session: Session | null) => {
         console.log('🔔 CentralizedAuth: Auth state changed', { 
           event, 
-          hasSession: !!session,
+        hasSession: !!session,
           userId: session?.user?.id 
         });
 
@@ -134,9 +134,9 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
         } else if (event === 'SIGNED_OUT') {
           console.log('🚪 CentralizedAuth: User signed out');
           setSession(null);
-          setUser(null);
-          setProfile(null);
-        }
+              setUser(null);
+              setProfile(null);
+            }
       }
     );
 
@@ -153,12 +153,12 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
         email,
         password,
       });
-
+      
       if (error) {
         console.error('❌ CentralizedAuth: Sign in error:', error);
         return { error };
       }
-
+      
       console.log('✅ CentralizedAuth: Sign in successful', { userId: data.user?.id });
       // State will be updated by onAuthStateChange listener
       return { error: null };
@@ -178,12 +178,12 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
           data: metadata,
         },
       });
-
+      
       if (error) {
         console.error('❌ CentralizedAuth: Sign up error:', error);
         return { error };
       }
-
+      
       console.log('✅ CentralizedAuth: Sign up successful', { userId: data.user?.id });
       // State will be updated by onAuthStateChange listener
       return { error: null };
@@ -257,7 +257,7 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
   const refreshProfile = async () => {
     if (user) {
       await fetchProfile(user.id);
-    }
+        }
   };
 
   const value: AuthContextType = {

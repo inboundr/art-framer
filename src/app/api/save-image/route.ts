@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/supabase/client';
+import { authenticateRequest } from '@/lib/auth/jwtAuth';
 
 // Lazy Supabase client creation to avoid build-time initialization
 let supabase: ReturnType<typeof createClient<Database>> | null = null;
@@ -36,6 +37,19 @@ interface SaveImageRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // JWT-only authentication
+    const { user, error: authError } = await authenticateRequest(request);
+    
+    if (authError || !user) {
+      console.error('❌ Save Image API: Authentication failed', { error: authError });
+      return NextResponse.json(
+        { error: 'Unauthorized - Please log in to save images' },
+        { status: 401 }
+      );
+    }
+    
+    console.log('✅ Save Image API: User authenticated', { userId: user.id, email: user.email });
+    
     const body: SaveImageRequest = await request.json();
     const { imageUrl, prompt, aspectRatio, model, style, color, userId } = body;
 
@@ -44,6 +58,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Missing required fields: imageUrl, prompt, userId' },
         { status: 400 }
+      );
+    }
+    
+    // Security: Verify the userId in the body matches the authenticated user
+    if (userId !== user.id) {
+      console.error('❌ Save Image API: User ID mismatch', { 
+        authenticatedUserId: user.id, 
+        requestedUserId: userId 
+      });
+      return NextResponse.json(
+        { error: 'Unauthorized - User ID mismatch' },
+        { status: 403 }
       );
     }
 
