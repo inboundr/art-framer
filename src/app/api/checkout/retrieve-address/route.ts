@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { authenticateRequest } from '@/lib/auth/jwtAuth';
 import { z } from 'zod';
 
 const RetrieveAddressSchema = z.object({
@@ -41,15 +42,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Try to get authenticated user first (preferred method)
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Try JWT authentication first (preferred method)
+    const { user, error: authError } = await authenticateRequest(request);
 
     let addressData;
     let addressError;
+    const supabase = createServiceClient();
 
     if (user && !authError) {
-      // User is authenticated - use regular client with RLS
+      // User is authenticated - filter by user_id for security
+      console.log('✅ Retrieve Address: User authenticated', { userId: user.id });
       const { data, error } = await (supabase as any)
         .from('stripe_session_addresses')
         .select('shipping_address, created_at')
@@ -64,10 +66,7 @@ export async function GET(request: NextRequest) {
       // This is less secure but necessary for post-payment scenarios
       console.warn('⚠️ Retrieving address without authentication for session:', validatedData.sessionId);
       
-      const { createServiceClient } = await import('@/lib/supabase/server');
-      const serviceSupabase = await createServiceClient();
-      
-      const { data, error } = await (serviceSupabase as any)
+      const { data, error } = await (supabase as any)
         .from('stripe_session_addresses')
         .select('shipping_address, created_at')
         .eq('stripe_session_id', validatedData.sessionId)
