@@ -308,7 +308,7 @@ export class OrderRetryManager {
         tracking_url: prodigiResponse.trackingUrl,
         estimated_delivery: prodigiResponse.estimatedDelivery ? new Date(prodigiResponse.estimatedDelivery) : null,
         provider_response: prodigiResponse,
-        status: (prodigiResponse.status || 'pending').toLowerCase(), // Safe fallback if status is undefined
+        status: (prodigiResponse.status?.stage || 'pending').toLowerCase(), // Extract stage from status object
         updated_at: new Date().toISOString(),
       })
       .eq('order_id', orderId)
@@ -356,7 +356,7 @@ export class OrderRetryManager {
     const { error: updateError } = await (supabase as any)
       .from('dropship_orders')
       .update({
-        status: (prodigiOrder.status || 'pending').toLowerCase(), // Safe fallback if status is undefined
+        status: (prodigiOrder.status?.stage || 'pending').toLowerCase(), // Extract stage from status object
         tracking_number: prodigiOrder.trackingNumber,
         tracking_url: prodigiOrder.trackingUrl,
         estimated_delivery: prodigiOrder.estimatedDelivery ? new Date(prodigiOrder.estimatedDelivery) : null,
