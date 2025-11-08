@@ -206,7 +206,7 @@ export async function POST(
     }
 
     const supabase = createServiceClient();
-    
+
     // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')

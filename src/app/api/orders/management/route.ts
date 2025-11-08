@@ -120,7 +120,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const supabase = createServiceClient();
-    
+
     // Check if user is admin (you might want to implement proper admin check)
     const { data: profile } = await supabase
       .from('profiles')

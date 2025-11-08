@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createServiceClient();
-    
+
     // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
@@ -339,7 +339,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServiceClient();
-    
+
     // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
