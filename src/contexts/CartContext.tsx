@@ -115,30 +115,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Get fresh session before making API call
-      const { data: { session: freshSession }, error: sessionError } = await supabase.auth.getSession();
+      // Use session from auth context instead of calling getSession()
+      // to avoid hanging issues (same as checkout flow fix)
+      console.log('Cart: addToCart - Using session from context', { 
+        hasSession: !!session,
+        hasToken: !!session?.access_token 
+      });
       
-      if (sessionError) {
-        console.error('Cart: Session error in addToCart:', sessionError);
-        return false;
-      }
-      
-      if (!freshSession) {
-        console.error('Cart: No session available in addToCart');
+      if (!session?.access_token) {
+        console.error('Cart: No session or access token available in addToCart');
         return false;
       }
 
       console.log('Cart: addToCart - Making API call', { 
         productId, 
         quantity, 
-        hasToken: !!freshSession.access_token 
+        hasToken: !!session.access_token 
       });
 
       const response = await fetch('/api/cart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${freshSession.access_token}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         credentials: 'include',
         body: JSON.stringify({
