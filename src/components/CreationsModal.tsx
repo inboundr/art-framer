@@ -97,20 +97,30 @@ export function CreationsModal({
     }
 
     try {
-      // Get the session to access the token
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get the session from auth context instead of calling getSession()
+      // to avoid potential hanging issues
+      console.log('🔑 CreationsModal: Getting session from context...');
+      const { data: { session: contextSession } } = await supabase.auth.getSession();
+      
+      if (!contextSession?.access_token) {
+        console.warn('⚠️ CreationsModal: No session from getSession, this might cause issues');
+      }
+      
+      const authToken = contextSession?.access_token;
+      console.log('🔑 CreationsModal: Auth token status:', { hasToken: !!authToken });
       
       // Use the explicit flag passed from the parent component to determine if this is a curated image
       // This is more reliable than trying to guess based on URL or prompt content
 
       let response;
       if (isCuratedImage) {
+        console.log('🖼️ CreationsModal: Using curated products API');
         // Use curated products API
         response = await fetch('/api/curated-products', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
           },
           credentials: 'include',
           body: JSON.stringify({
@@ -122,12 +132,13 @@ export function CreationsModal({
           }),
         });
       } else {
+        console.log('🖼️ CreationsModal: Using regular products API');
         // Use regular products API
         response = await fetch('/api/products', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
           },
           credentials: 'include',
           body: JSON.stringify({
@@ -139,6 +150,12 @@ export function CreationsModal({
           }),
         });
       }
+      
+      console.log('📡 CreationsModal: API response:', { 
+        status: response.status, 
+        ok: response.ok,
+        statusText: response.statusText 
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
