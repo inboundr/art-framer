@@ -8,8 +8,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Get Supabase credentials from environment
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = "https://irugsjzjqdxulliobuwt.supabase.co";
+const supabaseServiceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlydWdzanpqcWR4dWxsaW9idXd0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzg1NjgwOCwiZXhwIjoyMDczNDMyODA4fQ.DO6iUfTIkSoLq8AqGzT_0-G5unnOtoVkwx5X2nLdV9M";
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('❌ Missing Supabase credentials!');
