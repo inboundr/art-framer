@@ -272,6 +272,14 @@ export class OrderRetryManager {
           throw new Error(`Missing or invalid image URL for product ${item.products?.id}`);
         }
         
+        console.log('🖼️ Image URL prepared for Prodigi:', {
+          productId: item.products?.id,
+          rawImageUrl,
+          publicImageUrl,
+          urlIsPublic: publicImageUrl.startsWith('http'),
+          urlLength: publicImageUrl.length
+        });
+        
         return {
           productSku: baseSku,
           quantity: item.quantity,
