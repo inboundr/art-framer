@@ -759,7 +759,7 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
       tracking_url: prodigiResponse.trackingUrl,
       estimated_delivery: prodigiResponse.estimatedDelivery ? new Date(prodigiResponse.estimatedDelivery) : null,
       provider_response: prodigiResponse,
-      status: (prodigiResponse.status || 'pending').toLowerCase(), // Safe fallback if status is undefined
+      status: (prodigiResponse.status?.stage || 'pending').toLowerCase(), // Extract stage from status object
       updated_at: new Date().toISOString(),
     };
 
@@ -812,7 +812,7 @@ async function triggerProdigiOrderCreation(orderId: string, supabase: any) {
         action: 'prodigi_order_created',
         details: {
           prodigi_order_id: prodigiResponse.id,
-          status: prodigiResponse.status,
+          status: prodigiResponse.status?.stage,
           tracking_number: prodigiResponse.trackingNumber,
         },
         created_at: new Date().toISOString(),

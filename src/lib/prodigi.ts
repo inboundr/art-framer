@@ -71,17 +71,79 @@ interface ProdigiOrder {
 
 interface ProdigiOrderResponse {
   id: string;
-  status: string;
+  status: {
+    stage: string;
+    issues: Array<{
+      objectId?: string;
+      errorCode?: string;
+      description?: string;
+      authorisationDetails?: any;
+    }>;
+    details?: {
+      downloadAssets?: string;
+      printReadyAssetsPrepared?: string;
+      allocateProductionLocation?: string;
+      inProduction?: string;
+      shipping?: string;
+    };
+  };
   trackingNumber?: string;
   trackingUrl?: string;
   estimatedDelivery?: string;
-  totalPrice: number;
-  currency: string;
-  items: Array<{
-    sku: string;
-    quantity: number;
+  charges?: Array<{
+    id: string;
+    prodigiInvoiceNumber?: string;
+    totalCost: {
+      amount: string;
+      currency: string;
+    };
+    items?: Array<any>;
+  }>;
+  shipments?: Array<{
+    id: string;
+    dispatchDate?: string;
+    carrier?: {
+      name: string;
+      service: string;
+    };
+    tracking?: {
+      number: string;
+      url: string;
+    };
+    items?: Array<{
+      itemId: string;
+    }>;
     status: string;
   }>;
+  items: Array<{
+    id: string;
+    sku: string;
+    copies: number;
+    status: string;
+    merchantReference?: string;
+    sizing?: string;
+    attributes?: Record<string, string>;
+    assets?: Array<{
+      id: string;
+      printArea: string;
+      url: string;
+      md5Hash?: string;
+      status: string;
+    }>;
+    recipientCost?: {
+      amount: string;
+      currency: string;
+    };
+  }>;
+  created?: string;
+  lastUpdated?: string;
+  callbackUrl?: string | null;
+  merchantReference?: string;
+  shippingMethod?: string;
+  idempotencyKey?: string | null;
+  recipient?: any;
+  packingSlip?: any | null;
+  metadata?: any;
   editWindow?: {
     duration: string;
     expiresAt?: string;
@@ -670,8 +732,16 @@ export class ProdigiClient {
       
       console.log('✅ Prodigi order created successfully:', {
         orderId: response.id,
-        status: response.status,
-        itemCount: response.items?.length || 0
+        status: response.status?.stage,
+        statusDetails: response.status,
+        itemCount: response.items?.length || 0,
+        items: response.items?.map(item => ({
+          id: item.id,
+          sku: item.sku,
+          status: item.status,
+          assetCount: item.assets?.length || 0,
+          assetStatuses: item.assets?.map(a => a.status)
+        }))
       });
       
       return response;
