@@ -248,14 +248,30 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       });
 
       // Get JWT token for authentication
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔑 Getting session for JWT token...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      console.log('🔍 Session result:', {
+        hasSession: !!session,
+        hasAccessToken: !!session?.access_token,
+        sessionError: sessionError?.message,
+        userId: session?.user?.id
+      });
+      
       const authToken = session?.access_token;
       
       if (!authToken) {
         console.error('❌ No auth token available for shipping calculation');
+        console.error('❌ Session state:', { session, error: sessionError });
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in to calculate shipping costs.",
+          variant: "destructive"
+        });
         throw new Error('Please sign in to calculate shipping');
       }
 
+      console.log('✅ Auth token obtained, token length:', authToken.length);
       console.log('🌐 Making API call to /api/cart/shipping (using JWT auth)...');
       const response = await fetch('/api/cart/shipping', {
         method: 'POST',
