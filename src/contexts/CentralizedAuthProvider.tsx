@@ -120,11 +120,11 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
       async (event: any, session: Session | null) => {
         console.log('🔔 CentralizedAuth: Auth state changed', { 
           event, 
-        hasSession: !!session,
+          hasSession: !!session,
           userId: session?.user?.id 
         });
 
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
           console.log(`✅ CentralizedAuth: ${event}`, { userId: session?.user?.id });
           setSession(session);
           setUser(session?.user ?? null);
@@ -134,9 +134,9 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
         } else if (event === 'SIGNED_OUT') {
           console.log('🚪 CentralizedAuth: User signed out');
           setSession(null);
-              setUser(null);
-              setProfile(null);
-            }
+          setUser(null);
+          setProfile(null);
+        }
       }
     );
 
