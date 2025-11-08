@@ -1204,8 +1204,10 @@ export class ProdigiClient {
         'Paused': 'paused', // New status for edit window
       };
 
+      const statusStage = order.status?.stage || 'Unknown';
+      
       return {
-        status: statusMap[order.status] || (order.status ? order.status.toLowerCase() : 'unknown'),
+        status: statusMap[statusStage] || statusStage.toLowerCase(),
         trackingNumber: order.trackingNumber,
         trackingUrl: order.trackingUrl,
         estimatedDelivery: order.estimatedDelivery,

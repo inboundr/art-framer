@@ -90,7 +90,8 @@ export async function GET(
           const updatedProdigiOrder = await prodigiClient.getOrder((prodigiOrder as any).provider_order_id);
           prodigiStatus = {
             id: updatedProdigiOrder.id,
-            status: updatedProdigiOrder.status,
+            status: updatedProdigiOrder.status?.stage,
+            statusDetails: updatedProdigiOrder.status,
             trackingNumber: updatedProdigiOrder.trackingNumber,
             trackingUrl: updatedProdigiOrder.trackingUrl,
             estimatedDelivery: updatedProdigiOrder.estimatedDelivery,
@@ -98,11 +99,12 @@ export async function GET(
           };
 
           // Update local dropship order if status changed
-          if ((prodigiOrder as any).status !== updatedProdigiOrder.status.toLowerCase()) {
+          const newStatus = updatedProdigiOrder.status?.stage?.toLowerCase() || 'pending';
+          if ((prodigiOrder as any).status !== newStatus) {
             await (supabase as any)
               .from('dropship_orders')
               .update({
-                status: updatedProdigiOrder.status.toLowerCase(),
+                status: newStatus,
                 tracking_number: updatedProdigiOrder.trackingNumber,
                 tracking_url: updatedProdigiOrder.trackingUrl,
                 estimated_delivery: updatedProdigiOrder.estimatedDelivery ? new Date(updatedProdigiOrder.estimatedDelivery) : null,
@@ -119,7 +121,7 @@ export async function GET(
                 action: 'prodigi_status_updated',
                 details: {
                   old_status: (prodigiOrder as any).status,
-                  new_status: updatedProdigiOrder.status.toLowerCase(),
+                  new_status: newStatus,
                   tracking_number: updatedProdigiOrder.trackingNumber,
                   tracking_url: updatedProdigiOrder.trackingUrl,
                 },
@@ -133,7 +135,7 @@ export async function GET(
                   tracking_number: updatedProdigiOrder.trackingNumber,
                   tracking_url: updatedProdigiOrder.trackingUrl,
                   estimated_delivery_date: updatedProdigiOrder.estimatedDelivery ? new Date(updatedProdigiOrder.estimatedDelivery) : null,
-                  status: updatedProdigiOrder.status.toLowerCase() === 'shipped' ? 'shipped' : (order as any).status,
+                  status: newStatus === 'shipped' ? 'shipped' : (order as any).status,
                   updated_at: new Date().toISOString(),
                 })
                 .eq('id', validatedParams.id);
@@ -244,11 +246,13 @@ export async function POST(
       try {
         const updatedProdigiOrder = await prodigiClient.getOrder((prodigiOrder as any).provider_order_id);
         
+        const newStatus = updatedProdigiOrder.status?.stage?.toLowerCase() || 'pending';
+        
         // Update dropship order
         await (supabase as any)
           .from('dropship_orders')
           .update({
-            status: updatedProdigiOrder.status.toLowerCase(),
+            status: newStatus,
             tracking_number: updatedProdigiOrder.trackingNumber,
             tracking_url: updatedProdigiOrder.trackingUrl,
             estimated_delivery: updatedProdigiOrder.estimatedDelivery ? new Date(updatedProdigiOrder.estimatedDelivery) : null,
@@ -265,7 +269,7 @@ export async function POST(
             action: 'manual_prodigi_refresh',
             details: {
               old_status: (prodigiOrder as any).status,
-              new_status: updatedProdigiOrder.status.toLowerCase(),
+              new_status: newStatus,
               tracking_number: updatedProdigiOrder.trackingNumber,
               tracking_url: updatedProdigiOrder.trackingUrl,
               refreshed_by: user.id,
@@ -277,7 +281,8 @@ export async function POST(
           message: 'Prodigi status refreshed successfully',
           prodigiStatus: {
             id: updatedProdigiOrder.id,
-            status: updatedProdigiOrder.status,
+            status: updatedProdigiOrder.status?.stage,
+            statusDetails: updatedProdigiOrder.status,
             trackingNumber: updatedProdigiOrder.trackingNumber,
             trackingUrl: updatedProdigiOrder.trackingUrl,
             estimatedDelivery: updatedProdigiOrder.estimatedDelivery,
