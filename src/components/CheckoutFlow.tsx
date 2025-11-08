@@ -206,14 +206,16 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
   // Enhanced shipping calculation with comprehensive error handling and retry mechanism
   const calculateShipping = useCallback(async (address: CheckoutShippingAddress, retryCount = 0) => {
-    // Enhanced race condition protection with atomic state update
-    setShippingLoading(prev => {
-      if (prev) {
-        console.log('📍 Shipping calculation already in progress, skipping - current state:', { shippingLoading: prev });
-        return prev; // Don't change state if already loading
-      }
-      return true; // Set to loading
-    });
+    // Check if already calculating using ref - prevents race conditions
+    if (isCalculatingRef.current) {
+      console.log('📍 Shipping calculation already in progress, skipping');
+      return;
+    }
+    
+    // Mark as calculating and set loading state
+    isCalculatingRef.current = true;
+    setShippingLoading(true);
+    console.log('📍 Starting shipping calculation...');
     
     // Add a small delay to prevent rapid successive calls
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -222,6 +224,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     if (!address.country || !address.city || !address.zip) {
       console.log('📍 Address incomplete, clearing shipping calculation');
       setCalculatedShipping(null);
+      isCalculatingRef.current = false;
       setShippingLoading(false);
       return;
     }
@@ -230,6 +233,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     if (address.zip.length < 3 || address.city.length < 2) {
       console.log('📍 Address validation failed: insufficient data');
       setCalculatedShipping(null);
+      isCalculatingRef.current = false;
       setShippingLoading(false);
       return;
     }
@@ -351,6 +355,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       setCalculatedShipping(null);
     } finally {
       console.log('🏁 Shipping calculation completed, setting loading to false');
+      isCalculatingRef.current = false;
       setShippingLoading(false);
     }
   }, [getDisplayCurrency]);
@@ -362,6 +367,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const calculateShippingRef = useRef<typeof calculateShipping | null>(null);
+  const isCalculatingRef = useRef<boolean>(false);
 
   // Store the function in ref to avoid circular dependencies
   calculateShippingRef.current = calculateShipping;
