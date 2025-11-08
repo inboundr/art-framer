@@ -1032,11 +1032,11 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                 <div>
                   <h4 className="font-medium mb-2">Shipping Address</h4>
                   <div className="p-4 border rounded-lg bg-gray-50">
-                    <p>{shippingAddress.firstName} {shippingAddress.lastName}</p>
-                    <p>{shippingAddress.address1}</p>
-                    {shippingAddress.address2 && <p>{shippingAddress.address2}</p>}
-                    <p>{shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}</p>
-                    <p>{shippingAddress.phone}</p>
+                    <p className="text-gray-900">{shippingAddress.firstName} {shippingAddress.lastName}</p>
+                    <p className="text-gray-900">{shippingAddress.address1}</p>
+                    {shippingAddress.address2 && <p className="text-gray-900">{shippingAddress.address2}</p>}
+                    <p className="text-gray-900">{shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}</p>
+                    <p className="text-gray-900">{shippingAddress.phone}</p>
                   </div>
                 </div>
 
