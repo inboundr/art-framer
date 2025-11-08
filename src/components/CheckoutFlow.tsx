@@ -106,7 +106,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
   useEffect(() => {
     const defaultAddress = getDefaultAddress();
     if (defaultAddress) {
-      console.log('📍 Loading default address from cache:', defaultAddress);
+      console.log('📍 Loading default address from cache (ONCE):', defaultAddress);
       setShippingAddress(prev => ({
         ...prev,
         firstName: defaultAddress.firstName || '',
@@ -121,7 +121,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       }));
       // Note: We don't trigger shipping calculation here to avoid automatic calculation
     }
-  }, [getDefaultAddress]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only ONCE on mount - don't add getDefaultAddress to deps (causes infinite loop)
 
   // Use a ref to track if we've already loaded user metadata
   const userMetadataLoadedRef = useRef(false);
