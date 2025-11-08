@@ -248,15 +248,31 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         retryCount
       });
 
-      // Get JWT token for authentication
+      // Get JWT token for authentication with timeout
       console.log('🔑 Getting session for JWT token...');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      // Add timeout to prevent hanging
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Session retrieval timeout after 5 seconds')), 5000)
+      );
+      
+      let session, sessionError;
+      try {
+        const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        session = result.data?.session;
+        sessionError = result.error;
+      } catch (error) {
+        console.error('❌ Session retrieval failed or timed out:', error);
+        sessionError = error;
+      }
       
       console.log('🔍 Session result:', {
         hasSession: !!session,
         hasAccessToken: !!session?.access_token,
-        sessionError: sessionError?.message,
-        userId: session?.user?.id
+        sessionError: sessionError?.message || (sessionError instanceof Error ? sessionError.message : String(sessionError)),
+        userId: session?.user?.id,
+        sessionKeys: session ? Object.keys(session) : []
       });
       
       const authToken = session?.access_token;
