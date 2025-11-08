@@ -615,14 +615,45 @@ export class ProdigiClient {
 
   async createOrder(order: ProdigiOrder): Promise<ProdigiOrderResponse> {
     try {
+      // Enhanced logging to debug image URL issues
+      console.log('🖼️ Prodigi Order Details:', {
+        merchantReference: order.merchantReference,
+        itemCount: order.items.length,
+        items: order.items.map(item => ({
+          sku: item.sku,
+          copies: item.copies,
+          sizing: item.sizing,
+          attributes: item.attributes,
+          assetCount: item.assets.length,
+          assets: item.assets.map(asset => ({
+            printArea: asset.printArea,
+            url: asset.url,
+            urlLength: asset.url?.length || 0,
+            urlIsPublic: asset.url?.startsWith('http'),
+            urlPreview: asset.url?.substring(0, 100) + '...'
+          }))
+        }))
+      });
+      
       // Use correct Orders endpoint with capital O from Postman collection
       const response = await this.request<ProdigiOrderResponse>('/Orders', {
         method: 'POST',
         body: JSON.stringify(order),
       });
+      
+      console.log('✅ Prodigi order created successfully:', {
+        orderId: response.id,
+        status: response.status,
+        itemCount: response.items?.length || 0
+      });
+      
       return response;
     } catch (error) {
-      console.error('Error creating Prodigi order:', error);
+      console.error('❌ Error creating Prodigi order:', error);
+      console.error('Order data that failed:', {
+        merchantReference: order.merchantReference,
+        itemCount: order.items.length
+      });
       throw error;
     }
   }
