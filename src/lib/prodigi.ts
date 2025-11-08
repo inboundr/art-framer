@@ -181,6 +181,21 @@ export class ProdigiClient {
 
     const responseData = await response.json();
     console.log(`✅ Prodigi API response successful: ${endpoint}`);
+    console.log('📦 Raw Prodigi API response structure:', {
+      hasOutcome: 'outcome' in responseData,
+      hasId: 'id' in responseData,
+      hasOrder: 'order' in responseData,
+      topLevelKeys: Object.keys(responseData),
+      responsePreview: JSON.stringify(responseData).substring(0, 500)
+    });
+    
+    // Prodigi API wraps responses in an "outcome" object
+    // Check if response has "outcome" wrapper and extract it
+    if (responseData.outcome) {
+      console.log('📦 Extracting data from outcome wrapper');
+      return responseData.outcome as T;
+    }
+    
     return responseData;
   }
 
