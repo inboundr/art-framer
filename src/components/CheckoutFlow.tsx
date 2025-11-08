@@ -248,38 +248,20 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         retryCount
       });
 
-      // Get JWT token for authentication with timeout
-      console.log('🔑 Getting session for JWT token...');
+      // Get JWT token from auth context (no need to call getSession() again!)
+      console.log('🔑 Using JWT token from auth context...');
       
-      // Add timeout to prevent hanging
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session retrieval timeout after 5 seconds')), 5000)
-      );
-      
-      let session, sessionError;
-      try {
-        const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-        session = result.data?.session;
-        sessionError = result.error;
-      } catch (error) {
-        console.error('❌ Session retrieval failed or timed out:', error);
-        sessionError = error;
-      }
-      
-      console.log('🔍 Session result:', {
-        hasSession: !!session,
-        hasAccessToken: !!session?.access_token,
-        sessionError: sessionError?.message || (sessionError instanceof Error ? sessionError.message : String(sessionError)),
-        userId: session?.user?.id,
-        sessionKeys: session ? Object.keys(session) : []
+      console.log('🔍 Session from context:', {
+        hasContextSession: !!contextSession,
+        hasAccessToken: !!contextSession?.access_token,
+        userId: contextSession?.user?.id,
       });
       
-      const authToken = session?.access_token;
+      const authToken = contextSession?.access_token;
       
       if (!authToken) {
-        console.error('❌ No auth token available for shipping calculation');
-        console.error('❌ Session state:', { session, error: sessionError });
+        console.error('❌ No auth token available from context for shipping calculation');
+        console.error('❌ Context session state:', { contextSession });
         toast({
           title: "Authentication Error",
           description: "Please sign in to calculate shipping costs.",
@@ -288,7 +270,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         throw new Error('Please sign in to calculate shipping');
       }
 
-      console.log('✅ Auth token obtained, token length:', authToken.length);
+      console.log('✅ Auth token obtained from context, token length:', authToken.length);
       console.log('🌐 Making API call to /api/cart/shipping (using JWT auth)...');
       const response = await fetch('/api/cart/shipping', {
         method: 'POST',
@@ -391,7 +373,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       isCalculatingRef.current = false;
       setShippingLoading(false);
     }
-  }, [getDisplayCurrency]);
+  }, [getDisplayCurrency, contextSession, toast]);
 
   // Track if address has been manually modified by user
   const [addressManuallyModified, setAddressManuallyModified] = useState(false);
