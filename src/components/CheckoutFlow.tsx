@@ -402,9 +402,19 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
   
   // Enhanced address change detection - only trigger for user interactions
   useEffect(() => {
+    console.log('📍 Address change detected, checking if should calculate shipping:', {
+      addressManuallyModified,
+      hasCountry: !!shippingAddress.country,
+      hasCity: !!shippingAddress.city,
+      hasZip: !!shippingAddress.zip,
+      country: shippingAddress.country,
+      city: shippingAddress.city,
+      zip: shippingAddress.zip
+    });
+    
     // Only calculate shipping if user has manually modified the address
     if (!addressManuallyModified) {
-      console.log('📍 Address loaded from cache, skipping automatic shipping calculation');
+      console.log('📍 Address not manually modified yet, skipping automatic shipping calculation');
       return;
     }
 
@@ -420,7 +430,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                                shippingAddress.zip;
       
       if (hasRequiredFields) {
-        console.log('📍 User-modified address detected, calculating shipping:', {
+        console.log('✅ User-modified address complete, calculating shipping:', {
           country: shippingAddress.country,
           city: shippingAddress.city,
           zip: shippingAddress.zip,
@@ -428,7 +438,11 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         });
         calculateShippingRef.current?.(shippingAddress);
       } else {
-        console.log('📍 Address incomplete, clearing shipping calculation');
+        console.log('⚠️ Address still incomplete, clearing shipping calculation:', {
+          hasCountry: !!shippingAddress.country,
+          hasCity: !!shippingAddress.city,
+          hasZip: !!shippingAddress.zip
+        });
         setCalculatedShipping(null);
       }
     }, 1000); // Increased debounce to 1 second to prevent rapid calculations
