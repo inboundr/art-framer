@@ -183,17 +183,29 @@ export class ProdigiClient {
     console.log(`✅ Prodigi API response successful: ${endpoint}`);
     console.log('📦 Raw Prodigi API response structure:', {
       hasOutcome: 'outcome' in responseData,
-      hasId: 'id' in responseData,
       hasOrder: 'order' in responseData,
+      hasOrders: 'orders' in responseData,
+      outcomeValue: responseData.outcome,
       topLevelKeys: Object.keys(responseData),
       responsePreview: JSON.stringify(responseData).substring(0, 500)
     });
     
-    // Prodigi API wraps responses in an "outcome" object
-    // Check if response has "outcome" wrapper and extract it
-    if (responseData.outcome) {
-      console.log('📦 Extracting data from outcome wrapper');
-      return responseData.outcome as T;
+    // Prodigi API wraps responses in different structures:
+    // - POST /Orders: { outcome: "Created", order: {...} }
+    // - GET /Orders/{id}: { outcome: "Ok", order: {...} }
+    // - GET /Orders: { outcome: "Ok", orders: [...] }
+    
+    // Extract the actual data from the wrapper
+    if (responseData.order) {
+      console.log('📦 Extracting order from wrapper');
+      return responseData.order as T;
+    } else if (responseData.orders) {
+      console.log('📦 Extracting orders array from wrapper');
+      return responseData as T; // Return the whole response for lists
+    } else if (responseData.outcome && !responseData.order && !responseData.orders) {
+      // Some endpoints might return just outcome with data at top level
+      console.log('📦 Using response as-is (no order/orders wrapper)');
+      return responseData as T;
     }
     
     return responseData;
