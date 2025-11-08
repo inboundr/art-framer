@@ -196,18 +196,47 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
   const signOut = async () => {
     try {
       console.log('🚪 CentralizedAuth: Signing out user...');
-      const { error } = await supabase.auth.signOut();
+      console.log('🔍 CentralizedAuth: Current state before signout', {
+        hasUser: !!user,
+        hasSession: !!session,
+        userId: user?.id
+      });
+      
+      // Add a timeout to prevent hanging
+      const signOutPromise = supabase.auth.signOut();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign out timeout')), 5000)
+      );
+      
+      const { error } = await Promise.race([signOutPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('❌ CentralizedAuth: Sign out error:', error);
-        throw error;
+        // Still clear state locally even if API call fails
+        console.log('⚠️ CentralizedAuth: Clearing state locally despite error');
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        return; // Don't throw, just clear state
       }
 
       console.log('✅ CentralizedAuth: Sign out successful');
-      // State will be updated by onAuthStateChange listener
+      
+      // Manually clear state immediately (don't wait for listener)
+      console.log('🧹 CentralizedAuth: Manually clearing state');
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      
+      // State will also be updated by onAuthStateChange listener (belt and suspenders)
     } catch (error) {
       console.error('❌ CentralizedAuth: Sign out exception:', error);
-      throw error;
+      // Clear state locally even if sign out fails
+      console.log('⚠️ CentralizedAuth: Clearing state locally after exception');
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      // Don't throw, we've cleared the state
     }
   };
 
