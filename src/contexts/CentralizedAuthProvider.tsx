@@ -89,16 +89,10 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
       });
       
       if (error) {
-        // Check if the listener already set a session while we were waiting
-        // If so, DON'T clear it (belt and suspenders approach)
-        if (user) {
-          console.log('⚠️ CentralizedAuth: getSession() timed out, but listener already set user - keeping session');
-        } else {
-          console.error('❌ CentralizedAuth: Session error and no user from listener:', error);
-          setUser(null);
-          setSession(null);
-          setProfile(null);
-        }
+        // Timeout occurred - DON'T clear anything!
+        // The onAuthStateChange listener will handle setting the session
+        // This timeout is just to prevent hanging, not to manage state
+        console.log('⚠️ CentralizedAuth: getSession() timed out - relying on listener to set session');
       } else if (session) {
         console.log('✅ CentralizedAuth: Session found', { userId: session.user.id });
         setSession(session);
