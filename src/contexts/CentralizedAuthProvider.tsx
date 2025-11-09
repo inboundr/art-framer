@@ -55,7 +55,7 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
 
   const initializeAuth = useCallback(async () => {
     try {
-      console.log('🔐 CentralizedAuth: Initializing authentication (JWT-only)...');
+      console.log('🔐 CentralizedAuth: Initializing authentication (listener-only mode)...');
       setLoading(true);
 
       // Ensure Supabase is ready
@@ -67,55 +67,27 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
         return;
       }
 
-      // JWT-only: Simply get session from localStorage
-      // No cookie sync, no delays, no API calls, no fallbacks
-      console.log('🔍 CentralizedAuth: Getting session from localStorage...');
+      // DON'T call getSession() - it hangs!
+      // The onAuthStateChange listener will fire INITIAL_SESSION event automatically
+      // if a session exists in localStorage. This is the Supabase-recommended approach.
+      console.log('✅ CentralizedAuth: Initialization complete - relying on listener for session');
+      console.log('📡 CentralizedAuth: onAuthStateChange will fire INITIAL_SESSION if session exists');
       
-      // Add timeout to prevent hanging (same issue as other getSession calls)
-      const getSessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<{ data: { session: Session | null }, error: any }>((resolve) => 
-        setTimeout(() => {
-          console.warn('⏰ CentralizedAuth: getSession() timeout after 3 seconds');
-          resolve({ data: { session: null }, error: { message: 'Session retrieval timeout' } });
-        }, 3000)
-      );
-      
-      const { data: { session }, error } = await Promise.race([getSessionPromise, timeoutPromise]);
-      
-      console.log('📥 CentralizedAuth: Session check complete', {
-        hasSession: !!session,
-        hasError: !!error,
-        userId: session?.user?.id
-      });
-      
-      if (error) {
-        // Timeout occurred - DON'T clear anything!
-        // The onAuthStateChange listener will handle setting the session
-        // This timeout is just to prevent hanging, not to manage state
-        console.log('⚠️ CentralizedAuth: getSession() timed out - relying on listener to set session');
-      } else if (session) {
-        console.log('✅ CentralizedAuth: Session found', { userId: session.user.id });
-        setSession(session);
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-      } else {
-        console.log('ℹ️ CentralizedAuth: No session - user not logged in');
-        setUser(null);
-        setSession(null);
-        setProfile(null);
-      }
+      // Set a timeout to stop loading state if listener doesn't fire
+      setTimeout(() => {
+        if (loading) {
+          console.log('⏰ CentralizedAuth: Listener timeout - setting initialized without session');
+          setIsInitialized(true);
+          setLoading(false);
+        }
+      }, 2000);
         
-        setIsInitialized(true);
-        setLoading(false);
     } catch (error) {
       console.error('❌ CentralizedAuth: Initialization error:', error);
-      setUser(null);
-      setSession(null);
-      setProfile(null);
       setIsInitialized(true);
       setLoading(false);
     }
-  }, [fetchProfile]);
+  }, [loading]);
 
   // Initialize auth on mount
   useEffect(() => {
@@ -136,16 +108,28 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
           console.log(`✅ CentralizedAuth: ${event}`, { userId: session?.user?.id });
-          setSession(session);
-          setUser(session?.user ?? null);
+          
           if (session?.user) {
+            setSession(session);
+            setUser(session.user);
             await fetchProfile(session.user.id);
+          } else {
+            console.warn(`⚠️ CentralizedAuth: ${event} fired but no session/user`);
+            setSession(null);
+            setUser(null);
+            setProfile(null);
           }
+          
+          // Stop loading and mark as initialized when listener fires
+          setLoading(false);
+          setIsInitialized(true);
         } else if (event === 'SIGNED_OUT') {
           console.log('🚪 CentralizedAuth: User signed out');
           setSession(null);
           setUser(null);
           setProfile(null);
+          setLoading(false);
+          setIsInitialized(true);
         }
       }
     );
