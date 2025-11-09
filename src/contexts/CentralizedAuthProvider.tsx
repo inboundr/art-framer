@@ -89,21 +89,27 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
       });
       
       if (error) {
-        console.error('❌ CentralizedAuth: Session error:', error);
-        setUser(null);
-        setSession(null);
-        setProfile(null);
+        // Check if the listener already set a session while we were waiting
+        // If so, DON'T clear it (belt and suspenders approach)
+        if (user) {
+          console.log('⚠️ CentralizedAuth: getSession() timed out, but listener already set user - keeping session');
+        } else {
+          console.error('❌ CentralizedAuth: Session error and no user from listener:', error);
+          setUser(null);
+          setSession(null);
+          setProfile(null);
+        }
       } else if (session) {
         console.log('✅ CentralizedAuth: Session found', { userId: session.user.id });
-          setSession(session);
-          setUser(session.user);
-          await fetchProfile(session.user.id);
+        setSession(session);
+        setUser(session.user);
+        await fetchProfile(session.user.id);
       } else {
         console.log('ℹ️ CentralizedAuth: No session - user not logged in');
         setUser(null);
         setSession(null);
         setProfile(null);
-        }
+      }
         
         setIsInitialized(true);
         setLoading(false);
