@@ -70,13 +70,23 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
       // JWT-only: Simply get session from localStorage
       // No cookie sync, no delays, no API calls, no fallbacks
       console.log('🔍 CentralizedAuth: Getting session from localStorage...');
-      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      // Add timeout to prevent hanging (same issue as other getSession calls)
+      const getSessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<{ data: { session: Session | null }, error: any }>((resolve) => 
+        setTimeout(() => {
+          console.warn('⏰ CentralizedAuth: getSession() timeout after 3 seconds');
+          resolve({ data: { session: null }, error: { message: 'Session retrieval timeout' } });
+        }, 3000)
+      );
+      
+      const { data: { session }, error } = await Promise.race([getSessionPromise, timeoutPromise]);
       
       console.log('📥 CentralizedAuth: Session check complete', {
-          hasSession: !!session,
-          hasError: !!error,
+        hasSession: !!session,
+        hasError: !!error,
         userId: session?.user?.id
-        });
+      });
       
       if (error) {
         console.error('❌ CentralizedAuth: Session error:', error);
