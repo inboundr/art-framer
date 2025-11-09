@@ -185,7 +185,7 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
     
     // Try to sign out from Supabase in the background (fire and forget)
     // Don't await - if it hangs, we've already logged out locally
-    supabase.auth.signOut().catch((error) => {
+    supabase.auth.signOut().catch((error: any) => {
       // Silently handle errors - we've already cleared state
       console.error('CentralizedAuth: Background signOut failed:', error);
     });
