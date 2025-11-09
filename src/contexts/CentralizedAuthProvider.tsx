@@ -174,39 +174,23 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
   };
 
   const signOut = async () => {
-    try {
-      console.log('CentralizedAuth: Signing out...');
-      
-      // Add a timeout to prevent hanging
-      const signOutPromise = supabase.auth.signOut();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Sign out timeout')), 5000)
-      );
-      
-      const { error } = await Promise.race([signOutPromise, timeoutPromise]) as any;
-
-      if (error) {
-        console.error('CentralizedAuth: Sign out error:', error);
-        // Still clear state locally even if API call fails
-        setSession(null);
-        setUser(null);
-        setProfile(null);
-        return; // Don't throw, just clear state
-      }
-      
-      // Manually clear state immediately (don't wait for listener)
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      
-      // State will also be updated by onAuthStateChange listener (belt and suspenders)
-    } catch (error) {
-      console.error('CentralizedAuth: Sign out exception:', error);
-      // Clear state locally even if sign out fails
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-    }
+    // IMMEDIATE logout: Clear state first, then tell Supabase (don't wait)
+    // This prevents hanging just like we fixed with getSession()
+    console.log('CentralizedAuth: Signing out...');
+    
+    // Clear state immediately for instant UI response
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    
+    // Try to sign out from Supabase in the background (fire and forget)
+    // Don't await - if it hangs, we've already logged out locally
+    supabase.auth.signOut().catch((error) => {
+      // Silently handle errors - we've already cleared state
+      console.error('CentralizedAuth: Background signOut failed:', error);
+    });
+    
+    // The onAuthStateChange listener will fire SIGNED_OUT event if Supabase succeeds
   };
 
   const refreshSession = async () => {
