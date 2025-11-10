@@ -207,10 +207,10 @@ export function ProductCatalog({
 
   const getFrameSizeLabel = (size: string) => {
     const labels = {
-      small: 'Small (8" x 10")',
-      medium: 'Medium (12" x 16")',
-      large: 'Large (16" x 20")',
-      extra_large: 'Extra Large (20" x 24")',
+      small: 'Small',
+      medium: 'Medium',
+      large: 'Large',
+      extra_large: 'Extra Large',
     };
     return labels[size as keyof typeof labels] || size;
   };

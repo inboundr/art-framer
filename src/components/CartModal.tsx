@@ -242,10 +242,10 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
 
   const getFrameSizeLabel = (size: string) => {
     const labels = {
-      small: 'Small (8" × 10")',
-      medium: 'Medium (12" × 16")',
-      large: 'Large (16" × 20")',
-      extra_large: 'Extra Large (20" × 24")',
+      small: 'Small',
+      medium: 'Medium',
+      large: 'Large',
+      extra_large: 'Extra Large',
     };
     return labels[size as keyof typeof labels] || size;
   };
