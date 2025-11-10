@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,15 +8,16 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart, Check, RotateCcw, ZoomIn, ZoomOut, Info } from 'lucide-react';
+import { ShoppingCart, Check, RotateCcw, ZoomIn, ZoomOut, Info, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useFrameImages } from '@/hooks/useFrameImages';
+import { useProdigiFrameCatalog } from '@/hooks/useProdigiFrameCatalog';
 
 interface FrameOption {
   size: 'small' | 'medium' | 'large' | 'extra_large';
-  style: 'black' | 'white' | 'natural' | 'gold' | 'silver';
-  material: 'wood' | 'metal' | 'plastic' | 'bamboo';
+  style: 'black' | 'white' | 'natural' | 'gold' | 'silver' | 'brown' | 'grey';
+  material: 'wood' | 'bamboo' | 'canvas' | 'acrylic';
   price: number;
   dimensions: {
     width: number;
@@ -37,82 +38,9 @@ interface FrameSelectorProps {
   showPreview?: boolean;
 }
 
-const FRAME_OPTIONS: FrameOption[] = [
-  {
-    size: 'small',
-    style: 'black',
-    material: 'wood',
-    price: 29.99,
-    dimensions: { width: 20, height: 25, depth: 2 },
-    weight: 400,
-  },
-  {
-    size: 'medium',
-    style: 'black',
-    material: 'wood',
-    price: 39.99,
-    dimensions: { width: 30, height: 40, depth: 2 },
-    weight: 600,
-    popular: true,
-  },
-  {
-    size: 'large',
-    style: 'black',
-    material: 'wood',
-    price: 59.99,
-    dimensions: { width: 40, height: 50, depth: 3 },
-    weight: 800,
-  },
-  {
-    size: 'extra_large',
-    style: 'black',
-    material: 'wood',
-    price: 89.99,
-    dimensions: { width: 50, height: 70, depth: 3 },
-    weight: 1200,
-  },
-  {
-    size: 'medium',
-    style: 'white',
-    material: 'wood',
-    price: 39.99,
-    dimensions: { width: 30, height: 40, depth: 2 },
-    weight: 600,
-  },
-  {
-    size: 'medium',
-    style: 'natural',
-    material: 'wood',
-    price: 44.99,
-    dimensions: { width: 30, height: 40, depth: 2 },
-    weight: 600,
-  },
-  {
-    size: 'medium',
-    style: 'gold',
-    material: 'wood',
-    price: 49.99,
-    dimensions: { width: 30, height: 40, depth: 2 },
-    weight: 600,
-  },
-  {
-    size: 'medium',
-    style: 'silver',
-    material: 'metal',
-    price: 54.99,
-    dimensions: { width: 30, height: 40, depth: 2 },
-    weight: 700,
-    recommended: true,
-  },
-  {
-    size: 'large',
-    style: 'natural',
-    material: 'bamboo',
-    price: 69.99,
-    dimensions: { width: 40, height: 50, depth: 3 },
-    weight: 750,
-  },
-];
+// 🎨 DYNAMIC FRAME OPTIONS FROM PRODIGI
+// This component now fetches frame options from Prodigi API instead of using hardcoded values
+// See: PRODIGI_FRAME_SOLUTION.md for details
 
 export function FrameSelector({
   imageUrl,
@@ -123,8 +51,71 @@ export function FrameSelector({
   showPreview = true,
 }: FrameSelectorProps) {
   const [selectedSize, setSelectedSize] = useState<string>('medium');
-  const [selectedStyle, setSelectedStyle] = useState<string>('black');
+  const [selectedStyle, setSelectedStyle] = useState<string>('white'); // Default to white (most options!)
   const [selectedMaterial, setSelectedMaterial] = useState<string>('wood');
+  
+  // Track last auto-selected frame to prevent duplicate selections
+  const lastAutoSelectedRef = useRef<string>('');
+
+  // 🚀 Fetch dynamic frame options from Prodigi
+  const {
+    options: prodigiOptions,
+    colors: availableColors,
+    loading: catalogLoading,
+    error: catalogError,
+    getAvailableSizes: getProdigiAvailableSizes,
+    isAvailable: isProdigiAvailable,
+    refetch: refetchCatalog
+  } = useProdigiFrameCatalog();
+
+  // Map Prodigi options to our FrameOption format - Memoized to prevent unnecessary re-renders
+  const FRAME_OPTIONS: FrameOption[] = useMemo(() => prodigiOptions.map(option => ({
+    size: option.size,
+    style: option.style as 'black' | 'white' | 'natural' | 'gold' | 'silver' | 'brown' | 'grey',
+    material: (option.material || 'wood') as 'wood' | 'bamboo' | 'canvas' | 'acrylic',
+    price: option.price,
+    dimensions: {
+      width: option.dimensions.width,
+      height: option.dimensions.height,
+      depth: option.dimensions.depth || 2
+    },
+    weight: 600, // Default weight
+    popular: option.size === 'medium' && option.style === 'white',
+    recommended: option.size === 'medium' && option.style === 'white'
+  })), [prodigiOptions]);
+
+  // Debug: Log sample options to see their structure
+  useEffect(() => {
+    if (FRAME_OPTIONS.length > 0) {
+      console.log('🔍 DEBUG: Total FRAME_OPTIONS:', FRAME_OPTIONS.length);
+      console.log('🔍 DEBUG: First 5 options:', FRAME_OPTIONS.slice(0, 5).map(o => ({
+        size: o.size,
+        style: o.style,
+        material: o.material
+      })));
+      
+      // Count by size
+      const sizeCount = FRAME_OPTIONS.reduce((acc, opt) => {
+        acc[opt.size] = (acc[opt.size] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('🔍 DEBUG: Size distribution:', sizeCount);
+      
+      // Count by style
+      const styleCount = FRAME_OPTIONS.reduce((acc, opt) => {
+        acc[opt.style] = (acc[opt.style] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('🔍 DEBUG: Style distribution:', styleCount);
+      
+      // Count by material
+      const materialCount = FRAME_OPTIONS.reduce((acc, opt) => {
+        acc[opt.material] = (acc[opt.material] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('🔍 DEBUG: Material distribution:', materialCount);
+    }
+  }, [FRAME_OPTIONS.length]);
 
   // Get frame images for the selected frame
   const { frameDetails, loading: frameLoading } = useFrameImages(
@@ -132,7 +123,7 @@ export function FrameSelector({
     selectedStyle,
     selectedMaterial
   );
-  const [filteredFrames, setFilteredFrames] = useState<FrameOption[]>(FRAME_OPTIONS);
+  const [filteredFrames, setFilteredFrames] = useState<FrameOption[]>([]);
   const [previewScale, setPreviewScale] = useState<number>(1);
   const [previewRotation, setPreviewRotation] = useState<number>(0);
   const { user } = useAuth();
@@ -170,6 +161,12 @@ export function FrameSelector({
   };
 
   useEffect(() => {
+    // Don't filter until options are loaded
+    if (catalogLoading || FRAME_OPTIONS.length === 0) {
+      console.log('⏳ FrameSelector: Waiting for catalog to load...');
+      return;
+    }
+    
     // Filter frames based on selected criteria
     const filtered = FRAME_OPTIONS.filter(frame => 
       frame.size === selectedSize && 
@@ -178,36 +175,51 @@ export function FrameSelector({
     );
     setFilteredFrames(filtered);
     
-    // Auto-select the first matching frame
+    // Auto-select the first matching frame (only if it's different from last selection)
     if (filtered.length > 0) {
-      console.log('🎨 FrameSelector: Auto-selecting frame', filtered[0]);
-      onFrameSelect(filtered[0]);
+      const frameKey = `${filtered[0].size}-${filtered[0].style}-${filtered[0].material}`;
+      
+      // Only call onFrameSelect if this is a new selection
+      if (lastAutoSelectedRef.current !== frameKey) {
+        console.log('🎨 FrameSelector: Auto-selecting frame', filtered[0]);
+        lastAutoSelectedRef.current = frameKey;
+        onFrameSelect(filtered[0]);
+      }
     } else {
       console.warn('⚠️ FrameSelector: No matching frames found', { selectedSize, selectedStyle, selectedMaterial });
+      lastAutoSelectedRef.current = '';
     }
-  }, [selectedSize, selectedStyle, selectedMaterial, onFrameSelect]);
+  }, [selectedSize, selectedStyle, selectedMaterial, onFrameSelect, catalogLoading, FRAME_OPTIONS]);
 
   // Auto-adjust selections when options become unavailable
   useEffect(() => {
+    // Don't adjust until options are loaded
+    if (catalogLoading || FRAME_OPTIONS.length === 0) {
+      return;
+    }
+
     const availableSizes = getAvailableSizes();
     const availableStyles = getAvailableStyles();
     const availableMaterials = getAvailableMaterials();
 
     // If current size is not available, select the first available size
     if (!availableSizes.includes(selectedSize) && availableSizes.length > 0) {
+      console.log('🔄 FrameSelector: Auto-adjusting size to', availableSizes[0]);
       setSelectedSize(availableSizes[0]);
     }
 
     // If current style is not available, select the first available style
     if (!availableStyles.includes(selectedStyle) && availableStyles.length > 0) {
+      console.log('🔄 FrameSelector: Auto-adjusting style to', availableStyles[0]);
       setSelectedStyle(availableStyles[0]);
     }
 
     // If current material is not available, select the first available material
     if (!availableMaterials.includes(selectedMaterial) && availableMaterials.length > 0) {
+      console.log('🔄 FrameSelector: Auto-adjusting material to', availableMaterials[0]);
       setSelectedMaterial(availableMaterials[0]);
     }
-  }, [selectedSize, selectedStyle, selectedMaterial]);
+  }, [selectedSize, selectedStyle, selectedMaterial, catalogLoading, FRAME_OPTIONS.length]);
 
   const handleAddToCart = (frame: FrameOption) => {
     console.log('🔥🔥🔥 handleAddToCart FUNCTION CALLED 🔥🔥🔥');
@@ -317,10 +329,10 @@ export function FrameSelector({
 
   const getSizeLabel = (size: string) => {
     const labels = {
-      small: 'Small (8" x 10")',
-      medium: 'Medium (12" x 16")',
-      large: 'Large (16" x 20")',
-      extra_large: 'Extra Large (20" x 24")',
+      small: 'Small',
+      medium: 'Medium',
+      large: 'Large',
+      extra_large: 'Extra Large',
     };
     return labels[size as keyof typeof labels] || size;
   };
@@ -376,27 +388,108 @@ export function FrameSelector({
       filteredFramesCount: filteredFrames.length,
       firstFilteredFrame: filteredFrames[0],
       currentFrame: currentFrame,
-      hasCurrentFrame: !!currentFrame
+      hasCurrentFrame: !!currentFrame,
+      prodigiOptionsCount: prodigiOptions.length,
+      catalogLoading,
+      catalogError
     });
-  }, [selectedFrame, filteredFrames, currentFrame]);
+  }, [selectedFrame, filteredFrames, currentFrame, prodigiOptions.length, catalogLoading, catalogError]);
   
   const previewSize = getPreviewSize(selectedSize);
 
-  return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* Header */}
-      {/* <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <h2 className="text-3xl font-bold text-gray-900">Choose Your Frame</h2>
-          <div className="group relative">
-            <Info className="h-4 w-4 text-gray-500 cursor-help" />
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-              How to choose your frame
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+  // 🔄 Loading State
+  if (catalogLoading) {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <Card className="p-12">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                Loading Frame Options
+              </h3>
+              <p className="text-sm text-gray-600">
+                Fetching available frames from Prodigi catalog...
+              </p>
             </div>
           </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // ❌ Error State
+  if (catalogError) {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-red-600 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-red-800 mb-2">
+                  Error Loading Frame Options
+                </h3>
+                <p className="text-red-600 mb-4">
+                  {catalogError}
+                </p>
+                <Button 
+                  onClick={refetchCatalog} 
+                  variant="outline" 
+                  className="text-red-600 border-red-300 hover:bg-red-100"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ℹ️ No Options Available
+  if (FRAME_OPTIONS.length === 0) {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <Card>
+          <CardContent className="p-12 text-center">
+            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No Frame Options Available
+            </h3>
+            <p className="text-gray-600 mb-4">
+              We couldn't find any frame options. Please try again later.
+            </p>
+            <Button onClick={refetchCatalog} variant="outline">
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto p-6">
+      {/* 🎨 Dynamic Catalog Info Banner */}
+      <div className="mb-6 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-4">
+        <div className="flex items-start gap-3">
+          <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-blue-900 mb-1">
+              ✨ Real-time Prodigi Catalog
+            </h3>
+            <p className="text-sm text-blue-700">
+              All frame options are dynamically loaded from Prodigi&apos;s live catalog. You now have access to{' '}
+              <span className="font-semibold">{FRAME_OPTIONS.length} frame combinations</span>{' '}
+              across {availableColors.length} colors and multiple sizes!
+            </p>
+          </div>
         </div>
-      </div> */}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Side - Image Preview */}
@@ -557,18 +650,21 @@ export function FrameSelector({
             </CardContent>
           </Card>
 
-          {/* Frame Style Selection - Compact with color indicators */}
+          {/* Frame Style Selection - Dynamic colors from Prodigi */}
           <Card className="border shadow-sm">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg flex items-center gap-2">
                 <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                 Frame Style
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  {availableColors.length} colors
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <RadioGroup value={selectedStyle} onValueChange={setSelectedStyle}>
                 <div className="grid grid-cols-5 gap-2">
-                  {['black', 'white', 'natural', 'gold', 'silver'].map((style) => {
+                  {availableColors.map((style) => {
                     const isAvailable = getAvailableStyles().includes(style);
                     
                     return (
@@ -581,24 +677,27 @@ export function FrameSelector({
                         />
                         <Label 
                           htmlFor={style} 
-                          className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+                          className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
                             !isAvailable 
                               ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50' 
                               : selectedStyle === style 
-                                ? 'border-purple-500 bg-purple-50' 
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-purple-500 bg-purple-50 shadow-md' 
+                                : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                           }`}
                         >
                           <div 
-                            className={`w-8 h-8 rounded-full border-2 ${
+                            className={`w-8 h-8 rounded-full border-2 mb-1 ${
                               !isAvailable ? 'border-gray-300' : 'border-gray-300'
                             }`}
                             style={{ 
                               backgroundColor: isAvailable ? getFrameColor(style) : '#e5e7eb'
                             }}
                           />
+                          <span className="text-xs font-medium text-gray-700 capitalize">
+                            {style}
+                          </span>
                           {!isAvailable && (
-                            <div className="text-xs text-red-500 mt-2">Unavailable</div>
+                            <div className="text-xs text-red-500 mt-1">N/A</div>
                           )}
                         </Label>
                       </div>
@@ -620,7 +719,7 @@ export function FrameSelector({
             <CardContent>
               <RadioGroup value={selectedMaterial} onValueChange={setSelectedMaterial}>
                 <div className="grid grid-cols-2 gap-3">
-                  {['wood', 'metal', 'plastic', 'bamboo'].map((material) => {
+                  {['wood', 'bamboo', 'canvas', 'acrylic'].map((material) => {
                     const isAvailable = getAvailableMaterials().includes(material);
                     
                     return (
