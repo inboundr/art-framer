@@ -99,21 +99,44 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔥 Products API: Request received');
+    console.log('🔑 Products API: Starting authentication...');
+    
     // JWT-only authentication
     const { user, error: authError } = await authenticateRequest(request);
     
+    console.log('🔑 Products API: Authentication result', { 
+      hasUser: !!user, 
+      hasError: !!authError,
+      userId: user?.id 
+    });
+    
     if (authError || !user) {
-      console.log('Products API POST: Authentication failed', { error: authError });
+      console.error('❌ Products API: Authentication failed', { error: authError });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    
+    console.log('✅ Products API: User authenticated', { userId: user.id });
 
+    console.log('📦 Products API: Parsing request body...');
     const body = await request.json();
+    console.log('📦 Products API: Body parsed:', { 
+      imageId: body.imageId,
+      frameSize: body.frameSize,
+      frameStyle: body.frameStyle,
+      frameMaterial: body.frameMaterial,
+      price: body.price
+    });
+    
+    console.log('✅ Products API: Validating data...');
     const validatedData = CreateProductSchema.parse(body);
+    console.log('✅ Products API: Data validated successfully');
 
     // Verify the image belongs to the user using service client to bypass RLS
+    console.log('🔍 Products API: Verifying image ownership...', { imageId: validatedData.imageId, userId: user.id });
     const serviceSupabase = createServiceClient();
     const { data: image, error: imageError } = await serviceSupabase
       .from('images')
@@ -122,7 +145,14 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
+    console.log('🔍 Products API: Image verification result:', { 
+      hasImage: !!image, 
+      hasError: !!imageError,
+      imageStatus: (image as any)?.status 
+    });
+
     if (imageError || !image) {
+      console.error('❌ Products API: Image not found or access denied', { imageError });
       return NextResponse.json(
         { error: 'Image not found or access denied' },
         { status: 404 }
@@ -130,11 +160,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (image && (image as any).status !== 'completed') {
+      console.error('❌ Products API: Image not completed', { status: (image as any).status });
       return NextResponse.json(
         { error: 'Image must be completed before creating products' },
         { status: 400 }
       );
     }
+    
+    console.log('✅ Products API: Image verified successfully');
 
     // Check if product already exists using service client to bypass RLS
     console.log('🔍 Checking for existing product with specs:', {
@@ -157,6 +190,7 @@ export async function POST(request: NextRequest) {
 
     if (existingProduct && !existingError) {
       // Return the existing product instead of error
+      console.log('✅ Products API: Found existing product, returning it', { productId: (existingProduct as { id: string }).id });
       const productId = (existingProduct as { id: string }).id;
       const { data: product } = await serviceSupabase
         .from('products')
@@ -174,14 +208,19 @@ export async function POST(request: NextRequest) {
         .eq('id', productId)
         .single();
       
+      console.log('✅ Products API: Returning existing product');
       return NextResponse.json({ product }, { status: 200 });
     }
+
+    console.log('🆕 Products API: No existing product found, creating new one...');
 
     // Calculate dimensions based on frame size
     const dimensions = getFrameDimensions(validatedData.frameSize);
     const cost = validatedData.cost || validatedData.price * 0.4; // Default 40% cost margin
+    console.log('📐 Products API: Calculated dimensions and cost', { dimensions, cost });
 
     // Generate SKU using Prodigi client
+    console.log('🔑 Products API: Generating SKU...');
     const { prodigiClient } = await import('@/lib/prodigi');
     const sku = await prodigiClient.generateFrameSku(
       validatedData.frameSize,
@@ -189,8 +228,10 @@ export async function POST(request: NextRequest) {
       validatedData.frameMaterial,
       validatedData.imageId // Pass image ID to make SKU unique
     );
+    console.log('✅ Products API: SKU generated', { sku });
 
     // Create product using service client to bypass RLS
+    console.log('💾 Products API: Inserting product into database...');
     const { data: product, error: productError } = await (serviceSupabase as any)
       .from('products')
       .insert({
@@ -216,6 +257,12 @@ export async function POST(request: NextRequest) {
         )
       `)
       .single();
+
+    console.log('💾 Products API: Insert completed', { 
+      hasProduct: !!product, 
+      hasError: !!productError,
+      productId: product?.id 
+    });
 
     if (productError) {
       console.error('Error creating product:', productError);
@@ -260,9 +307,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('✅ Products API: Product created successfully, returning response', { productId: product.id });
     return NextResponse.json({ product }, { status: 201 });
   } catch (error) {
-    console.error('Error in POST /api/products:', error);
+    console.error('❌ Products API: Error in POST handler:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.issues },
