@@ -67,38 +67,6 @@ function UserImageCard({ image, onImageClick, onBuyAsFrame }: UserImageCardProps
               background: 'linear-gradient(151deg, rgba(255, 159, 189, 0.20) 0%, rgba(246, 136, 194, 0.20) 20%, rgba(229, 115, 204, 0.20) 40%, rgba(200, 101, 219, 0.20) 60%, rgba(154, 94, 237, 0.20) 90%, rgba(61, 94, 255, 0.20) 100%)'
             }}
           >
-            {/* Checker Pattern Overlay */}
-            <div className="absolute top-0 left-0 w-full h-full opacity-100">
-              <svg 
-                width="18" 
-                height="18" 
-                viewBox="0 0 19 19" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-[18px] h-[18px]"
-                style={{ 
-                  position: 'absolute', 
-                  top: '8px', 
-                  left: '8px', 
-                  zIndex: 10 
-                }}
-              >
-                <g clipPath="url(#clip0_desktop)">
-                  <path 
-                    fillRule="evenodd" 
-                    clipRule="evenodd" 
-                    d="M0.664062 0.310547H8.66406V8.31055H0.664062V0.310547ZM8.66406 8.31055H16.6641V16.3105H8.66406V8.31055Z" 
-                    fill="#09090B"
-                  />
-                </g>
-                <defs>
-                  <clipPath id="clip0_desktop">
-                    <rect width="16" height="16" fill="white" transform="translate(0.664062 0.310547)"/>
-                  </clipPath>
-                </defs>
-              </svg>
-            </div>
-
             {/* Main Image */}
             <img
               src={getProxiedImageUrl(normalizeImageUrl(image.image_url))}
