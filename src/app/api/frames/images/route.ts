@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 const FrameImageSchema = z.object({
   frameSize: z.enum(['small', 'medium', 'large', 'extra_large']),
-  frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver']),
-  frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo']),
+  frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey']),
+  frameMaterial: z.enum(['wood', 'bamboo', 'canvas', 'acrylic']),
 });
 
 export async function GET(request: NextRequest) {
@@ -122,13 +122,15 @@ function getMockPrice(size: string, style: string, material: string): number {
     natural: 1.1,
     gold: 1.3,
     silver: 1.2,
+    brown: 1.1,
+    grey: 1.0,
   };
   
   const materialMultipliers = {
     wood: 1.0,
-    metal: 1.2,
-    plastic: 0.8,
     bamboo: 1.1,
+    canvas: 0.9,
+    acrylic: 1.15,
   };
   
   return Math.round((basePrices[size as keyof typeof basePrices] * 
@@ -155,13 +157,15 @@ function getMockFrameImageUrl(style: string, material: string): string {
     natural: '#8B4513',
     gold: '#FFD700',
     silver: '#C0C0C0',
+    brown: '#654321',
+    grey: '#808080',
   };
   
   const materialTextures = {
     wood: 'wood',
-    metal: 'metal',
-    plastic: 'plastic',
     bamboo: 'bamboo',
+    canvas: 'canvas',
+    acrylic: 'acrylic',
   };
   
   // For now, return a placeholder service URL that can generate frame images

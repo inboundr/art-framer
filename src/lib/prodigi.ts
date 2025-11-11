@@ -549,45 +549,127 @@ export class ProdigiClient {
   }
 
   /**
+   * Fetch products from Prodigi's Azure Search Index
+   * This is the same endpoint used by Prodigi's dashboard
+   */
+  private async fetchFromSearchIndex(maxProducts: number = 1000): Promise<any[]> {
+    try {
+      console.log(`🔍 Fetching products from Prodigi search index (max: ${maxProducts})`);
+      
+      const searchUrl = `https://pwintylive.search.windows.net/indexes/live-catalogue/docs?api-version=2016-09-01&$filter=destinationCountries/any(c:%20c%20eq%20%27US%27)&search=*&$top=${maxProducts}`;
+      
+      const response = await fetch(searchUrl, {
+        method: 'GET',
+        headers: {
+          'api-key': '9142D85CE18C3AE0349B1FB21956B072',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Search index returned ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const products = data.value || [];
+      
+      console.log(`✅ Fetched ${products.length} products from search index`);
+      return products;
+    } catch (error) {
+      console.error('❌ Error fetching from search index:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all available products by category
+   * Now uses the Azure Search Index for complete catalog access
    */
   async getAllProducts(category?: string): Promise<ProdigiProduct[]> {
     try {
-      console.log(`🔍 Fetching all products${category ? ` for category: ${category}` : ''}`);
+      console.log(`🔍 Fetching all products${category ? ` for category: ${category}` : ''} from search index`);
       
-      // This would need to be implemented based on Prodigi's actual API
-      // For now, we'll use a list of known SKUs and fetch them individually
+      // Fetch from search index instead of hardcoded SKUs
+      const searchResults = await this.fetchFromSearchIndex();
+      
+      // Filter by category if specified
+      let filteredResults = searchResults;
+      if (category) {
+        filteredResults = searchResults.filter(product => 
+          product.category?.toLowerCase().includes(category.toLowerCase())
+        );
+        console.log(`🔍 Filtered to ${filteredResults.length} products for category: ${category}`);
+      }
+      
+      // Map search results to ProdigiProduct format
+      // IMPORTANT: Preserve frame-specific fields for filtering!
+      const products: ProdigiProduct[] = filteredResults.map(result => ({
+        sku: result.sku,
+        name: result.description || result.sku, // Use description as name, fallback to SKU
+        description: result.description || '',
+        price: result.basePriceFrom ? result.basePriceFrom / 100 : 0, // Convert from pence/cents to major unit
+        currency: result.priceCurrency || 'GBP',
+        weight: 500, // Default weight in grams (we don't have this in search index)
+        category: result.category,
+        dimensions: {
+          width: result.fullProductHorizontalDimensions || 0,
+          height: result.fullProductVerticalDimensions || 0,
+          depth: result.productDepthMm ? result.productDepthMm / 10 : undefined
+        },
+        attributes: {
+          size: result.size?.[0] || `${result.fullProductHorizontalDimensions}x${result.fullProductVerticalDimensions}`,
+          material: result.frame?.[0] || result.paperType?.[0],
+          finish: result.finish?.[0] || result.frameColour?.[0] || result.color?.[0]
+        },
+        // Preserve raw frame data for filtering
+        productType: result.productType,
+        frameColour: result.frameColour || result.color,
+        color: result.color || result.frameColour,
+        fullProductHorizontalDimensions: result.fullProductHorizontalDimensions,
+        fullProductVerticalDimensions: result.fullProductVerticalDimensions,
+        sizeUnits: result.sizeUnits,
+        basePriceFrom: result.basePriceFrom,
+        priceCurrency: result.priceCurrency,
+        destinationCountries: result.destinationCountries
+      } as any));
+      
+      console.log(`✅ Successfully loaded ${products.length} products from search index`);
+      return products;
+    } catch (error) {
+      console.error('❌ Error fetching all products from search index:', error);
+      
+      // Fallback to old method if search index fails
+      console.log('⚠️ Falling back to known SKUs method...');
+      return this.getAllProductsLegacy(category);
+    }
+  }
+
+  /**
+   * Legacy method using known SKUs (fallback only)
+   */
+  private async getAllProductsLegacy(category?: string): Promise<ProdigiProduct[]> {
+    try {
+      console.log(`🔍 Using legacy SKU method for${category ? ` category: ${category}` : ' all products'}`);
+      
       const knownSkus = await this.getKnownProductSkus();
       const products: ProdigiProduct[] = [];
       
       for (const sku of knownSkus) {
         try {
           const product = await this.getProductDetails(sku);
-          console.log(`🔍 Product validation for ${sku}:`, {
-            hasProduct: !!product,
-            hasSku: !!product?.sku,
-            category: product?.category,
-            targetCategory: category,
-            categoryMatch: !category || product?.category === category
-          });
           
-          // Only add valid products - be more lenient with validation
           if (product && product.sku && (!category || product.category === category)) {
             products.push(product);
-            console.log(`✅ Added product ${sku} to results`);
-          } else {
-            console.log(`❌ Product ${sku} failed validation`);
           }
         } catch (error) {
           console.warn(`Failed to fetch product ${sku}:`, error);
-          // Continue with other products instead of failing completely
         }
       }
       
-      console.log(`✅ Successfully loaded ${products.length} valid products`);
+      console.log(`✅ Loaded ${products.length} products via legacy method`);
       return products;
     } catch (error) {
-      console.error('Error fetching all products:', error);
+      console.error('Error in legacy fetch:', error);
       throw error;
     }
   }
