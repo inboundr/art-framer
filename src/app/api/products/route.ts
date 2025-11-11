@@ -6,8 +6,8 @@ import { z } from "zod";
 const CreateProductSchema = z.object({
   imageId: z.string().uuid(),
   frameSize: z.enum(['small', 'medium', 'large', 'extra_large']),
-  frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver']),
-  frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo']).optional().default('wood'),
+  frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey']),
+  frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo', 'canvas', 'acrylic']).optional().default('wood'),
   price: z.number().positive(),
   cost: z.number().positive().optional(),
 });
@@ -15,8 +15,8 @@ const CreateProductSchema = z.object({
 const GetProductsSchema = z.object({
   imageId: z.string().uuid().optional(),
   frameSize: z.enum(['small', 'medium', 'large', 'extra_large']).optional(),
-  frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver']).optional(),
-  frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo']).optional(),
+  frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey']).optional(),
+  frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo', 'canvas', 'acrylic']).optional(),
   status: z.enum(['active', 'inactive', 'discontinued']).optional().default('active'),
   limit: z.coerce.number().min(1).max(100).default(20),
   offset: z.coerce.number().min(0).default(0),

@@ -5,7 +5,7 @@ import { z } from 'zod';
 const FrameImageSchema = z.object({
   frameSize: z.enum(['small', 'medium', 'large', 'extra_large']),
   frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey']),
-  frameMaterial: z.enum(['wood', 'bamboo', 'canvas', 'acrylic']),
+  frameMaterial: z.enum(['wood', 'bamboo', 'canvas', 'acrylic', 'metal', 'plastic']),
 });
 
 export async function GET(request: NextRequest) {
