@@ -420,41 +420,18 @@ export function UserImageGallery() {
         timestamp: new Date().toISOString()
       });
       
-      console.log('🔑 UserImageGallery: Checking session from useAuth...');
-      console.log('🔑 Supabase client check:', { 
-        hasSupabase: !!supabase,
-        hasAuth: !!supabase?.auth,
-        hasGetSession: typeof supabase?.auth?.getSession === 'function'
-      });
-      
-      let session, sessionError;
-      try {
-        console.log('🔑 Calling supabase.auth.getSession()...');
-        const result = await supabase.auth.getSession();
-        session = result.data.session;
-        sessionError = result.error;
-        console.log('🔑 getSession() returned successfully');
-      } catch (getSessionError) {
-        console.error('❌ Exception thrown by getSession():', getSessionError);
-        throw new Error('Failed to get authentication session: ' + (getSessionError instanceof Error ? getSessionError.message : 'Unknown error'));
-      }
-      console.log('🔑 UserImageGallery: getSession() completed', { 
-        hasSession: !!session, 
-        hasError: !!sessionError,
+      // FIX: Use session from useAuth() hook instead of calling getSession() again
+      console.log('🔑 UserImageGallery: Using session from useAuth hook...', { 
+        hasSession: !!session,
         hasToken: !!session?.access_token 
       });
       
-      if (sessionError) {
-        console.error('❌ UserImageGallery: Session error', sessionError);
-        throw new Error('Authentication error. Please try signing in again.');
-      }
-      
-      if (!session) {
-        console.error('❌ UserImageGallery: No session');
+      if (!session || !session.access_token) {
+        console.error('❌ UserImageGallery: No session or token from useAuth');
         throw new Error('Please sign in to add items to your cart.');
       }
       
-      console.log('✅ UserImageGallery: Session obtained from getSession', { hasToken: !!session.access_token });
+      console.log('✅ UserImageGallery: Session obtained from useAuth', { hasToken: !!session.access_token });
       
       console.log('🚀 UserImageGallery: MAKING FETCH REQUEST NOW to /api/products', {
         url: '/api/products',
