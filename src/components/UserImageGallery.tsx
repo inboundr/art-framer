@@ -420,7 +420,13 @@ export function UserImageGallery() {
         timestamp: new Date().toISOString()
       });
       
+      console.log('🔑 UserImageGallery: Checking session from useAuth...');
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔑 UserImageGallery: getSession() completed', { 
+        hasSession: !!session, 
+        hasError: !!sessionError,
+        hasToken: !!session?.access_token 
+      });
       
       if (sessionError) {
         console.error('❌ UserImageGallery: Session error', sessionError);
@@ -432,7 +438,7 @@ export function UserImageGallery() {
         throw new Error('Please sign in to add items to your cart.');
       }
       
-      console.log('✅ UserImageGallery: Session obtained', { hasToken: !!session.access_token });
+      console.log('✅ UserImageGallery: Session obtained from getSession', { hasToken: !!session.access_token });
       
       console.log('🚀 UserImageGallery: MAKING FETCH REQUEST NOW to /api/products', {
         url: '/api/products',
@@ -454,6 +460,7 @@ export function UserImageGallery() {
       }
       
       console.log('✅ Fetch is available, making request...');
+      console.log('🚀 Starting fetch to /api/products...');
       const response = await fetch('/api/products', {
         method: 'POST',
         headers: {
@@ -470,7 +477,14 @@ export function UserImageGallery() {
         }),
       });
 
+      console.log('✅ Fetch completed, response received:', { 
+        status: response.status, 
+        ok: response.ok,
+        statusText: response.statusText 
+      });
+
       if (!response.ok) {
+        console.log('❌ Response not OK, parsing error data...');
         const errorData = await response.json();
         console.error('API Error:', errorData);
         
@@ -485,7 +499,9 @@ export function UserImageGallery() {
         }
       }
 
+      console.log('📦 Parsing response JSON...');
       const data = await response.json();
+      console.log('✅ Response parsed:', { hasProduct: !!data.product, productId: data.product?.id });
       console.log('✅ UserImageGallery: API response received', { 
         status: response.status, 
         hasProduct: !!data.product,
