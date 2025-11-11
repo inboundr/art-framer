@@ -22,6 +22,8 @@
     "validate-env": "node scripts/setup-env.js validate",
     "validate-prodigi": "node scripts/validate-prodigi.js",
     "validate-prodigi:prod": "PRODIGI_ENVIRONMENT=production node scripts/validate-prodigi.js",
+    "analyze-catalog": "node scripts/analyze-prodigi-catalog.js",
+    "analyze-catalog:prod": "PRODIGI_ENVIRONMENT=production node scripts/analyze-prodigi-catalog.js",
     "test-prodigi:prod": "node scripts/test-prodigi-production.js",
     "test-webhook": "node scripts/test-prodigi-webhook.js",
     "test-webhook:prod": "WEBHOOK_URL=https://your-domain.com/api/webhooks/prodigi node scripts/test-prodigi-webhook.js",
