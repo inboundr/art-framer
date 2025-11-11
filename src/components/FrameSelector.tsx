@@ -409,7 +409,7 @@ export function FrameSelector({
                 Loading Frame Options
               </h3>
               <p className="text-sm text-gray-600">
-                Fetching available frames from Prodigi catalog...
+                Fetching available frames...
               </p>
             </div>
           </div>
@@ -480,10 +480,10 @@ export function FrameSelector({
           <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-blue-900 mb-1">
-              ✨ Real-time Prodigi Catalog
+              ✨ Live Frame Catalog
             </h3>
             <p className="text-sm text-blue-700">
-              All frame options are dynamically loaded from Prodigi&apos;s live catalog. You now have access to{' '}
+              Browse our complete collection of premium frames. You have access to{' '}
               <span className="font-semibold">{FRAME_OPTIONS.length} frame combinations</span>{' '}
               across {availableColors.length} colors and multiple sizes!
             </p>
