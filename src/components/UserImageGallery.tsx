@@ -421,7 +421,23 @@ export function UserImageGallery() {
       });
       
       console.log('🔑 UserImageGallery: Checking session from useAuth...');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔑 Supabase client check:', { 
+        hasSupabase: !!supabase,
+        hasAuth: !!supabase?.auth,
+        hasGetSession: typeof supabase?.auth?.getSession === 'function'
+      });
+      
+      let session, sessionError;
+      try {
+        console.log('🔑 Calling supabase.auth.getSession()...');
+        const result = await supabase.auth.getSession();
+        session = result.data.session;
+        sessionError = result.error;
+        console.log('🔑 getSession() returned successfully');
+      } catch (getSessionError) {
+        console.error('❌ Exception thrown by getSession():', getSessionError);
+        throw new Error('Failed to get authentication session: ' + (getSessionError instanceof Error ? getSessionError.message : 'Unknown error'));
+      }
       console.log('🔑 UserImageGallery: getSession() completed', { 
         hasSession: !!session, 
         hasError: !!sessionError,
@@ -461,21 +477,52 @@ export function UserImageGallery() {
       
       console.log('✅ Fetch is available, making request...');
       console.log('🚀 Starting fetch to /api/products...');
-      const response = await fetch('/api/products', {
+      
+      // FIX 1: Add timeout to prevent hanging forever
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.error('⏰ Request timeout - aborting fetch');
+        controller.abort();
+      }, 30000); // 30 second timeout
+
+      console.log('🔵 CHECKPOINT 1: About to create fetch request');
+      console.log('🔵 Request details:', {
+        url: '/api/products',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          imageId: frameSelectorImage.id,
-          frameSize: frame.size,
-          frameStyle: frame.style,
-          frameMaterial: frame.material,
-          price: frame.price,
-        }),
+        hasController: !!controller,
+        hasSignal: !!controller.signal,
+        sessionToken: session?.access_token ? 'EXISTS' : 'MISSING'
       });
+
+      let response;
+      try {
+        console.log('🔵 CHECKPOINT 2: Calling fetch() now...');
+        response = await fetch('/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            imageId: frameSelectorImage.id,
+            frameSize: frame.size,
+            frameStyle: frame.style,
+            frameMaterial: frame.material,
+            price: frame.price,
+          }),
+          signal: controller.signal, // Add abort signal
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          console.error('❌ Request timeout after 30 seconds');
+          throw new Error('Request timeout. Please check your internet connection and try again.');
+        }
+        console.error('❌ Fetch error:', fetchError);
+        throw new Error('Network error. Please check your connection and try again.');
+      }
 
       console.log('✅ Fetch completed, response received:', { 
         status: response.status, 
@@ -549,7 +596,7 @@ export function UserImageGallery() {
         });
       }
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      console.error('❌ UserImageGallery: Error in handleAddToCart:', error);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to add framed art to cart. Please try again.',
