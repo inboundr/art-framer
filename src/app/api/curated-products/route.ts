@@ -6,8 +6,8 @@ import { z } from 'zod';
 const CreateCuratedProductSchema = z.object({
   curatedImageId: z.string().uuid(),
   frameSize: z.enum(['small', 'medium', 'large', 'extra_large']),
-  frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver']),
-  frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo']),
+  frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey']),
+  frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo', 'canvas', 'acrylic']),
   price: z.number().positive(),
 });
 

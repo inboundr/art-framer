@@ -21,6 +21,10 @@ function getProductAttributesForSku(sku: string, frameStyle: string): Record<str
       attributes.color = 'gold';
     } else if (frameStyle === 'silver') {
       attributes.color = 'silver';
+    } else if (frameStyle === 'brown') {
+      attributes.color = 'brown';
+    } else if (frameStyle === 'grey') {
+      attributes.color = 'grey';
     }
     attributes.wrap = 'ImageWrap';
   }
@@ -36,6 +40,10 @@ function getProductAttributesForSku(sku: string, frameStyle: string): Record<str
       attributes.color = 'gold';
     } else if (frameStyle === 'silver') {
       attributes.color = 'silver';
+    } else if (frameStyle === 'brown') {
+      attributes.color = 'brown';
+    } else if (frameStyle === 'grey') {
+      attributes.color = 'grey';
     }
   }
   // GLOBAL-FAP-* (standard frames) don't require attributes
