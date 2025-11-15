@@ -88,8 +88,8 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
         }
         
         // Mark as initialized after checking session
-        setIsInitialized(true);
-        setLoading(false);
+          setIsInitialized(true);
+          setLoading(false);
           
       } catch (error) {
         console.error('CentralizedAuth: Initialization error:', error);

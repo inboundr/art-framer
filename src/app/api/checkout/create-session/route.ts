@@ -5,6 +5,7 @@ import { z } from "zod";
 import Stripe from "stripe";
 import type { PricingItem } from "@/lib/pricing";
 import type { ShippingItem } from "@/lib/shipping";
+import { currencyService } from "@/lib/currency";
 
 // Helper function to get product attributes based on SKU type
 function getProductAttributesForSku(sku: string, frameStyle: string): Record<string, string> {
@@ -107,6 +108,28 @@ const COUNTRY_CURRENCY_MAP: Record<string, string> = {
 
 function getCurrencyForCountry(countryCode: string): string {
   return COUNTRY_CURRENCY_MAP[countryCode.toUpperCase()] || 'usd';
+}
+
+/**
+ * Convert USD to target currency using live exchange rates
+ * Falls back to hardcoded rates if API fails
+ */
+async function convertUSDToTargetCurrency(amountUSD: number, targetCurrency: string): Promise<number> {
+  try {
+    return await currencyService.convertFromUSD(amountUSD, targetCurrency);
+  } catch (error) {
+    console.error('❌ Currency conversion error, using fallback:', error);
+    // Fallback to hardcoded rates if service fails
+    const fallbackRates: Record<string, number> = {
+      'usd': 1.0,
+      'cad': 1.35,
+      'gbp': 0.79,
+      'aud': 1.52,
+      'eur': 0.92,
+    };
+    const rate = fallbackRates[targetCurrency.toLowerCase()] || 1.0;
+    return Math.round(amountUSD * rate * 100) / 100;
+  }
 }
 
 // Get base URL from request headers (handles production/development dynamically)
@@ -303,12 +326,47 @@ export async function POST(request: NextRequest) {
     const pricingResult = defaultPricingCalculator.calculateTotal(pricingItems, shippingResult);
     const { subtotal, taxAmount, shippingAmount, total } = pricingResult;
 
+    console.log(`💱 Currency conversion: Converting prices from USD to ${currency} using live rates`);
+    
+    // Convert all prices to target currency (using async/await since we're using live rates)
+    const convertedItems = await Promise.all(
+      cartItems.map(async (item: any) => {
+        const priceInTargetCurrency = await convertUSDToTargetCurrency(item.products.price, currency);
+        
+        console.log(`💱 Item price conversion:`, {
+          productName: item.products.frame_size,
+          priceUSD: item.products.price,
+          targetCurrency: currency,
+          priceConverted: priceInTargetCurrency,
+          stripeAmount: Math.round(priceInTargetCurrency * 100)
+        });
+        
+        return {
+          ...item,
+          convertedPrice: priceInTargetCurrency,
+        };
+      })
+    );
+    
+    // Convert tax and shipping
+    const taxInTargetCurrency = await convertUSDToTargetCurrency(taxAmount, currency);
+    const shippingInTargetCurrency = await convertUSDToTargetCurrency(shippingAmount, currency);
+    
+    console.log(`💱 Converted totals:`, {
+      subtotalUSD: subtotal,
+      taxUSD: taxAmount,
+      shippingUSD: shippingAmount,
+      taxConverted: taxInTargetCurrency,
+      shippingConverted: shippingInTargetCurrency,
+      currency: currency
+    });
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
       customer_email: user.email,
       line_items: [
-        ...cartItems.map((item: any) => ({
+        ...convertedItems.map((item: any) => ({
           price_data: {
             currency: currency,
             product_data: {
@@ -321,9 +379,10 @@ export async function POST(request: NextRequest) {
                 frame_style: item.products.frame_style,
                 frame_material: item.products.frame_material,
                 sku: item.finalSku, // Use base SKU for consistency with Prodigi operations
+                price_usd: item.products.price.toString(), // Store original USD price
               },
             },
-            unit_amount: Math.round(item.products.price * 100),
+            unit_amount: Math.round(item.convertedPrice * 100),
           },
           quantity: item.quantity,
         })),
@@ -334,7 +393,7 @@ export async function POST(request: NextRequest) {
               name: 'Tax',
               description: 'Sales tax',
             },
-            unit_amount: Math.round(taxAmount * 100),
+            unit_amount: Math.round(taxInTargetCurrency * 100),
           },
           quantity: 1,
         },
@@ -345,7 +404,7 @@ export async function POST(request: NextRequest) {
               name: 'Shipping',
               description: shippingResult.serviceName || 'Standard shipping',
             },
-            unit_amount: Math.round(shippingAmount * 100),
+            unit_amount: Math.round(shippingInTargetCurrency * 100),
           },
           quantity: 1,
         },
@@ -357,6 +416,8 @@ export async function POST(request: NextRequest) {
         taxAmount: taxAmount.toString(),
         shippingAmount: shippingAmount.toString(),
         total: total.toString(),
+        currency: currency,
+        originalCurrency: 'USD', // Prices stored in database are in USD
       },
       success_url: `${getBaseUrl(request)}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${getBaseUrl(request)}/cart`,

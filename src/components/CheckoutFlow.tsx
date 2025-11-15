@@ -518,7 +518,22 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     if (!shippingAddress.phone.trim()) newErrors.phone = 'Phone number is required';
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    // If validation passes, ensure shipping is calculated
+    const isValid = Object.keys(newErrors).length === 0;
+    if (isValid && !calculatedShipping && !shippingLoading) {
+      console.log('✅ Shipping address validated, triggering shipping calculation');
+      setAddressManuallyModified(true);
+      calculateShipping(shippingAddress);
+      
+      // Show a toast to inform the user but allow them to continue
+      toast({
+        title: "Calculating Shipping",
+        description: "Your shipping cost is being calculated...",
+      });
+    }
+    
+    return isValid;
   };
 
   const validateBillingAddress = (): boolean => {
@@ -599,6 +614,37 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         return;
       }
       console.log('✅ CheckoutFlow: Address validation passed');
+      
+      // Ensure shipping cost is calculated before proceeding
+      if (!calculatedShipping && !shippingLoading) {
+        console.log('⚠️ CheckoutFlow: Shipping not calculated yet, triggering calculation...');
+        setAddressManuallyModified(true);
+        await calculateShipping(shippingAddress);
+        
+        // Wait a bit for calculation to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        if (!calculatedShipping) {
+          console.error('❌ CheckoutFlow: Shipping calculation failed or incomplete');
+          setProcessing(false);
+          toast({
+            title: 'Shipping Calculation Required',
+            description: 'Please wait for shipping costs to be calculated, or click the "Calculate" button on the shipping address step.',
+            variant: 'destructive',
+          });
+          return;
+        }
+      } else if (shippingLoading) {
+        console.log('⏳ CheckoutFlow: Shipping is being calculated, waiting...');
+        setProcessing(false);
+        toast({
+          title: 'Calculating Shipping',
+          description: 'Please wait for shipping costs to be calculated before completing checkout.',
+          variant: 'default',
+        });
+        return;
+      }
+      console.log('✅ CheckoutFlow: Shipping cost calculated', { cost: calculatedShipping?.cost, currency: calculatedShipping?.currency });
 
       // Use session from auth context instead of fetching again (to avoid hanging)
       console.log('🔍 CheckoutFlow: Checking session from auth context...', { 
