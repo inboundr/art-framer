@@ -52,8 +52,6 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
 
   // Initialize auth on mount - ONCE ONLY
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
     const initializeAuth = async () => {
       try {
         setLoading(true);
@@ -67,15 +65,31 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
           return;
         }
 
-        // DON'T call getSession() - it hangs!
-        // The onAuthStateChange listener will fire INITIAL_SESSION event automatically
-        // if a session exists in localStorage. This is the Supabase-recommended approach.
+        // Get the session from localStorage immediately
+        // This is crucial for session persistence on page refresh
+        console.log('🔍 CentralizedAuth: Checking for existing session...');
         
-        // Set a timeout to stop loading state if listener doesn't fire
-        timeoutId = setTimeout(() => {
-          setIsInitialized(true);
-          setLoading(false);
-        }, 2000);
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('❌ CentralizedAuth: Error getting session:', error);
+          } else if (session) {
+            console.log('✅ CentralizedAuth: Found existing session', { userId: session.user.id });
+            setSession(session);
+            setUser(session.user);
+            // Fetch profile in background
+            fetchProfile(session.user.id);
+          } else {
+            console.log('ℹ️ CentralizedAuth: No existing session found');
+          }
+        } catch (error) {
+          console.error('❌ CentralizedAuth: Exception getting session:', error);
+        }
+        
+        // Mark as initialized after checking session
+        setIsInitialized(true);
+        setLoading(false);
           
       } catch (error) {
         console.error('CentralizedAuth: Initialization error:', error);
@@ -85,37 +99,37 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
     };
     
     initializeAuth();
-    
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
   }, []); // ← Empty deps = run ONCE on mount only!
 
   // Listen for auth state changes
   useEffect(() => {
+    console.log('🎧 CentralizedAuth: Setting up onAuthStateChange listener');
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: any, session: Session | null) => {
-        // Only log important events in production
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-          console.log(`CentralizedAuth: ${event}`, { userId: session?.user?.id });
-        }
+        console.log(`🎧 CentralizedAuth: Auth event received: ${event}`, { 
+          hasSession: !!session, 
+          userId: session?.user?.id 
+        });
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
           if (session?.user) {
+            console.log(`✅ CentralizedAuth: ${event} - updating session`, { userId: session.user.id });
             setSession(session);
             setUser(session.user);
             await fetchProfile(session.user.id);
           } else {
-            console.warn(`CentralizedAuth: ${event} fired but no session`);
-            setSession(null);
-            setUser(null);
-            setProfile(null);
+            // DON'T clear session if we don't get one from the event
+            // The getSession() call in initialization should have already set it
+            console.warn(`⚠️ CentralizedAuth: ${event} fired but no session - keeping existing state`);
+            // Don't clear session/user/profile here!
           }
           
           // Stop loading and mark as initialized when listener fires
           setLoading(false);
           setIsInitialized(true);
         } else if (event === 'SIGNED_OUT') {
+          console.log('🚪 CentralizedAuth: SIGNED_OUT - clearing session');
           setSession(null);
           setUser(null);
           setProfile(null);

@@ -38,10 +38,6 @@ export const supabase = (() => {
       persistSession: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
-      // Use localStorage for session persistence
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      // Explicit storage key to ensure consistency
-      storageKey: 'sb-auth-token',
     },
     global: {
       headers: {

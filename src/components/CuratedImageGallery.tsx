@@ -246,9 +246,17 @@ export function CuratedImageGallery({
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             };
+            // Close the CreationsModal if it's open
+            console.log('🔄 CuratedImageGallery: Closing CreationsModal and opening FrameSelector');
+            setShowCreationsModal(false);
+            setSelectedImage(null);
             // Go directly to frame selection for pending image
             setFrameSelectorImage(curatedImage);
             setShowFrameSelector(true);
+            console.log('🎨 CuratedImageGallery: Frame selector state set', { 
+              frameSelectorImage: !!curatedImage, 
+              showFrameSelector: true 
+            });
             // Clear the pending image
             localStorage.removeItem('pending-cart-image');
           } else {
@@ -599,6 +607,7 @@ export function CuratedImageGallery({
           imageId={selectedImage.id}
           isMobile={false}
           isCuratedImage={true} // Curated images are indeed curated
+          onOpenAuthModal={onOpenAuthModal}
         />
       )}
 
@@ -646,6 +655,7 @@ export function CuratedImageGallery({
                   onAddToCart={handleAddToCart}
                   selectedFrame={null}
                   showPreview={true}
+                  onOpenAuthModal={onOpenAuthModal}
                 />
               </div>
             </div>

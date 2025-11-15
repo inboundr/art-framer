@@ -11,7 +11,7 @@ import { WelcomeModal } from './WelcomeModal';
 import { useAuth } from '@/hooks/useAuth';
 
 interface AuthenticatedLayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode | ((props: { onOpenAuthModal: () => void }) => React.ReactNode);
 }
 
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
@@ -152,7 +152,10 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
         
         {/* Content with mobile padding */}
         <div className={isMobile ? 'pt-14' : ''}>
-          {children}
+          {typeof children === 'function' 
+            ? children({ onOpenAuthModal: () => setAuthModalVisible(true) })
+            : children
+          }
         </div>
       </main>
       
