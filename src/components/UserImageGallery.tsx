@@ -27,9 +27,11 @@ interface UserImageCardProps {
   image: UserImage;
   onImageClick: (image: UserImage) => void;
   onBuyAsFrame: (image: UserImage) => void;
+  onOpenAuthModal?: () => void;
 }
 
-function UserImageCard({ image, onImageClick, onBuyAsFrame }: UserImageCardProps) {
+function UserImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal }: UserImageCardProps) {
+  const { user } = useAuth();
   // Normalize any DB-stored storage path into a public URL
   const normalizeImageUrl = useCallback((url?: string | null) => {
     if (!url) return '';
@@ -83,6 +85,29 @@ function UserImageCard({ image, onImageClick, onBuyAsFrame }: UserImageCardProps
                 className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-3 py-2 shadow-lg"
                 onClick={(e) => {
                   e.stopPropagation();
+                  console.log('🛒 Order Frame clicked (UserImageCard):', { user: !!user, hasOnOpenAuthModal: !!onOpenAuthModal });
+                  
+                  if (!user) {
+                    console.log('🔐 User not authenticated, opening auth modal');
+                    // Store the selected image in localStorage for after login
+                    localStorage.setItem('pending-cart-image', JSON.stringify({
+                      id: image.id,
+                      image_url: image.image_url,
+                      prompt: image.prompt,
+                      aspect_ratio: image.aspect_ratio,
+                      timestamp: Date.now()
+                    }));
+                    
+                    // Show auth modal for non-authenticated users
+                    if (onOpenAuthModal) {
+                      console.log('🔐 Calling onOpenAuthModal');
+                      onOpenAuthModal();
+                    } else {
+                      console.error('❌ onOpenAuthModal not provided');
+                    }
+                    return;
+                  }
+                  console.log('✅ User authenticated, proceeding to frame selection');
                   onBuyAsFrame(image);
                 }}
               >
@@ -97,7 +122,11 @@ function UserImageCard({ image, onImageClick, onBuyAsFrame }: UserImageCardProps
   );
 }
 
-export function UserImageGallery() {
+interface UserImageGalleryProps {
+  onOpenAuthModal?: () => void;
+}
+
+export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}) {
   const { user, session } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
@@ -127,6 +156,53 @@ export function UserImageGallery() {
     return () => {
       delete (window as any).testAddToCartFunction;
     };
+  }, [user]);
+
+  // Check for pending cart image after login
+  useEffect(() => {
+    if (user) {
+      const pendingImageData = localStorage.getItem('pending-cart-image');
+      if (pendingImageData) {
+        try {
+          const pendingImage = JSON.parse(pendingImageData);
+          // Check if the data is not too old (within 1 hour)
+          const isRecent = Date.now() - pendingImage.timestamp < 60 * 60 * 1000;
+          if (isRecent) {
+            console.log('🛒 Found pending cart image after login:', pendingImage);
+            // Convert to UserImage format and show modal
+            const userImage: UserImage = {
+              id: pendingImage.id,
+              image_url: pendingImage.image_url,
+              prompt: pendingImage.prompt || pendingImage.title || '',
+              created_at: new Date().toISOString(),
+              width: 800,
+              height: 600,
+              likes: 0,
+              aspect_ratio: pendingImage.aspect_ratio
+            };
+            // Close the CreationsModal if it's open
+            console.log('🔄 UserImageGallery: Closing CreationsModal and opening FrameSelector');
+            setModalOpen(false);
+            setSelectedImage(null);
+            // Go directly to frame selection for pending image
+            setFrameSelectorImage(userImage);
+            setShowFrameSelector(true);
+            console.log('🎨 UserImageGallery: Frame selector state set', { 
+              frameSelectorImage: !!userImage, 
+              showFrameSelector: true 
+            });
+            // Clear the pending image
+            localStorage.removeItem('pending-cart-image');
+          } else {
+            // Clear old pending image
+            localStorage.removeItem('pending-cart-image');
+          }
+        } catch (error) {
+          console.error('Error parsing pending cart image:', error);
+          localStorage.removeItem('pending-cart-image');
+        }
+      }
+    }
   }, [user]);
   
   // Normalize any DB-stored storage path into a public URL
@@ -158,20 +234,17 @@ export function UserImageGallery() {
       return;
     }
 
-    // If session is not available, try to get it fresh
-    let authToken = session?.access_token;
+    // Use session from useAuth hook (no need to call getSession())
+    const authToken = session?.access_token;
+    
     if (!authToken) {
-      console.log('🔄 UserImageGallery: No session token, fetching fresh session...');
-      try {
-        const { data: { session: freshSession } } = await supabase.auth.getSession();
-        if (freshSession?.access_token) {
-          authToken = freshSession.access_token;
-          console.log('✅ UserImageGallery: Got fresh session token');
-        }
-      } catch (error) {
-        console.warn('⚠️ UserImageGallery: Failed to get fresh session', error);
-      }
+      console.warn('⚠️ UserImageGallery: No session token available from context');
+      // If no token, user isn't fully authenticated yet
+      setLoading(false);
+      return;
     }
+    
+    console.log('✅ UserImageGallery: Using auth token from context');
 
     try {
       const page = pageNum + 1; // API uses 1-based pagination
@@ -612,6 +685,7 @@ export function UserImageGallery() {
                 image={image}
                 onImageClick={handleImageClick}
                 onBuyAsFrame={handleBuyAsFrame}
+                onOpenAuthModal={onOpenAuthModal}
               />
             ))}
           </div>
@@ -635,11 +709,15 @@ export function UserImageGallery() {
           imageId={selectedImage.id}
           isMobile={false} // You can add mobile detection here if needed
           isCuratedImage={false} // User images are not curated images
+          onOpenAuthModal={onOpenAuthModal}
         />
       )}
 
       {/* Frame Selector Modal */}
-      {showFrameSelector && frameSelectorImage && (
+      {(() => {
+        console.log('🖼️ UserImageGallery: Render check - showFrameSelector:', showFrameSelector, 'frameSelectorImage:', !!frameSelectorImage);
+        return showFrameSelector && frameSelectorImage;
+      })() && (
         <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-sm">
           <div className="flex h-full">
             <div className="flex-1 bg-background overflow-y-auto">
@@ -662,8 +740,8 @@ export function UserImageGallery() {
 
                 {/* Frame Selector */}
                   <FrameSelector
-                  imageUrl={normalizeImageUrl(frameSelectorImage.image_url)}
-                  imagePrompt={frameSelectorImage.prompt}
+                  imageUrl={normalizeImageUrl(frameSelectorImage!.image_url)}
+                  imagePrompt={frameSelectorImage!.prompt}
                   onFrameSelect={(frame) => {
                     // Handle frame selection - this is just for preview/display
                     console.log('🎨 UserImageGallery: Frame selected for preview', frame);
@@ -671,6 +749,7 @@ export function UserImageGallery() {
                   onAddToCart={handleAddToCart}
                   selectedFrame={null} // Let FrameSelector auto-select first matching frame
                   showPreview={true}
+                  onOpenAuthModal={onOpenAuthModal}
                 />
               </div>
             </div>

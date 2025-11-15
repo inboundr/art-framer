@@ -54,44 +54,9 @@ export async function middleware(request: NextRequest) {
         console.error('Middleware auth error:', error)
       }
       
-      // Only try to refresh session if it's not a logout-related error
-      // Check if this is a deliberate logout (no refresh token) vs session expiry
-      const refreshToken = request.cookies.get('sb-refresh-token')?.value
-      
-      if (refreshToken && !error.message?.includes('Auth session missing')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔄 Attempting session refresh in middleware')
-        }
-        try {
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-          if (!refreshError && refreshData.session) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('🔄 Session refreshed in middleware')
-            }
-            // Update cookies with refreshed session
-            supabaseResponse.cookies.set('sb-access-token', refreshData.session.access_token, {
-              maxAge: 60 * 60 * 24 * 7, // 7 days
-              path: '/',
-              sameSite: 'lax',
-              secure: process.env.NODE_ENV === 'production',
-              httpOnly: false
-            })
-            supabaseResponse.cookies.set('sb-refresh-token', refreshData.session.refresh_token, {
-              maxAge: 60 * 60 * 24 * 7, // 7 days
-              path: '/',
-              sameSite: 'lax',
-              secure: process.env.NODE_ENV === 'production',
-              httpOnly: false
-            })
-          }
-        } catch (refreshError) {
-          console.error('Failed to refresh session in middleware:', refreshError)
-        }
-      } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🚪 No refresh token or logout detected, not attempting refresh')
-        }
-      }
+      // Session errors are normal for unauthenticated users
+      // Supabase handles session refresh automatically through the auth state change listener
+      // No need to manually refresh here - it can cause race conditions
     }
 
     // Add user info to response headers for debugging (optional)

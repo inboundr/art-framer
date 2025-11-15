@@ -36,6 +36,7 @@ interface FrameSelectorProps {
   onAddToCart: (frame: FrameOption) => void | Promise<void>;
   selectedFrame?: FrameOption | null;
   showPreview?: boolean;
+  onOpenAuthModal?: () => void;
 }
 
 // 🎨 DYNAMIC FRAME OPTIONS FROM PRODIGI
@@ -48,6 +49,7 @@ export function FrameSelector({
   onFrameSelect,
   onAddToCart,
   selectedFrame,
+  onOpenAuthModal,
   showPreview = true,
 }: FrameSelectorProps) {
   const [selectedSize, setSelectedSize] = useState<string>('medium');
@@ -241,11 +243,18 @@ export function FrameSelector({
     
     if (!user) {
       console.error('❌ FrameSelector: No user, cannot add to cart');
+      // If we have an auth modal handler, use it instead of showing a toast
+      if (onOpenAuthModal) {
+        console.log('🔐 FrameSelector: Calling onOpenAuthModal');
+        onOpenAuthModal();
+      } else {
+        // Fallback to toast if no auth modal handler provided
       toast({
         title: 'Authentication Required',
         description: 'Please sign in to add items to your cart.',
         variant: 'destructive',
       });
+      }
       return;
     }
     

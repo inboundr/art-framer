@@ -15,7 +15,8 @@ export default function Creations() {
 
   return (
     <AuthenticatedLayout>
-      {/* Exact same layout as home page */}
+      {({ onOpenAuthModal }) => (
+        /* Exact same layout as home page */
       <div className="flex flex-col min-h-screen bg-background">
         {/* Top Spacer - same as home */}
         <div className="h-16 min-h-16 self-stretch bg-background" />
@@ -24,8 +25,9 @@ export default function Creations() {
         <SearchBar onOpenGenerationPanel={handleOpenGenerationPanel} />
         
         {/* User Image Gallery - instead of public ImageGallery */}
-        <UserImageGallery />
+          <UserImageGallery onOpenAuthModal={onOpenAuthModal} />
       </div>
+      )}
     </AuthenticatedLayout>
   );
 }
