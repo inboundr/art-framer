@@ -66,11 +66,11 @@ export function CreationsModal({
         onOpenAuthModal();
       } else {
         // Fallback to toast if no auth modal handler provided
-        toast({
-          title: 'Authentication Required',
-          description: 'Please sign in to purchase framed art.',
-          variant: 'destructive',
-        });
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to purchase framed art.',
+        variant: 'destructive',
+      });
       }
       return;
     }
@@ -92,11 +92,11 @@ export function CreationsModal({
         onOpenAuthModal();
       } else {
         // Fallback to toast if no auth modal handler provided
-        toast({
-          title: 'Authentication Required',
-          description: 'Please sign in to add items to your cart.',
-          variant: 'destructive',
-        });
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to add items to your cart.',
+        variant: 'destructive',
+      });
       }
       return;
     }
@@ -519,49 +519,49 @@ export function CreationsModal({
           });
           return showFrameSelector;
         })() && (
-          <div className="flex-1 bg-background overflow-y-auto">
-            <div className="max-w-4xl mx-auto p-6">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <h2 className="text-2xl font-bold">Choose Your Frame</h2>
-                    <div className="relative group">
-                      <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help" />
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                        <div className="text-center">
-                          <div className="font-semibold mb-1">How to choose your frame</div>
-                          <div className="text-xs">
-                            Select your preferred size, style, and material. Options will automatically update to show only available combinations. Unavailable options are grayed out.
+            <div className="flex-1 bg-background overflow-y-auto">
+              <div className="max-w-4xl mx-auto p-6">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h2 className="text-2xl font-bold">Choose Your Frame</h2>
+                      <div className="relative group">
+                        <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help" />
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                          <div className="text-center">
+                            <div className="font-semibold mb-1">How to choose your frame</div>
+                            <div className="text-xs">
+                              Select your preferred size, style, and material. Options will automatically update to show only available combinations. Unavailable options are grayed out.
+                            </div>
                           </div>
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
                         </div>
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
                       </div>
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFrameSelector(false)}
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowFrameSelector(false)}
-                >
-                  <XCircle className="h-4 w-4" />
-                </Button>
-              </div>
 
-              {/* Frame Selector */}
-              <FrameSelector
-                imageUrl={imageUrl}
-                imagePrompt={promptText}
-                onFrameSelect={handleFrameSelect}
-                onAddToCart={handleAddToCart}
-                selectedFrame={selectedFrame}
-                showPreview={true}
+                {/* Frame Selector */}
+                <FrameSelector
+                  imageUrl={imageUrl}
+                  imagePrompt={promptText}
+                  onFrameSelect={handleFrameSelect}
+                  onAddToCart={handleAddToCart}
+                  selectedFrame={selectedFrame}
+                  showPreview={true}
                 onOpenAuthModal={onOpenAuthModal}
-              />
+                />
             </div>
           </div>
         )}
-      </div>
+        </div>
     </div>
   );
 }
