@@ -37,10 +37,34 @@ export async function GET(request: NextRequest) {
       console.log(`🔍 Fetching Prodigi product details for SKU: ${sku}`);
       const productDetails = await prodigiClient.getProductDetails(sku);
       
+      // Get real-time pricing from Prodigi quotes (product details endpoint doesn't include prices)
+      console.log(`💰 Fetching real-time pricing for SKU: ${sku}`);
+      let price = 0;
+      try {
+        const quotes = await prodigiClient.getFullQuote({
+          items: [{
+            sku: sku,
+            quantity: 1,
+            attributes: {}
+          }],
+          destinationCountryCode: 'US' // Default to US for base pricing
+        });
+        
+        if (quotes && quotes.length > 0) {
+          price = parseFloat(quotes[0].costSummary.items.amount);
+          console.log(`✅ Real-time price from Prodigi: $${price} USD`);
+        }
+      } catch (priceError) {
+        console.warn('⚠️ Failed to fetch real-time price, using fallback:', priceError);
+        // Fallback to mock price if quote fails
+        price = getMockPrice(validatedData.frameSize, validatedData.frameStyle, validatedData.frameMaterial);
+      }
+      
       console.log(`✅ Successfully fetched Prodigi product details:`, {
         sku: productDetails.sku,
         name: productDetails.name,
-        price: productDetails.price
+        price: price,
+        priceSource: price > 0 ? 'Prodigi quote' : 'Fallback'
       });
       
       return NextResponse.json({
@@ -49,7 +73,7 @@ export async function GET(request: NextRequest) {
           sku,
           name: productDetails.name,
           description: productDetails.description,
-          price: productDetails.price,
+          price: price, // Use real-time price from quote
           dimensions: productDetails.dimensions,
           images: productDetails.images || [],
         }
