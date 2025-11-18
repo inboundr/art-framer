@@ -1,6 +1,6 @@
 /**
- * Currency conversion service with live rates
- * Caches rates to avoid excessive API calls
+ * Currency conversion service with live exchange rates
+ * Uses ExchangeRate-API (free, no API key required)
  */
 
 interface ExchangeRates {
@@ -13,17 +13,17 @@ interface CachedRates {
   baseCurrency: string;
 }
 
-// Cache rates in memory (consider Redis for production)
+// In-memory cache (consider Redis for production with multiple servers)
 let ratesCache: CachedRates | null = null;
-const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours
+const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
-// Fallback rates in case API fails
+// Fallback rates in case API is unavailable
 const FALLBACK_RATES: ExchangeRates = {
   'USD': 1.0,
   'CAD': 1.35,
+  'EUR': 0.92,
   'GBP': 0.79,
   'AUD': 1.52,
-  'EUR': 0.92,
   'JPY': 149.50,
   'KRW': 1320.00,
   'SGD': 1.34,
@@ -43,19 +43,10 @@ const FALLBACK_RATES: ExchangeRates = {
 
 export class CurrencyService {
   private apiUrl: string;
-  private apiKey?: string;
 
   constructor() {
-    // Option 1: ExchangeRate-API (Free, no key needed)
+    // Using ExchangeRate-API (Free, no API key needed, 1500 requests/month)
     this.apiUrl = 'https://api.exchangerate-api.com/v4/latest/USD';
-    
-    // Option 2: Open Exchange Rates (Requires API key, more features)
-    // this.apiKey = process.env.OPEN_EXCHANGE_RATES_API_KEY;
-    // this.apiUrl = `https://openexchangerates.org/api/latest.json?app_id=${this.apiKey}`;
-    
-    // Option 3: Fixer.io (Requires API key)
-    // this.apiKey = process.env.FIXER_API_KEY;
-    // this.apiUrl = `https://api.fixer.io/latest?access_key=${this.apiKey}`;
   }
 
   /**
@@ -63,63 +54,56 @@ export class CurrencyService {
    */
   async fetchLiveRates(): Promise<ExchangeRates> {
     try {
-      console.log('💱 Fetching live currency rates...');
+      console.log('💱 Fetching live currency rates from API...');
       
       const response = await fetch(this.apiUrl, {
         headers: {
           'Accept': 'application/json',
         },
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(5000), // 5 second timeout
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+        throw new Error(`API returned status ${response.status}`);
       }
 
       const data = await response.json();
       
-      // Handle different API response formats
-      let rates: ExchangeRates;
-      
-      if (data.rates) {
-        // ExchangeRate-API and Open Exchange Rates format
-        rates = data.rates;
-      } else if (data.conversion_rates) {
-        // Alternative API format
-        rates = data.conversion_rates;
-      } else {
-        throw new Error('Unexpected API response format');
+      if (!data.rates) {
+        throw new Error('Invalid API response format');
       }
 
       console.log('✅ Live currency rates fetched successfully');
       console.log('📊 Sample rates:', {
-        CAD: rates.CAD,
-        EUR: rates.EUR,
-        GBP: rates.GBP,
+        CAD: data.rates.CAD?.toFixed(4),
+        EUR: data.rates.EUR?.toFixed(4),
+        GBP: data.rates.GBP?.toFixed(4),
       });
 
-      return rates;
+      return data.rates as ExchangeRates;
     } catch (error) {
       console.error('❌ Failed to fetch live currency rates:', error);
-      console.log('⚠️ Falling back to hardcoded rates');
+      console.log('⚠️ Using fallback exchange rates');
       return FALLBACK_RATES;
     }
   }
 
   /**
-   * Get exchange rates (from cache or fetch new ones)
+   * Get exchange rates (from cache or fetch new)
    */
   async getRates(): Promise<ExchangeRates> {
     const now = Date.now();
     
-    // Check if cache is valid
+    // Check if cache is still valid
     if (ratesCache && (now - ratesCache.timestamp) < CACHE_DURATION) {
-      console.log('✅ Using cached currency rates', {
-        age: Math.round((now - ratesCache.timestamp) / 1000 / 60) + ' minutes',
-      });
+      const ageMinutes = Math.round((now - ratesCache.timestamp) / 1000 / 60);
+      console.log(`✅ Using cached currency rates (age: ${ageMinutes} minutes)`);
       return ratesCache.rates;
     }
 
-    // Fetch new rates
+    // Cache expired or doesn't exist, fetch new rates
+    console.log('🔄 Currency cache expired or empty, fetching fresh rates...');
     const rates = await this.fetchLiveRates();
     
     // Update cache
@@ -140,21 +124,22 @@ export class CurrencyService {
     const currency = targetCurrency.toUpperCase();
     
     // Get conversion rate
-    const rate = rates[currency] || 1.0;
+    const rate = rates[currency];
     
-    if (!rates[currency]) {
-      console.warn(`⚠️ Currency ${currency} not found in rates, using 1.0`);
+    if (!rate) {
+      console.warn(`⚠️ Currency ${currency} not found, using 1.0 (no conversion)`);
+      return amountUSD;
     }
     
     const converted = amountUSD * rate;
     
-    // Round to 2 decimal places for most currencies
-    // For zero-decimal currencies like JPY, KRW, round to nearest whole number
-    const zeroDecimalCurrencies = ['JPY', 'KRW', 'VND', 'CLP'];
+    // Handle zero-decimal currencies (currencies without cents)
+    const zeroDecimalCurrencies = ['JPY', 'KRW', 'VND', 'CLP', 'PYG', 'UGX'];
     if (zeroDecimalCurrencies.includes(currency)) {
       return Math.round(converted);
     }
     
+    // Round to 2 decimal places for normal currencies
     return Math.round(converted * 100) / 100;
   }
 
@@ -166,20 +151,24 @@ export class CurrencyService {
     const from = fromCurrency.toUpperCase();
     const to = toCurrency.toUpperCase();
     
-    // If base currency is USD, direct conversion
+    // If converting from USD, use direct rate
     if (from === 'USD') {
       return this.convertFromUSD(amount, to);
     }
     
-    // If converting to USD
+    // If converting to USD, inverse the rate
     if (to === 'USD') {
       const rate = rates[from] || 1.0;
       return Math.round((amount / rate) * 100) / 100;
     }
     
-    // Convert through USD (from -> USD -> to)
-    const amountInUSD = amount / (rates[from] || 1.0);
-    return this.convertFromUSD(amountInUSD, to);
+    // For other currency pairs, convert through USD
+    const fromRate = rates[from] || 1.0;
+    const toRate = rates[to] || 1.0;
+    const amountInUSD = amount / fromRate;
+    const converted = amountInUSD * toRate;
+    
+    return Math.round(converted * 100) / 100;
   }
 
   /**
@@ -213,27 +202,29 @@ export class CurrencyService {
   }
 
   /**
-   * Format amount with currency symbol
+   * Get cache status
    */
-  formatCurrency(amount: number, currency: string): string {
-    try {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency.toUpperCase(),
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(amount);
-    } catch (error) {
-      // Fallback formatting
-      return `${currency.toUpperCase()} ${amount.toFixed(2)}`;
+  getCacheStatus(): { cached: boolean; age?: number; expiresIn?: number } {
+    if (!ratesCache) {
+      return { cached: false };
     }
+    
+    const now = Date.now();
+    const age = now - ratesCache.timestamp;
+    const expiresIn = CACHE_DURATION - age;
+    
+    return {
+      cached: true,
+      age: Math.round(age / 1000 / 60), // age in minutes
+      expiresIn: Math.round(expiresIn / 1000 / 60), // expires in minutes
+    };
   }
 }
 
 // Singleton instance
 export const currencyService = new CurrencyService();
 
-// Helper functions for easy use
+// Helper functions for convenient usage
 export async function convertUSD(amountUSD: number, targetCurrency: string): Promise<number> {
   return currencyService.convertFromUSD(amountUSD, targetCurrency);
 }
@@ -244,9 +235,5 @@ export async function convertCurrency(amount: number, from: string, to: string):
 
 export async function getExchangeRate(from: string, to: string): Promise<number> {
   return currencyService.getRate(from, to);
-}
-
-export function formatMoney(amount: number, currency: string): string {
-  return currencyService.formatCurrency(amount, currency);
 }
 

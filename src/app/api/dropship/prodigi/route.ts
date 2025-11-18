@@ -170,7 +170,86 @@ export async function POST(request: NextRequest) {
     // Convert to Prodigi format
     const prodigiOrder = await prodigiClient.convertToProdigiOrder(prodigiOrderData);
 
+    // 🔍 PHASE 2: Final price validation with Prodigi quote before creating order
+    console.log('🔍 Final price validation: Getting Prodigi quote before order creation...');
+    try {
+      // Extract items for quote request
+      const quoteItems = prodigiOrder.items.map((item: any) => ({
+        sku: item.sku,
+        quantity: item.copies || 1,
+        attributes: item.attributes || {}
+      }));
+
+      const shippingCountry = prodigiOrder.recipient.address.countryCode;
+      
+      console.log('📤 Final quote request:', {
+        items: quoteItems.map((i: any) => `${i.sku} x${i.quantity}`).join(', '),
+        destination: shippingCountry
+      });
+
+      // Get real-time quote from Prodigi
+      const finalQuotes = await prodigiClient.getQuote({
+        items: quoteItems,
+        destinationCountryCode: shippingCountry
+      });
+
+      if (finalQuotes && finalQuotes.length > 0) {
+        const finalQuote = finalQuotes[0];
+        // Note: finalQuote.cost contains the shipping cost (not items cost)
+        const quotedShippingCost = parseFloat(finalQuote.cost.amount);
+        
+        console.log('📥 Final Prodigi quote received:', {
+          shippingCost: `$${quotedShippingCost.toFixed(2)} ${finalQuote.cost.currency}`,
+          method: finalQuote.shipmentMethod,
+          estimatedDays: finalQuote.estimatedDays
+        });
+
+        // Extract expected values from order
+        const orderTotal = (order as any).total_amount || 0;
+        const expectedShipping = (order as any).shipping_amount || 0;
+        
+        console.log('📊 Final shipping cost comparison:', {
+          expectedShipping: `$${expectedShipping.toFixed(2)}`,
+          quotedShipping: `$${quotedShippingCost.toFixed(2)}`,
+          orderTotal: `$${orderTotal.toFixed(2)}`,
+          difference: `$${Math.abs(quotedShippingCost - expectedShipping).toFixed(2)}`,
+          percentDiff: expectedShipping > 0 
+            ? `${((Math.abs(quotedShippingCost - expectedShipping) / expectedShipping) * 100).toFixed(2)}%`
+            : 'N/A'
+        });
+
+        // Log for audit trail (don't block order, but alert if significant difference)
+        const shippingDiff = Math.abs(quotedShippingCost - expectedShipping);
+        const percentDiff = expectedShipping > 0 ? (shippingDiff / expectedShipping) * 100 : 0;
+        
+        if (percentDiff > 10 && expectedShipping > 0) {
+          console.warn('⚠️ SHIPPING COST MISMATCH DETECTED!', {
+            expectedShipping,
+            quotedShipping: quotedShippingCost,
+            difference: shippingDiff,
+            percentDiff: `${percentDiff.toFixed(2)}%`,
+            action: 'Logging for review - order will proceed'
+          });
+          
+          // TODO: Consider adding to monitoring/alerting system
+          // For now, we log and proceed (Stripe already charged customer)
+        } else {
+          console.log('✅ Final shipping validation passed:', {
+            difference: `${percentDiff.toFixed(2)}%`,
+            threshold: '10%'
+          });
+        }
+      } else {
+        console.warn('⚠️ No quotes returned for final validation, proceeding with order');
+      }
+    } catch (quoteError) {
+      // Don't block order creation if quote fails (Stripe already charged)
+      console.error('⚠️ Failed to get final Prodigi quote:', quoteError);
+      console.log('⚠️ Proceeding with order creation (final quote validation failed)');
+    }
+
     // Create order in Prodigi
+    console.log('📦 Creating Prodigi order...');
     const prodigiResponse = await prodigiClient.createOrder(prodigiOrder);
 
     // Update or create dropship order record

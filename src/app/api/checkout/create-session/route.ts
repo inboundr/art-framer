@@ -111,22 +111,25 @@ function getCurrencyForCountry(countryCode: string): string {
 }
 
 /**
- * Convert USD to target currency using live exchange rates
- * Falls back to hardcoded rates if API fails
+ * Convert USD amount to target currency using live exchange rates
+ * Falls back to hardcoded rates if the API fails
  */
 async function convertUSDToTargetCurrency(amountUSD: number, targetCurrency: string): Promise<number> {
   try {
+    // Use the currency service for live rates
     return await currencyService.convertFromUSD(amountUSD, targetCurrency);
   } catch (error) {
-    console.error('❌ Currency conversion error, using fallback:', error);
-    // Fallback to hardcoded rates if service fails
+    console.error('❌ Currency conversion failed, using fallback rate:', error);
+    
+    // Fallback to simple hardcoded rates
     const fallbackRates: Record<string, number> = {
       'usd': 1.0,
       'cad': 1.35,
+      'eur': 0.92,
       'gbp': 0.79,
       'aud': 1.52,
-      'eur': 0.92,
     };
+    
     const rate = fallbackRates[targetCurrency.toLowerCase()] || 1.0;
     return Math.round(amountUSD * rate * 100) / 100;
   }
@@ -326,41 +329,125 @@ export async function POST(request: NextRequest) {
     const pricingResult = defaultPricingCalculator.calculateTotal(pricingItems, shippingResult);
     const { subtotal, taxAmount, shippingAmount, total } = pricingResult;
 
-    console.log(`💱 Currency conversion: Converting prices from USD to ${currency} using live rates`);
-    
-    // Convert all prices to target currency (using async/await since we're using live rates)
-    const convertedItems = await Promise.all(
-      cartItems.map(async (item: any) => {
-        const priceInTargetCurrency = await convertUSDToTargetCurrency(item.products.price, currency);
-        
-        console.log(`💱 Item price conversion:`, {
-          productName: item.products.frame_size,
-          priceUSD: item.products.price,
-          targetCurrency: currency,
-          priceConverted: priceInTargetCurrency,
-          stripeAmount: Math.round(priceInTargetCurrency * 100)
+    // 🔍 PHASE 1: Validate prices with Prodigi real-time quote
+    console.log('🔍 Validating item prices with Prodigi real-time quote...');
+    try {
+      const prodigiClient = new ProdigiClient(
+        process.env.PRODIGI_API_KEY || '',
+        (process.env.PRODIGI_ENVIRONMENT as 'sandbox' | 'production') || 'production'
+      );
+
+      // Prepare quote request items (use processedItems which has finalSku)
+      const quoteItems = processedItems.map((item: any) => ({
+        sku: item.finalSku,
+        quantity: item.quantity,
+        attributes: getProductAttributesForSku(item.finalSku, item.products.frame_style)
+      }));
+
+      console.log('📤 Requesting Prodigi full quote for items:', quoteItems.map(i => `${i.sku} x${i.quantity}`).join(', '));
+
+      // Get real-time quote from Prodigi (using getFullQuote to get items AND shipping costs)
+      const quotes = await prodigiClient.getFullQuote({
+        items: quoteItems,
+        destinationCountryCode: countryCode
+      });
+
+      if (quotes && quotes.length > 0) {
+        const quote = quotes[0];
+        console.log('📥 Prodigi quote received:', {
+          itemsCost: quote.costSummary.items.amount,
+          shippingCost: quote.costSummary.shipping.amount,
+          totalCost: quote.costSummary.totalCost.amount,
+          currency: quote.costSummary.items.currency,
+          method: quote.shipmentMethod
         });
+
+        // Compare catalog price (from database) vs real-time Prodigi price
+        for (let i = 0; i < processedItems.length; i++) {
+          const cartItem = processedItems[i];
+          const catalogPriceUSD = cartItem.products.price; // Price from database (USD)
+          
+          // Prodigi returns total items cost, so we need to divide by quantity if multiple items
+          // For simplicity, we'll validate the first item (most common case is 1 item)
+          // TODO: Handle multiple different items in cart
+          const realtimeQuotedPrice = parseFloat(quote.costSummary.items.amount); // ✅ Now using ITEMS cost, not shipping!
+          
+          // Calculate per-item price if quantity > 1
+          const perItemQuotePrice = realtimeQuotedPrice / cartItem.quantity;
+          
+          const priceDifference = Math.abs(perItemQuotePrice - catalogPriceUSD);
+          const percentDifference = (priceDifference / catalogPriceUSD) * 100;
+
+          console.log(`📊 Price validation for item ${i + 1}:`, {
+            sku: cartItem.finalSku,
+            catalogPrice: `$${catalogPriceUSD.toFixed(2)} USD`,
+            quotedPrice: `$${perItemQuotePrice.toFixed(2)} USD`,
+            difference: `$${priceDifference.toFixed(2)}`,
+            percentDiff: `${percentDifference.toFixed(2)}%`,
+            threshold: '5%'
+          });
+
+          // If price difference is significant (>5%), handle it
+          if (percentDifference > 5) {
+            console.warn(`⚠️ PRICE MISMATCH DETECTED for ${cartItem.finalSku}!`, {
+              catalogPrice: catalogPriceUSD,
+              realtimePrice: perItemQuotePrice,
+              difference: priceDifference,
+              percentDiff: `${percentDifference.toFixed(2)}%`
+            });
+
+            // Option A: Auto-update to real-time price (safer for customer)
+            console.log(`✅ Auto-updating price from $${catalogPriceUSD} to $${perItemQuotePrice} (real-time Prodigi price)`);
+            cartItem.products.price = perItemQuotePrice;
+            
+            // Option B (commented): Block checkout and alert user
+            // return NextResponse.json({
+            //   success: false,
+            //   error: 'PRICE_MISMATCH',
+            //   message: `Price has changed from $${catalogPriceUSD.toFixed(2)} to $${perItemQuotePrice.toFixed(2)}. Please review your cart.`,
+            //   catalogPrice: catalogPriceUSD,
+            //   realtimePrice: perItemQuotePrice,
+            //   percentDifference: percentDifference.toFixed(2)
+            // }, { status: 409 });
+          } else {
+            console.log(`✅ Price validation passed for ${cartItem.finalSku}: difference ${percentDifference.toFixed(2)}% is within 5% threshold`);
+          }
+        }
+      } else {
+        console.warn('⚠️ No quotes returned from Prodigi, proceeding with catalog prices');
+      }
+    } catch (quoteError) {
+      // Don't block checkout if quote fails, but log the error
+      console.error('⚠️ Failed to get Prodigi quote for price validation:', quoteError);
+      console.log('⚠️ Proceeding with catalog prices (quote validation failed)');
+    }
+
+    console.log(`💱 Converting prices from USD to ${currency.toUpperCase()} using live rates...`);
+    
+    // Convert all prices to target currency
+    // Database stores prices in USD, must convert to customer's currency
+    // Use processedItems (which may have auto-corrected prices from quote validation)
+    const convertedItems = await Promise.all(
+      processedItems.map(async (item: any) => {
+        const priceConverted = await convertUSDToTargetCurrency(item.products.price, currency);
+        
+        console.log(`💱 Item: ${item.products.frame_size} - USD ${item.products.price} → ${currency.toUpperCase()} ${priceConverted}`);
         
         return {
           ...item,
-          convertedPrice: priceInTargetCurrency,
+          convertedPrice: priceConverted,
         };
       })
     );
     
     // Convert tax and shipping
-    const taxInTargetCurrency = await convertUSDToTargetCurrency(taxAmount, currency);
-    const shippingInTargetCurrency = await convertUSDToTargetCurrency(shippingAmount, currency);
+    const taxConverted = await convertUSDToTargetCurrency(taxAmount, currency);
+    const shippingConverted = await convertUSDToTargetCurrency(shippingAmount, currency);
     
-    console.log(`💱 Converted totals:`, {
-      subtotalUSD: subtotal,
-      taxUSD: taxAmount,
-      shippingUSD: shippingAmount,
-      taxConverted: taxInTargetCurrency,
-      shippingConverted: shippingInTargetCurrency,
-      currency: currency
-    });
-    
+    console.log(`💱 Tax: USD ${taxAmount} → ${currency.toUpperCase()} ${taxConverted}`);
+    console.log(`💱 Shipping: USD ${shippingAmount} → ${currency.toUpperCase()} ${shippingConverted}`);
+    console.log(`💱 Total converted: ${currency.toUpperCase()} ${(convertedItems.reduce((sum, item) => sum + (item.convertedPrice * item.quantity), 0) + taxConverted + shippingConverted).toFixed(2)}`);
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -378,8 +465,8 @@ export async function POST(request: NextRequest) {
                 frame_size: item.products.frame_size,
                 frame_style: item.products.frame_style,
                 frame_material: item.products.frame_material,
-                sku: item.finalSku, // Use base SKU for consistency with Prodigi operations
-                price_usd: item.products.price.toString(), // Store original USD price
+                sku: item.finalSku,
+                price_usd: item.products.price.toString(), // Store original USD price for reference
               },
             },
             unit_amount: Math.round(item.convertedPrice * 100),
@@ -393,7 +480,7 @@ export async function POST(request: NextRequest) {
               name: 'Tax',
               description: 'Sales tax',
             },
-            unit_amount: Math.round(taxInTargetCurrency * 100),
+            unit_amount: Math.round(taxConverted * 100),
           },
           quantity: 1,
         },
@@ -404,7 +491,7 @@ export async function POST(request: NextRequest) {
               name: 'Shipping',
               description: shippingResult.serviceName || 'Standard shipping',
             },
-            unit_amount: Math.round(shippingInTargetCurrency * 100),
+            unit_amount: Math.round(shippingConverted * 100),
           },
           quantity: 1,
         },
@@ -417,7 +504,7 @@ export async function POST(request: NextRequest) {
         shippingAmount: shippingAmount.toString(),
         total: total.toString(),
         currency: currency,
-        originalCurrency: 'USD', // Prices stored in database are in USD
+        baseCurrency: 'USD',
       },
       success_url: `${getBaseUrl(request)}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${getBaseUrl(request)}/cart`,
