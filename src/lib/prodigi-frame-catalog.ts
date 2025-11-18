@@ -1,4 +1,5 @@
 import { ProdigiClient } from './prodigi';
+import { currencyService } from './currency';
 
 export interface FrameCatalogOption {
   sku: string;
@@ -67,13 +68,14 @@ export class ProdigiFrameCatalog {
       console.log(`✅ Found ${frameProducts.length} frame products in Prodigi catalog`);
       
       // Map to our format - EXPAND each product into multiple options (one per color)
+      // Now async to support live currency conversion
       const options: FrameCatalogOption[] = [];
       for (const product of frameProducts) {
-        const expandedOptions = this.expandProductIntoOptions(product);
+        const expandedOptions = await this.expandProductIntoOptions(product);
         options.push(...expandedOptions);
       }
       
-      console.log(`✅ Expanded ${frameProducts.length} products into ${options.length} frame options`);
+      console.log(`✅ Expanded ${frameProducts.length} products into ${options.length} frame options with live currency rates`);
       
       // Cache the results
       this.cache = options;
@@ -94,7 +96,7 @@ export class ProdigiFrameCatalog {
   /**
    * Expand a single product into multiple options (one per color)
    */
-  private expandProductIntoOptions(product: any): FrameCatalogOption[] {
+  private async expandProductIntoOptions(product: any): Promise<FrameCatalogOption[]> {
     const options: FrameCatalogOption[] = [];
     
     // Get all available colors for this product
@@ -106,14 +108,14 @@ export class ProdigiFrameCatalog {
     
     if (!Array.isArray(colors) || colors.length === 0) {
       // If no colors array, create a single option
-      const option = this.mapProdigiToFrameOption(product, null);
+      const option = await this.mapProdigiToFrameOption(product, null);
       if (option) options.push(option);
       return options;
     }
     
-    // Create one option for each color
+    // Create one option for each color (with async/await for price conversion)
     for (const color of colors) {
-      const option = this.mapProdigiToFrameOption(product, color);
+      const option = await this.mapProdigiToFrameOption(product, color);
       if (option) {
         options.push(option);
       }
@@ -278,7 +280,7 @@ export class ProdigiFrameCatalog {
    * @param product The Prodigi product
    * @param specificColor Optional specific color to use (when expanding products)
    */
-  private mapProdigiToFrameOption(product: any, specificColor: string | null = null): FrameCatalogOption | null {
+  private async mapProdigiToFrameOption(product: any, specificColor: string | null = null): Promise<FrameCatalogOption | null> {
     try {
       // Extract frame attributes - Prodigi uses both 'frameColour' and 'color'
       const frameColor = specificColor || 
@@ -298,8 +300,8 @@ export class ProdigiFrameCatalog {
         product.sizeUnits
       );
 
-      // Calculate price (convert from base currency to USD)
-      const priceInUSD = this.convertPrice(
+      // Calculate price (convert from base currency to USD) - now async with live rates
+      const priceInUSD = await this.convertPrice(
         product.basePriceFrom,
         product.priceCurrency
       );
@@ -487,26 +489,66 @@ export class ProdigiFrameCatalog {
   private materialDebugCount = 0;
 
   /**
-   * Convert price from base currency to USD
+   * Convert price from base currency to USD using live exchange rates
+   * Falls back to hardcoded rates if API fails
    */
-  private convertPrice(basePrice: number, currency: string): number {
+  private async convertPrice(basePrice: number, currency: string): Promise<number> {
     // Base price is typically in smallest currency unit (pence, cents)
     const priceInMajorUnit = basePrice / 100;
 
-    // Simple currency conversion (in production, use real exchange rates)
-    const conversionRates: { [key: string]: number } = {
-      'GBP': 1.27,
-      'EUR': 1.09,
+    // If already USD, no conversion needed
+    if (currency.toUpperCase() === 'USD') {
+      const finalPrice = Math.round(priceInMajorUnit * 1.5 * 100) / 100; // Add 50% markup
+      return finalPrice;
+    }
+
+    try {
+      // Get live exchange rates
+      const rates = await currencyService.getRates();
+      const usdToSourceRate = rates[currency.toUpperCase()];
+
+      if (!usdToSourceRate) {
+        console.warn(`⚠️ No live rate found for ${currency}, using fallback`);
+        return this.convertPriceWithFallback(priceInMajorUnit, currency);
+      }
+
+      // Convert source currency → USD
+      // Example: £121 → USD, if 1 USD = 0.79 GBP, then £121 / 0.79 = $153.16 USD
+      const priceInUSD = priceInMajorUnit / usdToSourceRate;
+      
+      // Add 50% markup for retail price
+      const finalPrice = Math.round(priceInUSD * 1.5 * 100) / 100;
+      
+      console.log(`💱 Catalog price conversion: ${currency.toUpperCase()} ${priceInMajorUnit.toFixed(2)} → USD ${priceInUSD.toFixed(2)} → Retail $${finalPrice.toFixed(2)} (rate: ${usdToSourceRate})`);
+      
+      return finalPrice;
+    } catch (error) {
+      console.error(`❌ Failed to convert ${currency} to USD with live rates:`, error);
+      return this.convertPriceWithFallback(priceInMajorUnit, currency);
+    }
+  }
+
+  /**
+   * Fallback currency conversion using hardcoded rates
+   */
+  private convertPriceWithFallback(priceInMajorUnit: number, currency: string): number {
+    const fallbackRates: { [key: string]: number } = {
+      'GBP': 1.27,  // £1 = $1.27 USD
+      'EUR': 1.09,  // €1 = $1.09 USD
       'USD': 1.00,
-      'CAD': 0.74,
-      'AUD': 0.66
+      'CAD': 0.74,  // CA$1 = $0.74 USD
+      'AUD': 0.66   // AU$1 = $0.66 USD
     };
-
-    const rate = conversionRates[currency] || 1.0;
+    
+    const rate = fallbackRates[currency.toUpperCase()] || 1.0;
     const priceInUSD = priceInMajorUnit * rate;
-
+    
     // Add 50% markup for retail price
-    return Math.round(priceInUSD * 1.5 * 100) / 100;
+    const finalPrice = Math.round(priceInUSD * 1.5 * 100) / 100;
+    
+    console.log(`💱 Catalog price conversion (fallback): ${currency.toUpperCase()} ${priceInMajorUnit.toFixed(2)} → USD ${priceInUSD.toFixed(2)} → Retail $${finalPrice.toFixed(2)} (rate: ${rate})`);
+    
+    return finalPrice;
   }
 
   /**

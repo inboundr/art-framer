@@ -3,7 +3,7 @@ import { currencyService } from '@/lib/currency';
 
 /**
  * GET /api/currency/rates
- * Returns current exchange rates
+ * Returns current exchange rates and cache status
  */
 export async function GET(request: NextRequest) {
   try {
@@ -11,26 +11,28 @@ export async function GET(request: NextRequest) {
     const refresh = searchParams.get('refresh') === 'true';
     
     if (refresh) {
-      console.log('🔄 Manually refreshing currency rates...');
+      console.log('🔄 Manual refresh requested, clearing cache...');
       currencyService.clearCache();
     }
     
     const rates = await currencyService.getRates();
+    const cacheStatus = currencyService.getCacheStatus();
     
     return NextResponse.json({
       success: true,
       rates,
       baseCurrency: 'USD',
-      lastUpdated: new Date().toISOString(),
+      cache: cacheStatus,
+      timestamp: new Date().toISOString(),
       sampleConversions: {
-        '100 USD to CAD': await currencyService.convertFromUSD(100, 'CAD'),
-        '100 USD to EUR': await currencyService.convertFromUSD(100, 'EUR'),
-        '100 USD to GBP': await currencyService.convertFromUSD(100, 'GBP'),
+        '100_USD_to_CAD': await currencyService.convertFromUSD(100, 'CAD'),
+        '100_USD_to_EUR': await currencyService.convertFromUSD(100, 'EUR'),
+        '100_USD_to_GBP': await currencyService.convertFromUSD(100, 'GBP'),
       }
     });
     
   } catch (error) {
-    console.error('❌ Error fetching currency rates:', error);
+    console.error('❌ Error in currency rates API:', error);
     
     return NextResponse.json(
       {
@@ -48,7 +50,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔄 Clearing currency rates cache...');
+    console.log('🔄 Manual cache refresh initiated...');
     currencyService.clearCache();
     
     console.log('📥 Fetching fresh rates...');
