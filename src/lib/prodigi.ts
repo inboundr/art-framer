@@ -8,6 +8,7 @@ export interface ProdigiProduct {
     width: number;
     height: number;
     depth?: number;
+    unit?: string; // Unit of measurement (cm, in, mm)
   };
   weight: number;
   category: string;
@@ -320,13 +321,21 @@ export class ProdigiClient {
       }
       
       // Map the Prodigi API response to our ProdigiProduct interface
+      // Prodigi uses separate fields for dimensions, not a single dimensions object
+      const dimensions = {
+        width: productData.fullProductHorizontalDimensions || productData.dimensions?.width || 0,
+        height: productData.fullProductVerticalDimensions || productData.dimensions?.height || 0,
+        depth: productData.productDepthMm ? productData.productDepthMm / 10 : (productData.dimensions?.depth || 2), // Convert mm to cm
+        unit: productData.sizeUnits || 'cm'
+      };
+      
       const product: ProdigiProduct = {
         sku: productData.sku || sku, // Use the SKU from the request if not in response
         name: productData.name || `Product ${sku}`,
         description: productData.description || '',
         price: productData.price || 0,
         currency: productData.currency || 'USD',
-        dimensions: productData.dimensions || { width: 0, height: 0 },
+        dimensions: dimensions,
         weight: productData.weight || 0,
         category: productData.category || 'unknown',
         attributes: productData.attributes || {},
@@ -384,13 +393,21 @@ export class ProdigiClient {
           }
           
           // Map the Prodigi API response to our ProdigiProduct interface
+          // Prodigi uses separate fields for dimensions, not a single dimensions object
+          const dimensions = {
+            width: productData.fullProductHorizontalDimensions || productData.dimensions?.width || 0,
+            height: productData.fullProductVerticalDimensions || productData.dimensions?.height || 0,
+            depth: productData.productDepthMm ? productData.productDepthMm / 10 : (productData.dimensions?.depth || 2),
+            unit: productData.sizeUnits || 'cm'
+          };
+          
           const product: ProdigiProduct = {
             sku: productData.sku || alternativeSku,
             name: productData.name || `Product ${alternativeSku}`,
             description: productData.description || '',
             price: productData.price || 0,
             currency: productData.currency || 'USD',
-            dimensions: productData.dimensions || { width: 0, height: 0 },
+            dimensions: dimensions,
             weight: productData.weight || 0,
             category: productData.category || 'unknown',
             attributes: productData.attributes || {},
@@ -614,7 +631,8 @@ export class ProdigiClient {
         dimensions: {
           width: result.fullProductHorizontalDimensions || 0,
           height: result.fullProductVerticalDimensions || 0,
-          depth: result.productDepthMm ? result.productDepthMm / 10 : undefined
+          depth: result.productDepthMm ? result.productDepthMm / 10 : undefined,
+          unit: result.sizeUnits || 'cm'
         },
         attributes: {
           size: result.size?.[0] || `${result.fullProductHorizontalDimensions}x${result.fullProductVerticalDimensions}`,
@@ -1008,53 +1026,63 @@ export class ProdigiClient {
   /**
    * Generate a proper SKU for frame products
    * This creates a consistent SKU format that matches Prodigi's expectations
+   * Now properly considers frameSize, frameStyle, AND frameMaterial to find the correct product
    */
   async generateFrameSku(frameSize: string, frameStyle: string, frameMaterial: string, imageId?: string): Promise<string> {
     try {
-      console.log(`🔧 Generating SKU for curated image: ${frameSize}-${frameStyle}-${frameMaterial}${imageId ? ` (image: ${imageId})` : ''}`);
+      console.log(`🔧 Generating SKU for frame: ${frameSize}-${frameStyle}-${frameMaterial}${imageId ? ` (image: ${imageId})` : ''}`);
       
-      // PRIORITY 1: Use known working SKUs first (most reliable)
-      // Cache the known SKUs to avoid multiple API calls
-      let knownSkus: string[] = [];
+      // PRIORITY 1: Query the catalog to find a matching product based on ALL parameters
       try {
-        knownSkus = await this.getKnownProductSkus();
-        const sizeBasedSku = this.selectBestKnownSku(frameSize, knownSkus);
-        if (sizeBasedSku) {
-          // Make the SKU unique by appending image ID if provided
-          const uniqueSku = imageId ? `${sizeBasedSku}-${imageId.substring(0, 8)}` : sizeBasedSku;
-          console.log(`✅ Using known working Prodigi SKU: ${uniqueSku}`);
+        const allProducts = await this.getAllProducts();
+        console.log(`📊 Searching ${allProducts.length} products for match: size=${frameSize}, style=${frameStyle}, material=${frameMaterial}`);
+        
+        // Find products that match the specified configuration
+        const matchingProduct = this.findMatchingProduct(allProducts, frameSize, frameStyle, frameMaterial);
+        
+        if (matchingProduct) {
+          const sku = matchingProduct.sku;
+          const uniqueSku = imageId ? `${sku}-${imageId.substring(0, 8)}` : sku;
+          console.log(`✅ Found matching product SKU from catalog: ${uniqueSku}`, {
+            productName: matchingProduct.name,
+            category: matchingProduct.category
+          });
           return uniqueSku;
+        } else {
+          console.log(`⚠️ No exact match found in catalog for ${frameSize}-${frameStyle}-${frameMaterial}`);
         }
-      } catch (knownSkuError) {
-        console.log(`⚠️ Known SKU selection failed:`, knownSkuError);
+      } catch (catalogError) {
+        console.log(`⚠️ Catalog search failed:`, catalogError);
       }
       
-      // PRIORITY 2: Try to find a dynamic match (but validate it first)
+      // PRIORITY 2: Try to find a dynamic match using the old method (but validate it first)
       try {
         const dynamicSku = await this.getProductSku(frameSize, frameStyle, frameMaterial);
         
         // Validate that the dynamic SKU actually exists in Prodigi
         try {
           await this.getProductDetails(dynamicSku);
-          // Make the SKU unique by appending image ID if provided
           const uniqueDynamicSku = imageId ? `${dynamicSku}-${imageId.substring(0, 8)}` : dynamicSku;
           console.log(`✅ Found and validated dynamic Prodigi SKU: ${uniqueDynamicSku}`);
           return uniqueDynamicSku;
         } catch (validationError) {
-          console.log(`⚠️ Dynamic SKU ${dynamicSku} failed validation, falling back to known SKUs`);
-          // Fall through to use known SKUs
+          console.log(`⚠️ Dynamic SKU ${dynamicSku} failed validation`);
         }
       } catch (dynamicError) {
         console.log(`⚠️ Dynamic SKU search failed:`, dynamicError);
       }
       
-      // PRIORITY 3: Final fallback to any known working SKU (use cached list)
-      if (knownSkus.length > 0) {
-        const fallbackSku = knownSkus[0]; // Use the first available known SKU
-        // Make the SKU unique by appending image ID if provided
-        const uniqueFallbackSku = imageId ? `${fallbackSku}-${imageId.substring(0, 8)}` : fallbackSku;
-        console.log(`✅ Using fallback known working Prodigi SKU: ${uniqueFallbackSku}`);
-        return uniqueFallbackSku;
+      // PRIORITY 3: Fall back to size-based known working SKU
+      try {
+        const knownSkus = await this.getKnownProductSkus();
+        const sizeBasedSku = this.selectBestKnownSku(frameSize, knownSkus);
+        if (sizeBasedSku) {
+          const uniqueSku = imageId ? `${sizeBasedSku}-${imageId.substring(0, 8)}` : sizeBasedSku;
+          console.log(`⚠️ Using size-based fallback SKU (may not match style/material): ${uniqueSku}`);
+          return uniqueSku;
+        }
+      } catch (knownSkuError) {
+        console.log(`⚠️ Known SKU selection failed:`, knownSkuError);
       }
       
       // LAST RESORT: Generated SKU (this will likely fail in production)
@@ -1065,6 +1093,162 @@ export class ProdigiClient {
       console.warn('Error generating frame SKU, using fallback:', error);
       return this.getFallbackSku(frameSize, frameStyle, frameMaterial, imageId);
     }
+  }
+
+  /**
+   * Find a product from the catalog that matches the specified frame configuration
+   * This considers size, style (color), and material to find the best match
+   */
+  private findMatchingProduct(products: any[], frameSize: string, frameStyle: string, frameMaterial: string): any | null {
+    // Normalize inputs for comparison
+    const normalizedStyle = frameStyle.toLowerCase();
+    const normalizedMaterial = frameMaterial.toLowerCase();
+    
+    // Helper to check if a product matches the size
+    const matchesSize = (product: any): boolean => {
+      const width = product.fullProductHorizontalDimensions;
+      const height = product.fullProductVerticalDimensions;
+      const unit = product.sizeUnits || 'cm';
+      
+      // Convert to cm
+      let widthCm = width;
+      let heightCm = height;
+      if (unit === 'in') {
+        widthCm = width * 2.54;
+        heightCm = height * 2.54;
+      } else if (unit === 'mm') {
+        widthCm = width / 10;
+        heightCm = height / 10;
+      }
+      
+      // Calculate diagonal
+      const diagonal = Math.sqrt(widthCm * widthCm + heightCm * heightCm);
+      
+      // Match against size categories
+      if (frameSize === 'small' && diagonal < 45) return true;
+      if (frameSize === 'medium' && diagonal >= 45 && diagonal < 70) return true;
+      if (frameSize === 'large' && diagonal >= 70 && diagonal < 100) return true;
+      if (frameSize === 'extra_large' && diagonal >= 100) return true;
+      
+      return false;
+    };
+    
+    // Helper to check if a product matches the style (color)
+    const matchesStyle = (product: any): boolean => {
+      const colors = product.frameColour || product.color || product.attributes?.color || [];
+      if (!Array.isArray(colors)) return false;
+      
+      // Normalize colors for comparison
+      const normalizedColors = colors.map((c: string) => this.normalizeColorForMatching(c));
+      const normalizedTargetStyle = this.normalizeColorForMatching(normalizedStyle);
+      
+      return normalizedColors.includes(normalizedTargetStyle);
+    };
+    
+    // Helper to check if a product matches the material
+    const matchesMaterial = (product: any): boolean => {
+      const sku = product.sku?.toLowerCase() || '';
+      const productType = product.productType?.toLowerCase() || '';
+      
+      // Check for canvas
+      if (normalizedMaterial === 'canvas') {
+        return sku.includes('fra-can') || sku.includes('canvas') || productType.includes('canvas');
+      }
+      
+      // Check for metal
+      if (normalizedMaterial === 'metal') {
+        return sku.includes('metal') || productType.includes('metal');
+      }
+      
+      // Check for acrylic
+      if (normalizedMaterial === 'acrylic') {
+        return sku.includes('acry') || productType.includes('acrylic');
+      }
+      
+      // Check for bamboo
+      if (normalizedMaterial === 'bamboo') {
+        return sku.includes('bamboo') || sku.includes('bap') || productType.includes('bamboo');
+      }
+      
+      // Check for wood (default for most frames)
+      if (normalizedMaterial === 'wood') {
+        // Wood frames typically don't have specific material indicators
+        // So we assume it's wood if it's not one of the other materials
+        return !sku.includes('metal') && !sku.includes('acry') && !sku.includes('bamboo');
+      }
+      
+      return false;
+    };
+    
+    // Filter products that are frames
+    const frameProducts = products.filter(p => {
+      const hasFrameInCategory = p.category?.toLowerCase().includes('wall art') || p.category?.toLowerCase().includes('frame');
+      const hasFrameInSku = p.sku?.toLowerCase().includes('fra-can') || p.sku?.toLowerCase().includes('cfpm') || p.sku?.toLowerCase().includes('global-fra');
+      const hasFrameColor = (p.frameColour && Array.isArray(p.frameColour) && p.frameColour.length > 0) ||
+                            (p.color && Array.isArray(p.color) && p.color.length > 0);
+      return (hasFrameInCategory || hasFrameInSku) && hasFrameColor;
+    });
+    
+    console.log(`🔍 Filtering ${products.length} products → ${frameProducts.length} frame products`);
+    
+    // Find best match: prioritize products that match all criteria
+    let bestMatch: any = null;
+    let bestMatchScore = 0;
+    
+    for (const product of frameProducts) {
+      let score = 0;
+      const sizeMatch = matchesSize(product);
+      const styleMatch = matchesStyle(product);
+      const materialMatch = matchesMaterial(product);
+      
+      if (sizeMatch) score += 3;  // Size is most important
+      if (styleMatch) score += 2; // Style is second most important
+      if (materialMatch) score += 1; // Material is least important (since we default to wood)
+      
+      if (score > bestMatchScore) {
+        bestMatchScore = score;
+        bestMatch = product;
+      }
+      
+      // Perfect match - all criteria met
+      if (score === 6) {
+        console.log(`✅ Found perfect match: ${product.sku} (score: ${score})`);
+        return product;
+      }
+    }
+    
+    if (bestMatch && bestMatchScore >= 3) { // At least size must match
+      console.log(`✅ Found best match: ${bestMatch.sku} (score: ${bestMatchScore}/6)`);
+      return bestMatch;
+    }
+    
+    console.log(`❌ No suitable match found (best score: ${bestMatchScore}/6)`);
+    return null;
+  }
+  
+  /**
+   * Normalize color names for matching
+   */
+  private normalizeColorForMatching(color: string): string {
+    const colorMap: { [key: string]: string } = {
+      'black': 'black',
+      'blk': 'black',
+      'white': 'white',
+      'wht': 'white',
+      'grey': 'grey',
+      'gray': 'grey',
+      'natural': 'natural',
+      'nat': 'natural',
+      'oak': 'natural',
+      'walnut': 'natural',
+      'brown': 'brown',
+      'espresso': 'brown',
+      'gold': 'gold',
+      'silver': 'silver'
+    };
+    
+    const normalized = color.toLowerCase().trim();
+    return colorMap[normalized] || normalized;
   }
 
 
