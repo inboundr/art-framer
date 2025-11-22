@@ -5,12 +5,16 @@
 
 'use client';
 
-import { useState } from 'react';
 import { useStudioStore } from '@/store/studio';
 
-export function PreviewControls() {
+interface PreviewControlsProps {
+  autoRotate: boolean;
+  onAutoRotateToggle: () => void;
+  onResetView: () => void;
+}
+
+export function PreviewControls({ autoRotate, onAutoRotateToggle, onResetView }: PreviewControlsProps) {
   const { config, updateConfig, undo, redo, canUndo, canRedo } = useStudioStore();
-  const [autoRotate, setAutoRotate] = useState(false);
 
   return (
     <>
@@ -20,17 +24,14 @@ export function PreviewControls() {
           {/* Left side - View controls */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setAutoRotate(!autoRotate)}
+              onClick={onAutoRotateToggle}
               className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm"
             >
               {autoRotate ? '⏸️ Stop' : '▶️ Auto-Rotate'}
             </button>
 
             <button
-              onClick={() => {
-                // Reset camera view
-                // This would need to be implemented with a ref to OrbitControls
-              }}
+              onClick={onResetView}
               className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm"
             >
               🔄 Reset View
@@ -122,7 +123,15 @@ export function PreviewControls() {
           </button>
 
           <button
-            onClick={() => setAutoRotate(!autoRotate)}
+            onClick={onResetView}
+            className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm"
+            title="Reset view"
+          >
+            🔄
+          </button>
+
+          <button
+            onClick={onAutoRotateToggle}
             className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm"
             title={autoRotate ? 'Stop rotation' : 'Auto-rotate'}
           >

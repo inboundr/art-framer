@@ -353,7 +353,7 @@ export function AIChat() {
               value={input}
               onChange={handleInputChange}
               placeholder="Type or speak..."
-              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full resize-none rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-500 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
               rows={1}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {

@@ -18,6 +18,7 @@ interface FrameModelProps {
   glaze?: string;
   wrap?: string;
   productType?: string;
+  finish?: string;
 }
 
 export function FrameModel({
@@ -29,6 +30,7 @@ export function FrameModel({
   glaze,
   wrap,
   productType = 'framed-print',
+  finish,
 }: FrameModelProps) {
   // Parse size
   const [widthInches, heightInches] = size.split('x').map(Number);

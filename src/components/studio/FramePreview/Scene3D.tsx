@@ -7,16 +7,44 @@
 
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, PerspectiveCamera } from '@react-three/drei';
-import { Suspense } from 'react';
+import { Suspense, useRef, useEffect } from 'react';
 import { FrameModel } from './FrameModel';
 import { ArtworkPlane } from './ArtworkPlane';
 import type { FrameConfiguration } from '@/store/studio';
 
 interface Scene3DProps {
   config: FrameConfiguration;
+  autoRotate?: boolean;
+  resetTrigger?: number; // Increment this to trigger a reset
 }
 
-export function Scene3D({ config }: Scene3DProps) {
+// Component to handle OrbitControls with reset functionality
+function CameraControls({ autoRotate = false, resetTrigger = 0 }: { autoRotate?: boolean; resetTrigger?: number }) {
+  const controlsRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (resetTrigger > 0 && controlsRef.current) {
+      // Reset camera position and controls
+      controlsRef.current.reset();
+    }
+  }, [resetTrigger]);
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enableZoom={true}
+      enablePan={false}
+      minPolarAngle={Math.PI / 4}
+      maxPolarAngle={Math.PI / 1.5}
+      minDistance={3}
+      maxDistance={8}
+      autoRotate={autoRotate}
+      autoRotateSpeed={0.5}
+    />
+  );
+}
+
+export function Scene3D({ config, autoRotate = false, resetTrigger = 0 }: Scene3DProps) {
   return (
     <Canvas
       shadows
@@ -59,6 +87,7 @@ export function Scene3D({ config }: Scene3DProps) {
             glaze={config.glaze}
             wrap={config.wrap}
             productType={config.productType}
+            finish={config.finish}
           />
         </group>
 
@@ -71,17 +100,8 @@ export function Scene3D({ config }: Scene3DProps) {
           far={4}
         />
 
-        {/* Controls */}
-        <OrbitControls
-          enableZoom={true}
-          enablePan={false}
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 1.5}
-          minDistance={3}
-          maxDistance={8}
-          autoRotate={false}
-          autoRotateSpeed={0.5}
-        />
+        {/* Controls with reset functionality */}
+        <CameraControls autoRotate={autoRotate} resetTrigger={resetTrigger} />
       </Suspense>
     </Canvas>
   );

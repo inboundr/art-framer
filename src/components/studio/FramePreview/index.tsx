@@ -17,10 +17,16 @@ export function FramePreview() {
   const { config } = useStudioStore();
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
   const [showControls, setShowControls] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(false);
+  const [resetTrigger, setResetTrigger] = useState(0);
 
   if (!config.imageUrl) {
     return null;
   }
+
+  const handleResetView = () => {
+    setResetTrigger((prev) => prev + 1);
+  };
 
   return (
     <div className="relative h-full bg-gradient-to-br from-gray-50 to-gray-100">
@@ -42,7 +48,11 @@ export function FramePreview() {
       {/* 3D Scene */}
       {viewMode === '3d' && (
         <div className="w-full h-full">
-          <Scene3D config={config} />
+          <Scene3D 
+            config={config} 
+            autoRotate={autoRotate}
+            resetTrigger={resetTrigger}
+          />
         </div>
       )}
 
@@ -104,7 +114,11 @@ export function FramePreview() {
       {/* Controls */}
       {showControls && viewMode === '3d' && (
         <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4 z-10">
-          <PreviewControls />
+          <PreviewControls 
+            autoRotate={autoRotate}
+            onAutoRotateToggle={() => setAutoRotate(!autoRotate)}
+            onResetView={handleResetView}
+          />
         </div>
       )}
 
