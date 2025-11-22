@@ -54,7 +54,7 @@ export class ProdigiAPIError extends Error {
       HTTP_STATUS.SERVICE_UNAVAILABLE,
       HTTP_STATUS.GATEWAY_TIMEOUT,
     ];
-    return retryableCodes.includes(this.statusCode);
+    return retryableCodes.includes(this.statusCode as any);
   }
 
   /**

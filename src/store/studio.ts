@@ -32,6 +32,9 @@ export interface FrameConfiguration {
   imageId: string | null;
   imageAnalysis: ImageAnalysis | null;
   
+  // Product Type (NEW!)
+  productType: 'framed-print' | 'canvas' | 'framed-canvas' | 'acrylic' | 'metal' | 'poster';
+  
   // Frame Options
   sku: string | null;
   frameColor: string;
@@ -86,6 +89,24 @@ export interface Suggestion {
   priority: number;
 }
 
+// New type for AI Chat Suggestions (with accept/reject)
+export interface AIChatSuggestion {
+  id: string;
+  type: 'configuration' | 'pricing' | 'comparison' | 'info';
+  title: string;
+  description: string;
+  changes: Partial<FrameConfiguration>;
+  currentValues?: Record<string, any>;
+  estimatedPrice?: {
+    before: number;
+    after: number;
+    currency: string;
+  };
+  confidence?: number;
+  reason?: string;
+  timestamp: number;
+}
+
 export interface RoomVisualization {
   id: string;
   roomImageUrl: string;
@@ -103,6 +124,29 @@ export interface RoomVisualization {
   frameSize: { width: number; height: number };
 }
 
+export interface AvailableOptions {
+  // What options are available for current configuration
+  hasFrameColor: boolean;
+  hasGlaze: boolean;
+  hasMount: boolean;
+  hasMountColor: boolean;
+  hasPaperType: boolean;
+  hasFinish: boolean;
+  hasEdge: boolean;
+  hasWrap: boolean;
+  
+  // Available values for each option
+  frameColors: string[];
+  glazes: string[];
+  mounts: string[];
+  mountColors: string[];
+  paperTypes: string[];
+  finishes: string[];
+  edges: string[];
+  wraps: string[];
+  sizes: string[];
+}
+
 // ============================================================================
 // STORE
 // ============================================================================
@@ -111,12 +155,19 @@ interface StudioStore {
   // Current configuration
   config: FrameConfiguration;
   
+  // Available Options (from facets)
+  availableOptions: AvailableOptions | null;
+  isFacetsLoading: boolean;
+  
   // History for undo/redo
   history: FrameConfiguration[];
   currentHistoryIndex: number;
   
   // AI Suggestions
   suggestions: Suggestion[];
+  
+  // AI Chat Suggestions (with accept/reject)
+  pendingSuggestions: AIChatSuggestion[];
   
   // Room Visualizations
   rooms: RoomVisualization[];
@@ -132,14 +183,26 @@ interface StudioStore {
   
   // Actions
   updateConfig: (updates: Partial<FrameConfiguration>) => void;
+  updateConfigAsync: (updates: Partial<FrameConfiguration>) => Promise<void>;
   resetConfig: () => void;
   
   setImageAnalysis: (analysis: ImageAnalysis) => void;
   setImage: (url: string, id: string) => void;
   
+  // Facets
+  updateAvailableOptions: (options: AvailableOptions) => void;
+  updateAvailableOptionsAsync: (productType?: string) => Promise<void>;
+  setFacetsLoading: (isLoading: boolean) => void;
+  
   setSuggestions: (suggestions: Suggestion[]) => void;
   applySuggestion: (suggestionId: string) => void;
   dismissSuggestion: (suggestionId: string) => void;
+  
+  // AI Chat Suggestions Actions
+  addPendingSuggestion: (suggestion: AIChatSuggestion) => void;
+  acceptSuggestion: (suggestionId: string) => Promise<void>;
+  rejectSuggestion: (suggestionId: string) => void;
+  clearPendingSuggestions: () => void;
   
   addRoom: (room: RoomVisualization) => void;
   setActiveRoom: (roomId: string | null) => void;
@@ -153,6 +216,9 @@ interface StudioStore {
   setAnalyzing: (isAnalyzing: boolean) => void;
   setGeneratingImage: (isGenerating: boolean) => void;
   setPricingLoading: (isLoading: boolean) => void;
+  
+  // Pricing
+  updatePricingAsync: () => Promise<void>;
   
   setConversationId: (id: string) => void;
   
@@ -169,6 +235,7 @@ const getDefaultConfig = (): FrameConfiguration => ({
   imageUrl: null,
   imageId: null,
   imageAnalysis: null,
+  productType: 'framed-print', // Default product type
   sku: null,
   frameColor: 'black',
   frameStyle: 'classic',
@@ -176,6 +243,7 @@ const getDefaultConfig = (): FrameConfiguration => ({
   glaze: 'acrylic',
   mount: 'none',
   mountColor: 'white',
+  wrap: 'Black', // Default canvas wrap
   size: '16x20',
   paperType: 'enhanced-matte',
   finish: 'matte',
@@ -197,9 +265,12 @@ export const useStudioStore = create<StudioStore>()(
     (set, get) => ({
       // Initial State
       config: getDefaultConfig(),
+      availableOptions: null,
+      isFacetsLoading: false,
       history: [getDefaultConfig()],
       currentHistoryIndex: 0,
       suggestions: [],
+      pendingSuggestions: [],
       rooms: [],
       activeRoomId: null,
       isAnalyzing: false,
@@ -232,7 +303,7 @@ export const useStudioStore = create<StudioStore>()(
           };
         });
         
-        // Trigger pricing update in background
+        // Trigger pricing update in background (API will handle SKU lookup)
         const { config } = get();
         updatePricingAsync(config);
       },
@@ -269,6 +340,110 @@ export const useStudioStore = create<StudioStore>()(
         }));
       },
       
+      // Facets and Available Options
+      updateAvailableOptions: (options) => {
+        set({ availableOptions: options });
+      },
+      
+      updateAvailableOptionsAsync: async (productType) => {
+        const { config, setFacetsLoading, updateAvailableOptions } = get();
+        const typeToUse = productType || config.productType;
+        
+        setFacetsLoading(true);
+        
+        try {
+          const response = await fetch('/api/studio/facets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productType: typeToUse,
+              country: 'US',
+            }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            updateAvailableOptions(data.availableOptions);
+            console.log('[Store] Updated available options:', data.availableOptions);
+          } else {
+            console.error('[Store] Failed to fetch available options:', response.status);
+          }
+        } catch (error) {
+          console.error('[Store] Error fetching available options:', error);
+        } finally {
+          setFacetsLoading(false);
+        }
+      },
+      
+      setFacetsLoading: (isLoading) => {
+        set({ isFacetsLoading: isLoading });
+      },
+      
+      // Async update config with facet refresh
+      updateConfigAsync: async (updates) => {
+        const { config, updateConfig, updateAvailableOptionsAsync } = get();
+        
+        // If product type is changing, clean up invalid attributes
+        if (updates.productType && updates.productType !== config.productType) {
+          const cleanedUpdates = { ...updates };
+          
+          // Clean up based on the NEW product type
+          switch (updates.productType) {
+            case 'canvas':
+              // Canvas: Only wrap, no frame/glaze/mount
+              delete cleanedUpdates.frameColor;
+              delete cleanedUpdates.frameStyle;
+              delete cleanedUpdates.frameThickness;
+              cleanedUpdates.glaze = 'none';
+              cleanedUpdates.mount = 'none';
+              if (!cleanedUpdates.wrap) cleanedUpdates.wrap = 'Black';
+              break;
+              
+            case 'framed-canvas':
+              // Framed canvas: Frame color + wrap, but NO glaze/mount
+              cleanedUpdates.glaze = 'none';
+              cleanedUpdates.mount = 'none';
+              if (!cleanedUpdates.frameColor) cleanedUpdates.frameColor = 'black';
+              if (!cleanedUpdates.wrap) cleanedUpdates.wrap = 'Black';
+              break;
+              
+            case 'framed-print':
+              // Framed print: Frame + glaze + mount, but NO wrap
+              delete cleanedUpdates.wrap;
+              if (!cleanedUpdates.frameColor) cleanedUpdates.frameColor = 'black';
+              if (!cleanedUpdates.glaze) cleanedUpdates.glaze = 'acrylic';
+              if (!cleanedUpdates.mount) cleanedUpdates.mount = 'none';
+              break;
+              
+            case 'acrylic':
+            case 'metal':
+              // Acrylic/Metal: Usually just finish, no frame/glaze/mount/wrap
+              delete cleanedUpdates.frameColor;
+              delete cleanedUpdates.wrap;
+              cleanedUpdates.glaze = 'none';
+              cleanedUpdates.mount = 'none';
+              break;
+              
+            case 'poster':
+              // Poster: No frame/glaze/mount/wrap
+              delete cleanedUpdates.frameColor;
+              delete cleanedUpdates.wrap;
+              cleanedUpdates.glaze = 'none';
+              cleanedUpdates.mount = 'none';
+              break;
+          }
+          
+          // Update config with cleaned attributes
+          updateConfig(cleanedUpdates);
+          
+          // Refresh available options
+          await updateAvailableOptionsAsync(updates.productType);
+        } else {
+          // Normal update
+          updateConfig(updates);
+        }
+      },
+      
       // Suggestions
       setSuggestions: (suggestions) => {
         set({ suggestions });
@@ -294,6 +469,45 @@ export const useStudioStore = create<StudioStore>()(
         set((state) => ({
           suggestions: state.suggestions.filter(s => s.id !== suggestionId),
         }));
+      },
+      
+      // AI Chat Suggestions Management
+      addPendingSuggestion: (suggestion) => {
+        set((state) => ({
+          pendingSuggestions: [...state.pendingSuggestions, suggestion],
+        }));
+      },
+      
+      acceptSuggestion: async (suggestionId) => {
+        const { pendingSuggestions, updateConfigAsync, updatePricingAsync } = get();
+        const suggestion = pendingSuggestions.find(s => s.id === suggestionId);
+        
+        if (!suggestion) return;
+        
+        try {
+          // Apply the configuration changes
+          await updateConfigAsync(suggestion.changes);
+          
+          // Remove from pending
+          set((state) => ({
+            pendingSuggestions: state.pendingSuggestions.filter(s => s.id !== suggestionId),
+          }));
+          
+          // Update pricing in background
+          updatePricingAsync();
+        } catch (error) {
+          console.error('Error accepting suggestion:', error);
+        }
+      },
+      
+      rejectSuggestion: (suggestionId) => {
+        set((state) => ({
+          pendingSuggestions: state.pendingSuggestions.filter(s => s.id !== suggestionId),
+        }));
+      },
+      
+      clearPendingSuggestions: () => {
+        set({ pendingSuggestions: [] });
       },
       
       // Room visualization
@@ -360,6 +574,46 @@ export const useStudioStore = create<StudioStore>()(
       setGeneratingImage: (isGeneratingImage) => set({ isGeneratingImage }),
       setPricingLoading: (isPricingLoading) => set({ isPricingLoading }),
       
+      // Pricing
+      updatePricingAsync: async () => {
+        const { config, setPricingLoading } = get();
+        
+        try {
+          setPricingLoading(true);
+          
+          const response = await fetch('/api/studio/pricing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.pricing) {
+              const { total, shipping, sla, productionCountry, currency } = data.pricing;
+              const { sku } = data; // API may return the looked-up SKU
+              
+              set((state) => ({
+                config: {
+                  ...state.config,
+                  price: total || 0,
+                  shippingCost: shipping || 0,
+                  currency: currency || 'USD',
+                  sla: sla || 5,
+                  productionCountry: productionCountry || 'US',
+                  ...(sku && { sku }), // Update SKU if provided by API
+                },
+              }));
+            }
+          }
+        } catch (error) {
+          console.error('Error updating pricing:', error);
+        } finally {
+          setPricingLoading(false);
+        }
+      },
+      
       // Chat
       setConversationId: (id) => set({ conversationId: id }),
       
@@ -425,6 +679,7 @@ export const useStudioStore = create<StudioStore>()(
 
 /**
  * Update pricing in the background (debounced)
+ * Wrapper function for backward compatibility
  */
 let pricingTimeout: NodeJS.Timeout;
 
@@ -432,33 +687,8 @@ async function updatePricingAsync(config: FrameConfiguration) {
   clearTimeout(pricingTimeout);
   
   pricingTimeout = setTimeout(async () => {
-    try {
-      useStudioStore.getState().setPricingLoading(true);
-      
-      const response = await fetch('/api/studio/pricing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config }),
-      });
-      
-      if (response.ok) {
-        const { price, shippingCost, sla, productionCountry } = await response.json();
-        
-        useStudioStore.setState((state) => ({
-          config: {
-            ...state.config,
-            price,
-            shippingCost,
-            sla,
-            productionCountry,
-          },
-        }));
-      }
-    } catch (error) {
-      console.error('Error updating pricing:', error);
-    } finally {
-      useStudioStore.getState().setPricingLoading(false);
-    }
+    // Call the store's updatePricingAsync method
+    await useStudioStore.getState().updatePricingAsync();
   }, 500); // 500ms debounce
 }
 
@@ -489,6 +719,7 @@ export const useActiveRoom = () => {
  */
 export const useTotalPrice = () => {
   const { price, shippingCost } = useStudioStore((state) => state.config);
-  return price + shippingCost;
+  const total = (price || 0) + (shippingCost || 0);
+  return isNaN(total) ? 0 : total;
 };
 

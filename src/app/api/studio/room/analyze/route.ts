@@ -39,9 +39,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       walls,
       roomInfo: {
-        style: detection.roomStyle || 'modern',
-        wallColor: detection.wallColor || 'white',
-        lighting: detection.lighting || 'natural',
+        style: detection.roomInfo?.style || 'modern',
+        lighting: detection.roomInfo?.lighting || 'natural',
       },
     });
   } catch (error) {

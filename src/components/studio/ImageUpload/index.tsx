@@ -85,11 +85,11 @@ export function ImageUpload() {
   });
 
   return (
-    <div className="w-full max-w-2xl">
+    <div className="w-full max-w-2xl px-4">
       <div
         {...getRootProps()}
         className={`
-          relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer
+          relative border-2 border-dashed rounded-2xl p-6 sm:p-12 text-center cursor-pointer
           transition-all duration-200
           ${
             isDragActive
@@ -103,37 +103,37 @@ export function ImageUpload() {
 
         {isUploading ? (
           <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mb-4" />
-            <p className="text-lg font-medium text-gray-900">
+            <div className="animate-spin rounded-full h-10 sm:h-12 w-10 sm:w-12 border-b-2 border-black mb-3 sm:mb-4" />
+            <p className="text-base sm:text-lg font-medium text-gray-900">
               Uploading and analyzing...
             </p>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-xs sm:text-sm text-gray-500 mt-2">
               This will take just a moment
             </p>
           </div>
         ) : isDragActive ? (
           <div className="flex flex-col items-center">
-            <div className="text-6xl mb-4">📤</div>
-            <p className="text-lg font-medium text-gray-900">
+            <div className="text-5xl sm:text-6xl mb-3 sm:mb-4">📤</div>
+            <p className="text-base sm:text-lg font-medium text-gray-900">
               Drop your image here
             </p>
           </div>
         ) : (
           <div className="flex flex-col items-center">
-            <div className="text-6xl mb-4">🖼️</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <div className="text-5xl sm:text-6xl mb-3 sm:mb-4">🖼️</div>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
               Upload your artwork
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
               Drag and drop an image, or click to browse
             </p>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs sm:text-sm text-gray-500">
               <span>Supports:</span>
-              <span className="px-2 py-1 bg-gray-100 rounded">JPG</span>
-              <span className="px-2 py-1 bg-gray-100 rounded">PNG</span>
-              <span className="px-2 py-1 bg-gray-100 rounded">WEBP</span>
+              <span className="px-2 py-1 bg-gray-100 rounded text-xs">JPG</span>
+              <span className="px-2 py-1 bg-gray-100 rounded text-xs">PNG</span>
+              <span className="px-2 py-1 bg-gray-100 rounded text-xs">WEBP</span>
             </div>
-            <button className="mt-6 px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
+            <button className="mt-4 sm:mt-6 px-5 sm:px-6 py-2.5 sm:py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm sm:text-base">
               Choose File
             </button>
           </div>
@@ -141,17 +141,17 @@ export function ImageUpload() {
       </div>
 
       {/* Or Generate with AI */}
-      <div className="mt-8 text-center">
+      <div className="mt-6 sm:mt-8 text-center">
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-300" />
           </div>
-          <div className="relative flex justify-center text-sm">
+          <div className="relative flex justify-center text-xs sm:text-sm">
             <span className="px-4 bg-gray-50 text-gray-500">or</span>
           </div>
         </div>
 
-        <button className="mt-6 px-6 py-3 border-2 border-black text-black rounded-lg font-medium hover:bg-black hover:text-white transition-colors">
+        <button className="mt-4 sm:mt-6 px-5 sm:px-6 py-2.5 sm:py-3 border-2 border-black text-black rounded-lg font-medium hover:bg-black hover:text-white transition-colors text-sm sm:text-base">
           ✨ Generate Art with AI
         </button>
       </div>

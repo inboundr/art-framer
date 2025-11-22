@@ -5,11 +5,16 @@
 
 'use client';
 
-import { Message as MessageType } from 'ai/react';
 import { marked } from 'marked';
 
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 interface MessageProps {
-  message: MessageType;
+  message: Message;
 }
 
 export function Message({ message }: MessageProps) {

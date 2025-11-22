@@ -25,7 +25,7 @@ export type {
 export { PRODIGI_CONSTANTS } from './types';
 
 // Re-export clients and utilities
-export { azureSearchClient, AzureSearchClient } from './azure-search-client';
+export { azureSearchClient, AzureSearchClient } from './client';
 export { ProdigiQueryBuilder } from './query-builder';
 export { productMatcher, ProductMatcher } from './product-matcher';
 

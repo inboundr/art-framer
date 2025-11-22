@@ -84,76 +84,64 @@ export class ProdigiQueryBuilder {
       filterParts.push(`category eq '${this.escapeOData(this.filters.category)}'`);
     }
     
-    // Frame colors (OR logic)
+    // Frame colors (using search.in like Prodigi dashboard)
     if (this.filters.frameColors?.length) {
-      const colorFilters = this.filters.frameColors
-        .map(color => `frameColour/any(c: c eq '${this.escapeOData(color)}')`)
-        .join(' or ');
-      filterParts.push(`(${colorFilters})`);
+      const colorValues = this.filters.frameColors.map(c => this.escapeOData(c)).join('|');
+      filterParts.push(`frameColour/any(t: search.in(t, '${colorValues}', '|'))`);
     }
     
-    // Frame styles
+    // Frame styles (using search.in like Prodigi dashboard)
     if (this.filters.frameStyles?.length) {
-      const styleFilters = this.filters.frameStyles
-        .map(style => `frame/any(f: f eq '${this.escapeOData(style)}')`)
-        .join(' or ');
-      filterParts.push(`(${styleFilters})`);
+      const styleValues = this.filters.frameStyles.map(s => this.escapeOData(s)).join('|');
+      filterParts.push(`frame/any(t: search.in(t, '${styleValues}', '|'))`);
     }
     
-    // Glazes (OR logic)
+    // Glazes (using search.in like Prodigi dashboard)
     if (this.filters.glazes?.length) {
-      const glazeFilters = this.filters.glazes
-        .map(glaze => `glaze/any(g: g eq '${this.escapeOData(glaze)}')`)
-        .join(' or ');
-      filterParts.push(`(${glazeFilters})`);
+      const glazeValues = this.filters.glazes.map(g => this.escapeOData(g)).join('|');
+      filterParts.push(`glaze/any(t: search.in(t, '${glazeValues}', '|'))`);
     }
     
-    // Mounts (OR logic)
+    // Mounts (using search.in like Prodigi dashboard)
     if (this.filters.mounts?.length) {
-      const mountFilters = this.filters.mounts
-        .map(mount => `mount/any(m: m eq '${this.escapeOData(mount)}')`)
-        .join(' or ');
-      filterParts.push(`(${mountFilters})`);
+      const mountValues = this.filters.mounts.map(m => this.escapeOData(m)).join('|');
+      filterParts.push(`mount/any(t: search.in(t, '${mountValues}', '|'))`);
     }
     
-    // Mount colors (OR logic)
+    // Mount colors (using search.in like Prodigi dashboard)
     if (this.filters.mountColors?.length) {
-      const mountColorFilters = this.filters.mountColors
-        .map(color => `mountColour/any(c: c eq '${this.escapeOData(color)}')`)
-        .join(' or ');
-      filterParts.push(`(${mountColorFilters})`);
+      const mountColorValues = this.filters.mountColors.map(c => this.escapeOData(c)).join('|');
+      filterParts.push(`mountColour/any(t: search.in(t, '${mountColorValues}', '|'))`);
     }
     
-    // Paper types (OR logic)
+    // Paper types (using search.in like Prodigi dashboard)
     if (this.filters.paperTypes?.length) {
-      const paperFilters = this.filters.paperTypes
-        .map(paper => `paperType/any(p: p eq '${this.escapeOData(paper)}')`)
-        .join(' or ');
-      filterParts.push(`(${paperFilters})`);
+      const paperValues = this.filters.paperTypes.map(p => this.escapeOData(p)).join('|');
+      filterParts.push(`paperType/any(t: search.in(t, '${paperValues}', '|'))`);
     }
     
-    // Finishes (OR logic)
+    // Finishes (using search.in like Prodigi dashboard)
     if (this.filters.finishes?.length) {
-      const finishFilters = this.filters.finishes
-        .map(finish => `finish/any(f: f eq '${this.escapeOData(finish)}')`)
-        .join(' or ');
-      filterParts.push(`(${finishFilters})`);
+      const finishValues = this.filters.finishes.map(f => this.escapeOData(f)).join('|');
+      filterParts.push(`finish/any(t: search.in(t, '${finishValues}', '|'))`);
     }
     
-    // Edges (OR logic)
+    // Edges (using search.in like Prodigi dashboard)
     if (this.filters.edges?.length) {
-      const edgeFilters = this.filters.edges
-        .map(edge => `edge/any(e: e eq '${this.escapeOData(edge)}')`)
-        .join(' or ');
-      filterParts.push(`(${edgeFilters})`);
+      const edgeValues = this.filters.edges.map(e => this.escapeOData(e)).join('|');
+      filterParts.push(`edge/any(t: search.in(t, '${edgeValues}', '|'))`);
     }
     
-    // Product types (OR logic)
+    // Product types (NOT an array field - use simple OR logic)
     if (this.filters.productTypes?.length) {
-      const typeFilters = this.filters.productTypes
-        .map(type => `productType eq '${this.escapeOData(type)}'`)
-        .join(' or ');
-      filterParts.push(`(${typeFilters})`);
+      if (this.filters.productTypes.length === 1) {
+        filterParts.push(`productType eq '${this.escapeOData(this.filters.productTypes[0])}'`);
+      } else {
+        const typeFilters = this.filters.productTypes
+          .map(type => `productType eq '${this.escapeOData(type)}'`)
+          .join(' or ');
+        filterParts.push(`(${typeFilters})`);
+      }
     }
     
     // Size range filtering
@@ -182,33 +170,33 @@ export class ProdigiQueryBuilder {
   private buildFacets(): string[] {
     return [
       // Frame options
-      'facet=frame,count:100',
-      'facet=frameColour,count:100',
+      'frame,count:100',
+      'frameColour,count:100',
       
       // Glazing
-      'facet=glaze,count:100',
+      'glaze,count:100',
       
       // Mounts
-      'facet=mount,count:100',
-      'facet=mountColour,count:100',
+      'mount,count:100',
+      'mountColour,count:100',
       
       // Paper & materials
-      'facet=paperType,count:100',
-      'facet=finish,count:100',
-      'facet=edge',
+      'paperType,count:100',
+      'finish,count:100',
+      'edge',
       
       // Size & dimensions
-      'facet=size,count:100',
-      'facet=maxProductDimensionsMm,values:300|500|700|1000|1500',
+      'size,count:100',
+      'maxProductDimensionsMm,values:300|500|700|1000|1500',
       
       // Aspect ratio
-      'facet=productAspectRatio,values:95|105',
+      'productAspectRatio,values:95|105',
       
       // Metadata
-      'facet=category',
-      'facet=style,count:100',
-      'facet=brand',
-      'facet=gender',
+      'category',
+      'style,count:100',
+      'brand',
+      'gender',
     ];
   }
   

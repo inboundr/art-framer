@@ -25,15 +25,16 @@ export function FramePreview() {
   return (
     <div className="relative h-full bg-gradient-to-br from-gray-50 to-gray-100">
       {/* View Mode Selector */}
-      <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+      <div className="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 z-10 flex items-center justify-between">
         <ViewModeSelector mode={viewMode} onChange={setViewMode} />
         
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowControls(!showControls)}
-            className="px-4 py-2 bg-white text-gray-700 font-semibold rounded-lg shadow-sm text-sm hover:bg-gray-50 hover:shadow-md transition-all border border-gray-200"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white text-gray-700 font-semibold rounded-lg shadow-sm text-xs sm:text-sm hover:bg-gray-50 hover:shadow-md transition-all border border-gray-200"
           >
-            {showControls ? 'Hide Controls' : 'Show Controls'}
+            <span className="hidden sm:inline">{showControls ? 'Hide Controls' : 'Show Controls'}</span>
+            <span className="sm:hidden">{showControls ? 'Hide' : 'Show'}</span>
           </button>
         </div>
       </div>
@@ -102,24 +103,24 @@ export function FramePreview() {
 
       {/* Controls */}
       {showControls && viewMode === '3d' && (
-        <div className="absolute bottom-4 left-4 right-4 z-10">
+        <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4 z-10">
           <PreviewControls />
         </div>
       )}
 
-      {/* Info Overlay */}
-      <div className="absolute top-20 right-4 z-10">
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 space-y-2 text-sm">
-          <div className="flex items-center justify-between gap-4">
+      {/* Info Overlay - Hidden on small mobile, shown on sm and up */}
+      <div className="hidden sm:block absolute top-16 sm:top-20 right-2 sm:right-4 z-10">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 sm:p-4 space-y-2 text-xs sm:text-sm">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
             <span className="text-gray-600 font-medium">Size:</span>
             <span className="font-bold text-gray-900">{config.size}</span>
           </div>
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
             <span className="text-gray-600 font-medium">Frame:</span>
             <span className="font-bold text-gray-900 capitalize">{config.frameColor}</span>
           </div>
           {config.glaze && config.glaze !== 'none' && (
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-2 sm:gap-4">
               <span className="text-gray-600 font-medium">Glaze:</span>
               <span className="font-bold text-gray-900 capitalize">{config.glaze}</span>
             </div>

@@ -30,6 +30,7 @@ export { OrdersAPI } from './orders';
 export { OrderActionsAPI } from './order-actions';
 export { QuotesAPI } from './quotes';
 export { ProductsAPI } from './products';
+export { ProdigiCatalogService } from './catalog';
 export { WebhooksManager, WebhookHelpers, createWebhookMiddleware } from './webhooks';
 
 // Attribute helper exports
@@ -85,6 +86,28 @@ export {
   SIZING_OPTIONS,
 } from './constants';
 
+// Azure Search catalog exports
+export { azureSearchClient, AzureSearchClient } from './azure-search/client';
+export { ProdigiQueryBuilder } from './azure-search/query-builder';
+export { productMatcher, ProductMatcher } from './azure-search/product-matcher';
+export { prodigiService as azureSearchService, ProdigiService as AzureSearchService } from './azure-search/service';
+export type * as AzureSearchTypes from './azure-search/types';
+
+// Azure Search utility exports
+export {
+  calculateAspectRatio,
+  getOrientation,
+  getAspectRatioFilters,
+  getSizeRangeForCategory,
+  recommendSizeCategory,
+  buildScoringOptions,
+  createImageMatchQuery,
+} from './azure-search/query-builder';
+
+export {
+  getRecommendationsForImage,
+} from './azure-search/product-matcher';
+
 // Utility exports
 export {
   generateIdempotencyKey,
@@ -108,7 +131,9 @@ import { OrdersAPI } from './orders';
 import { OrderActionsAPI } from './order-actions';
 import { QuotesAPI } from './quotes';
 import { ProductsAPI } from './products';
+import { ProdigiCatalogService } from './catalog';
 import { WebhooksManager } from './webhooks';
+import { ProdigiService as AzureSearchService } from './azure-search/service';
 
 /**
  * Prodigi SDK - Main entry point
@@ -130,6 +155,12 @@ export class ProdigiSDK {
   /** Product information */
   public readonly products: ProductsAPI;
 
+  /** Product catalog and SKU lookup */
+  public readonly catalog: ProdigiCatalogService;
+
+  /** Azure Search catalog service (reverse-engineered Prodigi catalog) */
+  public readonly azureSearch: AzureSearchService;
+
   /** Webhook event handling */
   public readonly webhooks: WebhooksManager;
 
@@ -142,6 +173,8 @@ export class ProdigiSDK {
     this.orderActions = new OrderActionsAPI(this.client);
     this.quotes = new QuotesAPI(this.client);
     this.products = new ProductsAPI(this.client);
+    this.catalog = new ProdigiCatalogService(this.client);
+    this.azureSearch = new AzureSearchService();
     this.webhooks = new WebhooksManager();
   }
 
@@ -225,6 +258,16 @@ export const quotes = prodigiSDK.quotes;
  * Quick access to products API
  */
 export const products = prodigiSDK.products;
+
+/**
+ * Quick access to catalog service
+ */
+export const catalog = prodigiSDK.catalog;
+
+/**
+ * Quick access to Azure Search catalog service
+ */
+export const azureSearch = prodigiSDK.azureSearch;
 
 /**
  * Quick access to webhooks manager

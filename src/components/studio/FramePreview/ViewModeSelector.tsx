@@ -27,16 +27,17 @@ export function ViewModeSelector({ mode, onChange }: ViewModeSelectorProps) {
           key={m.value}
           onClick={() => onChange(m.value)}
           className={`
-            px-4 py-2 rounded-md text-sm font-medium transition-all
+            px-2 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-all
             ${
               mode === m.value
                 ? 'bg-black text-white shadow-sm'
                 : 'text-gray-700 hover:bg-gray-50'
             }
           `}
+          title={m.label}
         >
-          <span className="mr-2">{m.icon}</span>
-          {m.label}
+          <span className="text-base sm:text-sm sm:mr-2">{m.icon}</span>
+          <span className="hidden sm:inline">{m.label}</span>
         </button>
       ))}
     </div>

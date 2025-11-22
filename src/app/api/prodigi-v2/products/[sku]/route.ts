@@ -16,10 +16,10 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { sku: string } }
+  { params }: { params: Promise<{ sku: string }> }
 ) {
   try {
-    const { sku } = params;
+    const { sku } = await params;
     
     const product = await prodigiSDK.products.get(sku);
     

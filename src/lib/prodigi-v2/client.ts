@@ -262,11 +262,24 @@ export class ProdigiClient {
     method: string
   ): Promise<never> {
     let errorData: any = {};
+    let rawText = '';
     
     try {
-      const text = await response.text();
-      errorData = text ? JSON.parse(text) : {};
-    } catch {
+      rawText = await response.text();
+      errorData = rawText ? JSON.parse(rawText) : {};
+      
+      // DEBUG: Log the raw error response to understand its structure
+      console.log('[Prodigi] Raw error response:', {
+        status: response.status,
+        rawText,
+        parsed: errorData
+      });
+    } catch (parseError) {
+      console.log('[Prodigi] Failed to parse error response:', {
+        status: response.status,
+        rawText,
+        parseError: parseError instanceof Error ? parseError.message : String(parseError)
+      });
       // If we can't parse the error response, use empty object
     }
 

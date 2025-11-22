@@ -21,13 +21,17 @@ export function PricingDisplay() {
           <div className="flex items-baseline gap-2">
             {isPricingLoading ? (
               <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
-            ) : (
+            ) : totalPrice > 0 ? (
               <>
                 <span className="text-3xl font-bold text-gray-900">
                   ${totalPrice.toFixed(2)}
                 </span>
                 <span className="text-sm font-medium text-gray-600">{config.currency}</span>
               </>
+            ) : (
+              <span className="text-sm font-medium text-gray-500 italic">
+                Calculating...
+              </span>
             )}
           </div>
         </div>
@@ -41,12 +45,12 @@ export function PricingDisplay() {
       </div>
 
       {/* Breakdown */}
-      {showBreakdown && (
+      {showBreakdown && totalPrice > 0 && (
         <div className="space-y-2 pt-3 border-t border-gray-300">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-700 font-medium">Frame & Print</span>
             <span className="font-bold text-gray-900">
-              ${config.price.toFixed(2)}
+              ${(config.price || 0).toFixed(2)}
             </span>
           </div>
 
@@ -67,7 +71,7 @@ export function PricingDisplay() {
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-700 font-medium">Shipping</span>
             <span className="font-bold text-gray-900">
-              ${config.shippingCost.toFixed(2)}
+              ${(config.shippingCost || 0).toFixed(2)}
             </span>
           </div>
 

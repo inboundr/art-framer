@@ -13,25 +13,25 @@ import { SmartSuggestions } from './SmartSuggestions';
 import { QuickOptions } from './QuickOptions';
 
 export function ContextPanel() {
-  const { config, imageAnalysis, suggestions, setSuggestions } = useStudioStore();
+  const { config, suggestions, setSuggestions } = useStudioStore();
   const totalPrice = useTotalPrice();
 
   // Load suggestions when configuration changes
   useEffect(() => {
-    if (!config.imageUrl || !imageAnalysis) return;
+    if (!config.imageUrl || !config.imageAnalysis) return;
 
     const loadSuggestions = async () => {
       try {
         const response = await fetch('/api/studio/suggestions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            config,
-            imageAnalysis,
-            userContext: {
-              budget: 250, // Could come from user profile
-            },
-          }),
+        body: JSON.stringify({
+          config,
+          imageAnalysis: config.imageAnalysis,
+          userContext: {
+            budget: 250, // Could come from user profile
+          },
+        }),
         });
 
         if (response.ok) {
@@ -46,7 +46,7 @@ export function ContextPanel() {
     // Debounce suggestions loading
     const timeout = setTimeout(loadSuggestions, 1000);
     return () => clearTimeout(timeout);
-  }, [config, imageAnalysis]);
+  }, [config]);
 
   return (
     <div className="flex flex-col h-full">

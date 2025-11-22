@@ -217,7 +217,7 @@ export function removeUndefined<T extends Record<string, any>>(obj: T): Partial<
  * Sanitize object for logging (remove sensitive data)
  */
 export function sanitizeForLogging<T extends Record<string, any>>(obj: T): Partial<T> {
-  const sanitized = { ...obj };
+  const sanitized: any = { ...obj };
   const sensitiveKeys = ['apiKey', 'api_key', 'password', 'token', 'secret'];
   
   Object.keys(sanitized).forEach(key => {

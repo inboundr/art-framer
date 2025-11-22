@@ -4,17 +4,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prodigiService } from '@/lib/prodigi/service';
+import { prodigiService } from '@/lib/prodigi-v2/azure-search/service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { sku: string } }
+  { params }: { params: Promise<{ sku: string }> }
 ) {
   try {
-    const { sku } = params;
+    const { sku } = await params;
     const searchParams = request.nextUrl.searchParams;
     const country = searchParams.get('country') || 'US';
     

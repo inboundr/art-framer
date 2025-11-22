@@ -5,25 +5,28 @@
 
 'use client';
 
-import { useStudioStore, type FrameConfiguration } from '@/store/studio';
+import { useStudioStore, type FrameConfiguration, type AIChatSuggestion } from '@/store/studio';
 import { useEffect, useRef, useState } from 'react';
 import { Message } from './Message';
 import { QuickActions } from './QuickActions';
 import { TypingIndicator } from './TypingIndicator';
+import { SuggestionCard } from './SuggestionCard';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  suggestions?: AIChatSuggestion[];
 }
 
 export function AIChat() {
-  const { config, updateConfig } = useStudioStore();
+  const { config, updateConfig, addPendingSuggestion, acceptSuggestion, rejectSuggestion } = useStudioStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [applyingSuggestionId, setApplyingSuggestionId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,16 +59,24 @@ export function AIChat() {
       if (response.ok) {
         const data = await response.json();
 
-        // Add assistant message
+        // Add assistant message with suggestions
         const assistantMessage: ChatMessage = {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
           content: data.content || 'I apologize, I encountered an error.',
+          suggestions: data.suggestions || [],
         };
 
         setMessages((prev) => [...prev, assistantMessage]);
 
-        // Handle function calls AFTER displaying message
+        // Add suggestions to pending list
+        if (data.suggestions && data.suggestions.length > 0) {
+          data.suggestions.forEach((suggestion: AIChatSuggestion) => {
+            addPendingSuggestion(suggestion);
+          });
+        }
+
+        // Handle function calls AFTER displaying message (deprecated in favor of suggestions)
         if (data.function_call) {
           await handleFunctionCall(data.function_call);
         }
@@ -188,6 +199,43 @@ export function AIChat() {
     }
   };
 
+  const handleAcceptSuggestion = async (suggestion: AIChatSuggestion) => {
+    setApplyingSuggestionId(suggestion.id);
+    try {
+      await acceptSuggestion(suggestion.id);
+      
+      // Add confirmation message
+      const confirmMessage: ChatMessage = {
+        id: `system-${Date.now()}`,
+        role: 'assistant',
+        content: `✅ Applied! ${suggestion.title} has been updated. Check the preview on the right.`,
+      };
+      setMessages((prev) => [...prev, confirmMessage]);
+    } catch (error) {
+      console.error('Error accepting suggestion:', error);
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: '❌ Failed to apply suggestion. Please try again.',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setApplyingSuggestionId(null);
+    }
+  };
+
+  const handleRejectSuggestion = (suggestion: AIChatSuggestion) => {
+    rejectSuggestion(suggestion.id);
+    
+    // Add confirmation message
+    const confirmMessage: ChatMessage = {
+      id: `system-${Date.now()}`,
+      role: 'assistant',
+      content: `Okay, I won't apply "${suggestion.title}". Let me know if you'd like something different!`,
+    };
+    setMessages((prev) => [...prev, confirmMessage]);
+  };
+
   const handleQuickAction = async (action: string) => {
     // Create user message immediately
     const userMessage: ChatMessage = {
@@ -266,7 +314,23 @@ export function AIChat() {
         ) : (
           <>
             {messages.map((message) => (
-              <Message key={message.id} message={message} />
+              <div key={message.id} className="space-y-3">
+                <Message message={message} />
+                {/* Show suggestion cards for this message */}
+                {message.suggestions && message.suggestions.length > 0 && (
+                  <div className="ml-10 space-y-2">
+                    {message.suggestions.map((suggestion) => (
+                      <SuggestionCard
+                        key={suggestion.id}
+                        suggestion={suggestion}
+                        onAccept={handleAcceptSuggestion}
+                        onReject={handleRejectSuggestion}
+                        isApplying={applyingSuggestionId === suggestion.id}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
             {isLoading && <TypingIndicator />}
             <div ref={messagesEndRef} />

@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prodigiService } from '@/lib/prodigi/service';
+import { prodigiService } from '@/lib/prodigi-v2/azure-search/service';
 import type { UserPreferences } from '@/lib/prodigi/types';
 
 export const runtime = 'nodejs';

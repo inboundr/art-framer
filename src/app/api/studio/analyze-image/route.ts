@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeImageWithAI } from '@/lib/studio/openai';
-import { prodigiService } from '@/lib/prodigi/service';
+import { prodigiService } from '@/lib/prodigi-v2/azure-search/service';
 import sharp from 'sharp';
 
 export const runtime = 'nodejs';
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const orientation = getOrientation(aspectRatio);
     
     // 4. Query Prodigi for matching products
-    const country = request.geo?.country || 'US';
+    const country = 'US'; // Default to US for now
     
     const matchingProducts = await prodigiService.search(
       {

@@ -2,7 +2,7 @@
  * Prodigi Service - Main API Class
  */
 
-import { azureSearchClient } from './azure-search-client';
+import { azureSearchClient } from './client';
 import { productMatcher } from './product-matcher';
 import { createImageMatchQuery } from './query-builder';
 import type {

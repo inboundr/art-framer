@@ -246,6 +246,6 @@ export function getProductCategory(sku: string): keyof typeof PRODUCT_CATEGORIES
 export function getRequiredAttributesByCategory(sku: string): string[] {
   const category = getProductCategory(sku);
   if (!category) return [];
-  return PRODUCT_CATEGORIES[category].requiredAttributes;
+  return [...PRODUCT_CATEGORIES[category].requiredAttributes];
 }
 

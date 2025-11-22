@@ -1,0 +1,18 @@
+/Users/hatem/Documents/inboundr/art-framer/src/lib/prodigi-v2/client.ts:71
+      throw new Error('Prodigi API key is required');
+            ^
+
+
+Error: Prodigi API key is required
+    at new ProdigiClient (/Users/hatem/Documents/inboundr/art-framer/src/lib/prodigi-v2/client.ts:71:13)
+    at new ProdigiSDK (/Users/hatem/Documents/inboundr/art-framer/src/lib/prodigi-v2/index.ts:169:19)
+    at AzureSearchService (/Users/hatem/Documents/inboundr/art-framer/src/lib/prodigi-v2/index.ts:229:27)
+    at Object.<anonymous> (/Users/hatem/Documents/inboundr/art-framer/src/lib/prodigi-v2/index.ts:275:36)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object.transformer (/Users/hatem/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+
+Node.js v22.16.0

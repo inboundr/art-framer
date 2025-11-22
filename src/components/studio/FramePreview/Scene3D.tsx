@@ -48,8 +48,9 @@ export function Scene3D({ config }: Scene3DProps) {
           {/* Artwork */}
           <ArtworkPlane imageUrl={config.imageUrl || ''} size={config.size} />
           
-          {/* Frame */}
+          {/* Frame - Key prop forces re-render when critical config changes */}
           <FrameModel
+            key={`${config.productType}-${config.frameColor}-${config.wrap}-${config.glaze}-${config.size}`}
             color={config.frameColor}
             style={config.frameStyle}
             size={config.size}
@@ -57,6 +58,7 @@ export function Scene3D({ config }: Scene3DProps) {
             mountColor={config.mountColor}
             glaze={config.glaze}
             wrap={config.wrap}
+            productType={config.productType}
           />
         </group>
 
