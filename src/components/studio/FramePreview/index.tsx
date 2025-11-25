@@ -5,11 +5,13 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useStudioStore } from '@/store/studio';
 import { Scene3D } from './Scene3D';
 import { PreviewControls } from './PreviewControls';
 import { ViewModeSelector } from './ViewModeSelector';
+import { RoomScene, type RoomEnvironment } from './RoomScene';
+import { EnvironmentSelector } from './EnvironmentSelector';
 
 export type ViewMode = '3d' | 'room' | 'ar' | 'compare';
 
@@ -19,6 +21,7 @@ export function FramePreview() {
   const [showControls, setShowControls] = useState(true);
   const [autoRotate, setAutoRotate] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
+  const [roomEnvironment, setRoomEnvironment] = useState<RoomEnvironment>('living-room');
 
   if (!config.imageUrl) {
     return null;
@@ -58,20 +61,32 @@ export function FramePreview() {
 
       {/* Room View */}
       {viewMode === 'room' && (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="text-center p-8">
-            <div className="text-6xl mb-4">🏠</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Room Visualization
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Upload a photo of your room to see how this frame looks in your
-              space
-            </p>
-            <button className="px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
-              Upload Room Photo
-            </button>
+        <div className="w-full h-full relative">
+          {/* Environment Selector */}
+          <div className="absolute top-4 left-4 z-20">
+            <EnvironmentSelector
+              environment={roomEnvironment}
+              onChange={setRoomEnvironment}
+            />
           </div>
+          
+          {/* Room Scene */}
+          <Suspense
+            fallback={
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading room...</p>
+                </div>
+              </div>
+            }
+          >
+            <RoomScene
+              config={config}
+              environment={roomEnvironment}
+              resetTrigger={resetTrigger}
+            />
+          </Suspense>
         </div>
       )}
 
