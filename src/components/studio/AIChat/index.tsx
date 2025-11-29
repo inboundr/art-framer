@@ -17,6 +17,21 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   suggestions?: AIChatSuggestion[];
+  productType?: string;
+  showLifestyleImages?: boolean;
+  comparison?: {
+    option1: any;
+    option2: any;
+    differences: string[];
+    similarities: string[];
+    recommendation?: string;
+  };
+  imageSuggestions?: {
+    images: Array<{ path: string; type: string; description: string }>;
+    productType?: string;
+    frameType?: string;
+    frameColor?: string;
+  };
 }
 
 export function AIChat() {
@@ -59,12 +74,16 @@ export function AIChat() {
       if (response.ok) {
         const data = await response.json();
 
-        // Add assistant message with suggestions
+        // Add assistant message with suggestions, comparison, and image suggestions
         const assistantMessage: ChatMessage = {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
           content: data.content || 'I apologize, I encountered an error.',
           suggestions: data.suggestions || [],
+          productType: config.productType || 'framed-print',
+          showLifestyleImages: data.showLifestyleImages || false,
+          comparison: data.comparison || undefined,
+          imageSuggestions: data.imageSuggestions || undefined,
         };
 
         setMessages((prev) => [...prev, assistantMessage]);
@@ -199,7 +218,7 @@ export function AIChat() {
     }
   };
 
-  const handleAcceptSuggestion = async (suggestion: AIChatSuggestion) => {
+  const handleAcceptSuggestion = async (suggestion: { id: string; title: string }) => {
     setApplyingSuggestionId(suggestion.id);
     try {
       await acceptSuggestion(suggestion.id);
@@ -224,7 +243,7 @@ export function AIChat() {
     }
   };
 
-  const handleRejectSuggestion = (suggestion: AIChatSuggestion) => {
+  const handleRejectSuggestion = (suggestion: { id: string; title: string }) => {
     rejectSuggestion(suggestion.id);
     
     // Add confirmation message
@@ -315,19 +334,42 @@ export function AIChat() {
           <>
             {messages.map((message) => (
               <div key={message.id} className="space-y-3">
-                <Message message={message} />
+                <Message 
+                  message={{
+                    ...message,
+                    productType: message.productType || config.productType || 'framed-print',
+                    showLifestyleImages: message.showLifestyleImages,
+                  }}
+                />
                 {/* Show suggestion cards for this message */}
                 {message.suggestions && message.suggestions.length > 0 && (
                   <div className="ml-10 space-y-2">
-                    {message.suggestions.map((suggestion) => (
+                    {message.suggestions.map((suggestion) => {
+                      // Convert AIChatSuggestion to Suggestion format
+                      const suggestionForCard: import('./SuggestionCard').Suggestion = {
+                        id: suggestion.id,
+                        type: suggestion.type,
+                        title: suggestion.title,
+                        description: suggestion.description,
+                        changes: suggestion.changes,
+                        currentValues: suggestion.currentValues,
+                        estimatedPrice: suggestion.estimatedPrice,
+                        confidence: suggestion.confidence,
+                        reason: suggestion.reason,
+                        frameType: config.frameStyle || 'classic',
+                        frameColor: suggestion.changes?.frameColor || config.frameColor,
+                      };
+                      
+                      return (
                       <SuggestionCard
                         key={suggestion.id}
-                        suggestion={suggestion}
+                          suggestion={suggestionForCard}
                         onAccept={handleAcceptSuggestion}
                         onReject={handleRejectSuggestion}
                         isApplying={applyingSuggestionId === suggestion.id}
                       />
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

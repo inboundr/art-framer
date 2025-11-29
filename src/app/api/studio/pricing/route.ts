@@ -287,16 +287,26 @@ function buildProductAttributes(
   if (config.mount && config.mount !== 'none') {
     addIfValid('mount', config.mount);
     addIfValid('mountColor', config.mountColor);
-  } else if (isValidAttribute('mount') && validAttributes['mount'] && validAttributes['mount'].length > 0) {
-    // If the product has mount options and none was specified, use the first valid option
+  }
+  
+  // Check if mount is required but not set (either config.mount was invalid or not provided)
     // This handles SKUs that have built-in mounts (e.g., 'mount1' in the SKU name)
+  if (!attributes['mount'] && isValidAttribute('mount') && validAttributes['mount'] && validAttributes['mount'].length > 0) {
+    // Product requires a mount but none was set (or invalid value was provided)
     const defaultMount = validAttributes['mount'][0];
-    console.log(`[Attributes] Product has mount attribute but config.mount is '${config.mount}'. Using default: ${defaultMount}`);
+    console.log(`[Attributes] Product has mount attribute but mount is not set. Using default: ${defaultMount}`);
     attributes['mount'] = defaultMount;
-    
-    // Also add mountColor if specified
-    if (config.mountColor) {
-      addIfValid('mountColor', config.mountColor);
+  }
+  
+  // ALWAYS check if mountColor is required when mount is present
+  // This is critical - Prodigi requires mountColor when mount is set
+  if (attributes['mount'] && !attributes['mountColor']) {
+    if (isValidAttribute('mountColor') && validAttributes['mountColor'] && validAttributes['mountColor'].length > 0) {
+      const defaultMountColor = validAttributes['mountColor'][0];
+      console.log(`[Attributes] Mount is set but mountColor is missing. Using default: ${defaultMountColor}`);
+      attributes['mountColor'] = defaultMountColor;
+    } else {
+      console.warn(`[Attributes] Mount is set but mountColor is not a valid attribute for this product. Valid attributes:`, validKeys);
     }
   }
   
@@ -304,6 +314,15 @@ function buildProductAttributes(
   addIfValid('finish', config.finish); // Finish
   addIfValid('edge', config.edge); // Canvas edge
   addIfValid('frame', config.frameStyle); // Frame style
+
+  // Check if color is required but not set (either config.frameColor was invalid or not provided)
+  // This handles cases where user selects an invalid color (e.g., "Gold" when only "black", "white", etc. are valid)
+  if (!attributes['color'] && isValidAttribute('color') && validAttributes['color'] && validAttributes['color'].length > 0) {
+    // Product requires a color but none was set (or invalid value was provided)
+    const defaultColor = validAttributes['color'][0];
+    console.log(`[Attributes] Product has color attribute but color is not set. Using default: ${defaultColor}`);
+    attributes['color'] = defaultColor;
+  }
 
   // IMPORTANT: Prodigi's API has inconsistent casing for wrap values
   // /products returns capitalized (Black, White, ImageWrap, MirrorWrap)

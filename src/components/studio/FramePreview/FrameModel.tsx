@@ -8,6 +8,10 @@
 import { useMemo } from 'react';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
+import { useFrameMaterial } from '@/hooks/useFrameMaterial';
+import { useMountTexture } from '@/hooks/useMountTexture';
+import { useCanvasTexture } from '@/hooks/useCanvasTexture';
+import type { FrameType } from '@/lib/prodigi-textures/texture-mapper';
 
 interface FrameModelProps {
   color: string;
@@ -39,70 +43,44 @@ export function FrameModel({
 
   // Determine if we should show a frame based on product type
   const showFrame = ['framed-print', 'framed-canvas'].includes(productType);
-  const showMount = productType === 'framed-print' && mount && mount !== 'none';
+  const showMount = productType === 'framed-print' && !!mount && mount !== 'none';
   // IMPORTANT: Framed canvas does NOT support glaze in Prodigi!
-  const showGlaze = ['framed-print', 'acrylic'].includes(productType) && glaze && glaze !== 'none';
+  const showGlaze = ['framed-print', 'acrylic'].includes(productType) && !!glaze && glaze !== 'none';
+
+  // Determine frame type from style
+  const frameType: FrameType = useMemo(() => {
+    const styleLower = style.toLowerCase();
+    if (styleLower.includes('aluminium') || styleLower.includes('aluminum')) {
+      return 'aluminium';
+    }
+    if (styleLower.includes('box')) {
+      return 'box';
+    }
+    if (styleLower.includes('spacer')) {
+      return 'spacer';
+    }
+    if (styleLower.includes('float')) {
+      return 'float';
+    }
+    return 'classic'; // Default to classic
+  }, [style]);
 
   // Frame geometry
   const frameGeometry = useMemo(() => {
     return createFrameGeometry(width, height, style);
   }, [width, height, style]);
 
-  // Frame material
-  const frameMaterial = useMemo(() => {
-    // Comprehensive color mapping for all Prodigi frame colors
-    const colorMap: Record<string, string> = {
-      // Basic colors
-      'black': '#000000',
-      'white': '#FFFFFF',
-      'natural': '#C19A6B',
-      'brown': '#654321',
-      'dark brown': '#3E2723',
-      'light brown': '#8D6E63',
-      
-      // Metallics
-      'gold': '#FFD700',
-      'silver': '#C0C0C0',
-      'copper': '#B87333',
-      'bronze': '#CD7F32',
-      
-      // Greys
-      'grey': '#808080',
-      'gray': '#808080',
-      'dark grey': '#555555',
-      'dark gray': '#555555',
-      'light grey': '#CCCCCC',
-      'light gray': '#CCCCCC',
-      'charcoal': '#36454F',
-      
-      // Woods
-      'oak': '#B7A57A',
-      'walnut': '#5C4033',
-      'mahogany': '#C04000',
-      'cherry': '#9A463D',
-      'maple': '#D4AA78',
-      
-      // Other
-      'cream': '#FFFDD0',
-      'beige': '#F5F5DC',
-      'ivory': '#FFFFF0',
-    };
-
-    // Case-insensitive lookup
-    const colorLower = color.toLowerCase();
-    const hexColor = colorMap[colorLower] || '#000000';
-    
-    // Determine material properties based on color type
-    const isMetallic = ['gold', 'silver', 'copper', 'bronze'].includes(colorLower);
-    
-    const materialConfig: any = {
-      color: hexColor,
-      metalness: isMetallic ? 0.8 : 0.1,
-      roughness: isMetallic ? 0.3 : 0.5,
-    };
-
-    return new THREE.MeshStandardMaterial(materialConfig);
-  }, [color]);
+  // Frame material using Prodigi textures
+  const {
+    material: frameMaterial,
+    isLoading: frameMaterialLoading,
+    hasTextures: frameHasTextures,
+  } = useFrameMaterial({
+    frameType,
+    color,
+    style,
+    useTextures: true, // Enable texture loading
+  });
 
   // Mount/Mat geometry (if present)
   const mountGeometry = useMemo(() => {
@@ -114,36 +92,31 @@ export function FrameModel({
     return new THREE.PlaneGeometry(mountWidth, mountHeight);
   }, [mount, width, height]);
 
-  // Mount material
+  // Mount material using Prodigi textures
+  const {
+    texture: mountTexture,
+    fallbackColor: mountFallbackColor,
+  } = useMountTexture({
+    color: mountColor || 'white',
+    enabled: showMount,
+  });
+
   const mountMaterial = useMemo(() => {
     if (!mountGeometry) return null;
 
-    // Comprehensive mount color mapping
-    const colorMap: Record<string, string> = {
-      'white': '#FFFFFF',
-      'off-white': '#F8F8F0',
-      'off white': '#F8F8F0',
-      'offwhite': '#F8F8F0',
-      'snow white': '#FFFAFA',
-      'cream': '#FFFDD0',
-      'ivory': '#FFFFF0',
-      'black': '#000000',
-      'grey': '#D3D3D3',
-      'gray': '#D3D3D3',
-      'light grey': '#E8E8E8',
-      'light gray': '#E8E8E8',
-    };
-
-    // Case-insensitive lookup
-    const colorLower = (mountColor || 'white').toLowerCase();
-    const hexColor = colorMap[colorLower] || '#FFFFFF';
-
-    return new THREE.MeshStandardMaterial({
-      color: hexColor,
+    // Build material config - only include map if texture exists
+    const mountMaterialConfig: any = {
+      color: mountFallbackColor,
       roughness: 0.8,
       metalness: 0.0,
-    });
-  }, [mountColor, mountGeometry]);
+    };
+    
+    if (mountTexture) {
+      mountMaterialConfig.map = mountTexture;
+    }
+
+    return new THREE.MeshStandardMaterial(mountMaterialConfig);
+  }, [mountGeometry, mountTexture, mountFallbackColor]);
 
   // Glaze geometry and material
   const glazeGeometry = useMemo(() => {
@@ -247,6 +220,25 @@ export function FrameModel({
     return null;
   }, [productType, style]);
 
+  // Canvas textures
+  const wrapType = useMemo(() => {
+    if (!wrap) return undefined;
+    const wrapLower = wrap.toLowerCase();
+    if (wrapLower.includes('image')) return 'image' as const;
+    if (wrapLower.includes('mirror')) return 'mirror' as const;
+    if (wrapLower.includes('white')) return 'white' as const;
+    return 'black' as const;
+  }, [wrap]);
+
+  const {
+    substrateTexture,
+    wrapTexture,
+  } = useCanvasTexture({
+    substrateType: 'substrate',
+    wrapType,
+    enabled: ['canvas', 'framed-canvas'].includes(productType),
+  });
+
   // For canvas products, create edge geometries and back panel
   // IMPORTANT: Including wrap in dependencies ensures edges update when wrap changes
   const canvasEdges = useMemo(() => {
@@ -255,7 +247,7 @@ export function FrameModel({
     const edgeDepth = 0.08; // Canvas depth (how thick the canvas is)
     const edgeThickness = 0.01; // How thick each edge strip is
     
-    // Comprehensive wrap color mapping (case-insensitive)
+    // Use wrap texture if available, otherwise fallback to color
     const wrapColorMap: Record<string, string> = {
       'black': '#000000',
       'white': '#FFFFFF',
@@ -263,22 +255,30 @@ export function FrameModel({
       'mirrorwrap': '#909090', // Light gray to indicate mirror effect
     };
     
-    // Case-insensitive lookup
     const wrapLower = (wrap || 'Black').toLowerCase();
-    const color = wrapColorMap[wrapLower] || '#000000';
+    const fallbackColor = wrapColorMap[wrapLower] || '#000000';
     
-    const edgeMaterial = new THREE.MeshStandardMaterial({
-      color,
+    // Build edge material config - only include map if texture exists
+    const edgeMaterialConfig: any = {
+      color: fallbackColor,
       roughness: 0.7,
       metalness: 0.0,
-    });
+    };
+    if (wrapTexture) {
+      edgeMaterialConfig.map = wrapTexture;
+    }
+    const edgeMaterial = new THREE.MeshStandardMaterial(edgeMaterialConfig);
     
-    // Back panel material (canvas backing)
-    const backMaterial = new THREE.MeshStandardMaterial({
+    // Back panel material (canvas backing) - use substrate texture if available
+    const backMaterialConfig: any = {
       color: '#D4C4B0', // Canvas backing color (beige)
       roughness: 0.9,
       metalness: 0.0,
-    });
+    };
+    if (substrateTexture) {
+      backMaterialConfig.map = substrateTexture;
+    }
+    const backMaterial = new THREE.MeshStandardMaterial(backMaterialConfig);
     
     // Create 4 edge strips (top, bottom, left, right) + back panel
     return [
@@ -318,7 +318,7 @@ export function FrameModel({
         key: 'back',
       },
     ];
-  }, [productType, width, height, wrap]); // wrap is in dependencies!
+  }, [productType, width, height, wrap, wrapTexture, substrateTexture]); // wrap and textures in dependencies!
 
   return (
     <group>

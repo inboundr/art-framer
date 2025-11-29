@@ -13,6 +13,29 @@ global.TextDecoder = global.TextDecoder || class TextDecoder {
   }
 }
 
+// Polyfill for ReadableStream in test environment (required for LangChain/LangGraph)
+if (typeof ReadableStream === 'undefined') {
+  try {
+    global.ReadableStream = require('stream/web').ReadableStream
+  } catch (e) {
+    // Fallback polyfill if stream/web is not available
+    global.ReadableStream = class ReadableStream {
+      constructor() {
+        this.locked = false
+      }
+      getReader() {
+        return {
+          read: async () => ({ done: true, value: undefined }),
+          releaseLock: () => {},
+        }
+      }
+      cancel() {
+        return Promise.resolve()
+      }
+    }
+  }
+}
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {

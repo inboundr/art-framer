@@ -7,6 +7,8 @@
 
 import { useState } from 'react';
 import type { FrameConfiguration } from '@/store/studio';
+import { getChevronImage } from '@/lib/prodigi-assets/asset-catalog';
+import Image from 'next/image';
 
 export interface Suggestion {
   id: string;
@@ -22,6 +24,8 @@ export interface Suggestion {
   };
   confidence?: number;
   reason?: string;
+  frameType?: string;
+  frameColor?: string;
 }
 
 interface SuggestionCardProps {
@@ -168,6 +172,37 @@ export function SuggestionCard({
             Why this suggestion?
           </div>
           <p className="text-sm text-gray-700">{suggestion.reason}</p>
+        </div>
+      )}
+
+      {/* Frame Visual Reference */}
+      {isExpanded && suggestion.type === 'configuration' && suggestion.frameColor && (
+        <div className="mb-3">
+          {(() => {
+            const frameType = suggestion.frameType || 'classic';
+            const frameColor = suggestion.frameColor;
+            const chevronImage = getChevronImage(frameType, frameColor);
+            
+            if (chevronImage) {
+              return (
+                <div className="p-3 bg-white rounded-md border border-blue-100">
+                  <div className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
+                    Frame Preview
+                  </div>
+                  <div className="relative aspect-video w-full rounded overflow-hidden">
+                    <Image
+                      src={chevronImage}
+                      alt={`${frameType} ${frameColor} frame profile`}
+                      fill
+                      className="object-contain"
+                      sizes="(max-width: 768px) 100vw, 400px"
+                    />
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
         </div>
       )}
 

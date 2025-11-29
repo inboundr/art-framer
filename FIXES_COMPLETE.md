@@ -151,3 +151,6 @@ The AI Studio is fully functional! You can now:
 
 **Enjoy your AI-powered frame studio!** 🎨🖼️
 
+
+
+

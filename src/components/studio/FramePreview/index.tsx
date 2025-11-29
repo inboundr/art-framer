@@ -12,6 +12,7 @@ import { PreviewControls } from './PreviewControls';
 import { ViewModeSelector } from './ViewModeSelector';
 import { RoomScene, type RoomEnvironment } from './RoomScene';
 import { EnvironmentSelector } from './EnvironmentSelector';
+import { DynamicErrorBoundary } from '@/components/DynamicErrorBoundary';
 
 export type ViewMode = '3d' | 'room' | 'ar' | 'compare';
 
@@ -51,11 +52,27 @@ export function FramePreview() {
       {/* 3D Scene */}
       {viewMode === '3d' && (
         <div className="w-full h-full">
+          <DynamicErrorBoundary
+            fallback={
+              <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                <div className="text-center p-8">
+                  <div className="text-4xl mb-4">🖼️</div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Preview Loading
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Frame preview is loading...
+                  </p>
+                </div>
+              </div>
+            }
+          >
           <Scene3D 
             config={config} 
             autoRotate={autoRotate}
             resetTrigger={resetTrigger}
           />
+          </DynamicErrorBoundary>
         </div>
       )}
 
