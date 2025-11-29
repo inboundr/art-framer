@@ -39,3 +39,7 @@ next-env.d.ts
 # Studio uploads
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# Large 3D model files (too large for GitHub)
+*.glb
+/public/samples/rooms/**/*.glb
