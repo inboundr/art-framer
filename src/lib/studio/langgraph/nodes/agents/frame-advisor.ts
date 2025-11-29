@@ -55,14 +55,21 @@ CRITICAL - When to Use updateFrame vs recommendFrame:
   * "Show me some options"
   * "What's the best choice for my artwork?"
 
+CRITICAL - Image Handling:
+- DO NOT include markdown image links (![alt](path)) in your responses
+- Images are automatically displayed from tool results - you don't need to add them manually
+- If you want to show images, use the getFrameVisuals tool - the images will be displayed automatically
+- NEVER make up image paths - only use paths returned by tools
+- When describing images, just describe them in text - don't add markdown links
+
 Guidelines:
 1. ALWAYS reference the user's current frame configuration when providing advice
 2. When user explicitly requests a change, use updateFrame tool immediately
 3. When asked for improvements or recommendations, use recommendFrame tool
-4. Always show visual examples when recommending frames
+4. Always show visual examples when recommending frames (use getFrameVisuals tool)
 5. Explain why you're making specific recommendations
 6. Consider the user's artwork, space, and preferences
-7. Be proactive in showing relevant images
+7. Be proactive in showing relevant images (use getFrameVisuals tool, don't add markdown)
 8. Compare options clearly when asked
 9. Provide sizing guidance based on room context
 10. Explain quality differences in simple terms
@@ -71,33 +78,50 @@ Guidelines:
 // Tool: Get visual examples
 class GetFrameVisualsTool extends StructuredTool {
   name = 'getFrameVisuals';
-  description = 'Get visual examples and lifestyle images for frames. Shows how frames look in real settings.';
+  description = 'Get visual examples and lifestyle images for frames. Shows how frames look in real settings. Can filter by mount configuration (with mount vs without mount).';
 
   schema = z.object({
     productType: z.string().describe('Product type (e.g., framed-print, canvas).'),
     frameConfig: z.object({
       frameType: z.string().optional(),
       frameColor: z.string().optional(),
+      mount: z.string().optional().describe('Mount configuration: "none" for no mount, "2.4mm", "2.0mm", "1.4mm" for with mount'),
     }).optional(),
     viewType: z.string().optional().describe('Type of view: "lifestyle", "chevron", "corner", "cross-section", or "all".'),
     limit: z.number().optional().describe('Maximum number of images to return (1-10).'),
+    hasMount: z.boolean().optional().describe('Filter by mount: true for images with mount, false for images without mount, undefined for all'),
   });
 
   async _call(input: z.infer<typeof this.schema>) {
-    const { productType, frameConfig, viewType = 'lifestyle', limit = 5 } = input;
+    const { productType, frameConfig, viewType = 'lifestyle', limit = 5, hasMount } = input;
     const frameType = frameConfig?.frameType;
     const frameColor = frameConfig?.frameColor;
+    const mount = frameConfig?.mount;
     
     const images: Array<{ path: string; type: string; description: string }> = [];
     
     // Get lifestyle images
     if (viewType === 'lifestyle' || viewType === 'all') {
-      const lifestyleImages = getLifestyleImages(productType as any);
+      // Determine mount preference
+      let mountPreference: boolean | undefined = undefined;
+      if (hasMount !== undefined) {
+        mountPreference = hasMount;
+      } else if (mount !== undefined) {
+        mountPreference = mount !== 'none';
+      }
+      
+      // Get filtered lifestyle images using the updated catalog function
+      const lifestyleImages = getLifestyleImages(productType as any, mountPreference);
+      
       lifestyleImages.slice(0, limit).forEach(path => {
+        const pathLower = path.toLowerCase();
+        const hasMountInImage = !pathLower.includes('no mount') && !pathLower.includes('no-mount');
+        const mountDescription = hasMountInImage ? 'with mount' : 'without mount';
+        
         images.push({
           path,
           type: 'lifestyle',
-          description: `${productType} lifestyle example`,
+          description: `${productType} lifestyle example ${mountDescription}`,
         });
       });
     }
@@ -280,8 +304,14 @@ When the user asks for improvements, recommendations, or advice:
 2. Then provide specific suggestions based on what they have
 3. Explain how your suggestions differ from their current setup
 
+CRITICAL - When user asks to compare options (e.g., "show me example with mount and another without mount"):
+- You MUST call getFrameVisuals TWICE: once with hasMount: true, once with hasMount: false
+- This ensures you get DIFFERENT images for each option
+- Present them as separate examples clearly labeled (e.g., "Example with Mount" vs "Example without Mount")
+- Do NOT call getFrameVisuals once and reuse the same images for both options
+
 Available Tools:
-- getFrameVisuals: Show lifestyle images, chevrons, corners, cross-sections
+- getFrameVisuals: Show lifestyle images, chevrons, corners, cross-sections. Use hasMount parameter (true = with mount, false = without mount) to filter. For comparisons, call this tool MULTIPLE TIMES with different parameters.
 - recommendFrame: Generate personalized recommendations
 - updateFrame: Directly update frame configuration when user requests changes (e.g., "change to black", "make it bigger", "switch to canvas")`;
 

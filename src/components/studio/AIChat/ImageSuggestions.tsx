@@ -5,7 +5,7 @@
 
 'use client';
 
-import Image from 'next/image';
+import { ExpandableImage } from './ExpandableImage';
 
 interface ImageSuggestion {
   path: string;
@@ -41,36 +41,14 @@ export function ImageSuggestions({
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        {images.map((image, index) => {
-          // Ensure path is absolute (starts with /)
-          // Next.js Image component handles URL encoding automatically
-          let imagePath = image.path;
-          if (!imagePath.startsWith('/')) {
-            imagePath = `/${imagePath}`;
-          }
-          
-          return (
-            <div
-              key={index}
-              className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 group hover:border-blue-300 transition-colors"
-            >
-              <Image
-                src={imagePath}
-                alt={image.description || `Example ${index + 1}`}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 33vw, 150px"
-                onError={(e) => {
-                  console.error('Image load error:', imagePath, e);
-                }}
-              />
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity" />
-              <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                <p className="text-xs text-white truncate px-1">{image.type}</p>
-              </div>
-            </div>
-          );
-        })}
+        {images.map((image, index) => (
+          <ExpandableImage
+            key={index}
+            src={image.path}
+            alt={image.description || `Example ${index + 1}`}
+            description={image.type}
+          />
+        ))}
       </div>
 
       {images.length > 3 && (

@@ -6,7 +6,7 @@
 'use client';
 
 import { marked } from 'marked';
-import Image from 'next/image';
+import { ExpandableImage } from './ExpandableImage';
 import { useLifestyleImages } from '@/hooks/useLifestyleImages';
 import { ProductComparison } from './ProductComparison';
 import { ImageSuggestions } from './ImageSuggestions';
@@ -51,6 +51,80 @@ export function Message({ message }: MessageProps) {
     limit: 3,
   });
 
+  // Extract image URLs from markdown content
+  const extractImagesFromMarkdown = (content: string): Array<{ url: string; alt: string }> => {
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    const images: Array<{ url: string; alt: string }> = [];
+    let match;
+    
+    while ((match = imageRegex.exec(content)) !== null) {
+      const alt = match[1] || '';
+      let url = match[2];
+      
+      // Remove any protocol (http://, https://) if present
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        try {
+          const urlObj = new URL(url);
+          // If hostname is "prodigi-assets-extracted", preserve it in the path
+          if (urlObj.hostname === 'prodigi-assets-extracted') {
+            // Reconstruct path with hostname as part of path
+            url = `/prodigi-assets-extracted${urlObj.pathname}`;
+          } else {
+            // For other URLs, just use pathname
+            url = urlObj.pathname;
+          }
+        } catch {
+          // If URL parsing fails, manually extract path
+          url = url.replace(/^https?:\/\//, '');
+          // If it contains prodigi-assets-extracted, preserve it
+          if (url.includes('prodigi-assets-extracted')) {
+            const match = url.match(/(prodigi-assets-extracted\/.*)/);
+            if (match) {
+              url = `/${match[1]}`;
+            } else {
+              url = `/prodigi-assets-extracted${url.substring(url.indexOf('/'))}`;
+            }
+          } else {
+            // Remove hostname (everything before first /)
+            const firstSlash = url.indexOf('/');
+            if (firstSlash > 0) {
+              url = url.substring(firstSlash);
+            } else {
+              url = `/${url}`;
+            }
+          }
+        }
+      }
+      
+      // Convert relative paths to absolute local paths
+      if (!url.startsWith('/')) {
+        // Handle paths that might have prodigi-assets-extracted prefix
+        if (url.includes('prodigi-assets-extracted')) {
+          url = url.replace(/^.*?prodigi-assets-extracted/, '/prodigi-assets-extracted');
+        } else {
+          url = `/${url}`;
+        }
+      }
+      
+      // Ensure prodigi-assets-extracted paths are correct
+      if (url.includes('prodigi-assets-extracted') && !url.startsWith('/prodigi-assets-extracted')) {
+        url = url.replace(/.*?(prodigi-assets-extracted.*)/, '/$1');
+      }
+      
+      images.push({ url, alt });
+    }
+    
+    return images;
+  };
+
+  // Remove image markdown from content to avoid double rendering
+  const cleanContent = (content: string): string => {
+    return content.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '').trim();
+  };
+
+  const markdownImages = extractImagesFromMarkdown(message.content || '');
+  const cleanedContent = cleanContent(message.content || '');
+
   return (
     <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
       <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
@@ -62,13 +136,29 @@ export function Message({ message }: MessageProps) {
               : 'bg-gray-100 text-gray-900'
           }`}
         >
-          <div
-            className="text-sm prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{
-              __html: marked.parse(message.content || ''),
-            }}
-          />
+          {cleanedContent && (
+            <div
+              className="text-sm prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{
+                __html: marked.parse(cleanedContent),
+              }}
+            />
+          )}
         </div>
+        
+        {/* Render markdown images as expandable images */}
+        {!isUser && markdownImages.length > 0 && (
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {markdownImages.map((img, index) => (
+              <ExpandableImage
+                key={index}
+                src={img.url}
+                alt={img.alt || `Image ${index + 1}`}
+                description={img.alt}
+              />
+            ))}
+          </div>
+        )}
         
         {!isUser && (
           <div className="flex items-center gap-1 mt-1 px-2">
@@ -110,32 +200,14 @@ export function Message({ message }: MessageProps) {
             Examples:
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {lifestyleImages.slice(0, 3).map((imagePath, index) => {
-              // Ensure path is absolute (starts with /)
-              // Next.js Image component handles URL encoding automatically
-              let path = imagePath;
-              if (!path.startsWith('/')) {
-                path = `/${path}`;
-              }
-              
-              return (
-                <div
-                  key={index}
-                  className="relative aspect-square rounded-lg overflow-hidden border border-gray-200"
-                >
-                  <Image
-                    src={path}
-                    alt={`Example ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 33vw, 150px"
-                    onError={(e) => {
-                      console.error('Lifestyle image load error:', path, e);
-                    }}
-                  />
-                </div>
-              );
-            })}
+            {lifestyleImages.slice(0, 3).map((imagePath, index) => (
+              <ExpandableImage
+                key={index}
+                src={imagePath}
+                alt={`Example ${index + 1}`}
+                description="lifestyle"
+              />
+            ))}
           </div>
         </div>
       )}

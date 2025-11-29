@@ -51,6 +51,12 @@ Create a single, coherent response that:
 5. Is concise but complete
 6. Preserves important details from each agent
 
+CRITICAL - Image Handling:
+- DO NOT include markdown image links (![alt](path)) in your response
+- Images are automatically displayed from tool results - you don't need to add them manually
+- NEVER make up image paths - only describe images in text if needed
+- When mentioning images, just describe them - don't add markdown links
+
 Response:`;
 
     const response = await model.invoke([

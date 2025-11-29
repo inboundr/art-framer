@@ -99,7 +99,12 @@ export async function POST(req: NextRequest) {
     }
     
     // Check if we should show lifestyle images based on content
-    const finalContent = result.finalResponse || '';
+    let finalContent = result.finalResponse || '';
+    
+    // Remove any markdown image links from the content (images are handled via tool results)
+    // This prevents the AI from generating incorrect image paths
+    finalContent = finalContent.replace(/!\[([^\]]*)\]\([^)]+\)/g, '');
+    
     if (!showLifestyleImages) {
       const lowerContent = finalContent.toLowerCase();
       const productTypeKeywords = [

@@ -42,16 +42,21 @@ export interface AssetReference {
 
 /**
  * Gets lifestyle images for a product type
+ * @param productType - Product type
+ * @param hasMount - Optional: true for images with mount, false for images without mount, undefined for all
  */
-export function getLifestyleImages(productType: ProductType): string[] {
+export function getLifestyleImages(productType: ProductType, hasMount?: boolean): string[] {
   const basePath = '/prodigi-assets-extracted';
   
   // Note: Next.js Image component handles URL encoding automatically
   // We keep paths as-is with spaces, and Next.js will encode them properly
   const lifestyleMap: Record<ProductType, string[]> = {
     'framed-print': [
-      `${basePath}/prodigi-classic-frames-photo-assets/Classic black framed print flat.jpg`,
-      `${basePath}/prodigi-classic-frames-photo-assets/Classic framed print far corner.jpg`,
+      `${basePath}/prodigi-classic-frames-photo-assets/Classic black framed print flat.jpg`, // Has mount
+      `${basePath}/prodigi-classic-frames-photo-assets/Classic framed print far corner.jpg`, // Has mount
+      `${basePath}/prodigi-classic-frames-photo-assets/Classic black framed print near corner.jpg`, // Has mount
+      `${basePath}/prodigi-classic-frames-photo-assets/Classic black framed print corner no mount.jpg`, // No mount
+      `${basePath}/prodigi-classic-frames-photo-assets/Classic white framed print flat no mount.jpg`, // No mount
     ],
     'framed-canvas': [
       `${basePath}/prodigi-framed-canvas-photo-assets/Canvas framed black wall.jpg`,
@@ -95,7 +100,23 @@ export function getLifestyleImages(productType: ProductType): string[] {
     ],
   };
   
-  return lifestyleMap[productType] || [];
+  let images = lifestyleMap[productType] || [];
+  
+  // Filter by mount if specified
+  if (hasMount !== undefined) {
+    images = images.filter(path => {
+      const pathLower = path.toLowerCase();
+      const hasNoMountInPath = pathLower.includes('no mount') || pathLower.includes('no-mount');
+      return hasMount ? !hasNoMountInPath : hasNoMountInPath;
+    });
+    
+    // If filtering resulted in no images, return all images (fallback)
+    if (images.length === 0) {
+      images = lifestyleMap[productType] || [];
+    }
+  }
+  
+  return images;
 }
 
 /**

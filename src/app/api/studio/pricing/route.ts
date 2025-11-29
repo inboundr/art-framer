@@ -282,11 +282,47 @@ function buildProductAttributes(
   addIfValid('glaze', config.glaze === 'acrylic' ? 'Acrylic / Perspex' : config.glaze); // Glaze
   
   // Handle mount attributes
-  // IMPORTANT: If product has 'mount' attribute and we're NOT explicitly setting it to 'none',
-  // we need to provide a mount value (especially if mountColor is specified)
+  // IMPORTANT: Some products only support "No mount / Mat" and don't support mount sizes
+  // If user wants a mount but product only supports "No mount / Mat", we should inform them
+  // but still allow the request to proceed (the mount won't be applied)
   if (config.mount && config.mount !== 'none') {
-    addIfValid('mount', config.mount);
-    addIfValid('mountColor', config.mountColor);
+    if (isValidAttribute('mount')) {
+      const validMounts = validAttributes['mount'];
+      const mountValue = config.mount;
+      
+      // Try to find a match in Prodigi's valid options
+      // First try exact match (case-insensitive)
+      let matchedMount = validMounts.find(
+        opt => opt.toLowerCase() === mountValue.toLowerCase()
+      );
+      
+      // If no exact match, try to find mount that contains our value (e.g., "2.0mm" in "2.0mm Mount")
+      if (!matchedMount && mountValue.includes('mm')) {
+        matchedMount = validMounts.find(
+          opt => opt.toLowerCase().includes(mountValue.toLowerCase())
+        );
+      }
+      
+      // If we found a match, use it
+      if (matchedMount) {
+        attributes['mount'] = matchedMount;
+        addIfValid('mountColor', config.mountColor);
+      } else {
+        // Product doesn't support this mount size
+        // Check if product only supports "No mount / Mat"
+        const onlyNoMount = validMounts.length === 1 && 
+          (validMounts[0].toLowerCase().includes('no mount') || 
+           validMounts[0].toLowerCase().includes('no-mount'));
+        
+        if (onlyNoMount) {
+          console.warn(`[Attributes] Product only supports "${validMounts[0]}" for mount, but user requested "${mountValue}". Mount will not be applied.`);
+          // Don't set mount attribute - product doesn't support it
+        } else {
+          console.warn(`[Attributes] Mount value "${mountValue}" not valid for this product. Valid options:`, validMounts);
+          // Don't set mount attribute - invalid value
+        }
+      }
+    }
   }
   
   // Check if mount is required but not set (either config.mount was invalid or not provided)

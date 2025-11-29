@@ -78,7 +78,7 @@ export function Scene3D({ config, autoRotate = false, resetTrigger = 0 }: Scene3
           
           {/* Frame - Key prop forces re-render when critical config changes */}
           <FrameModel
-            key={`${config.productType}-${config.frameColor}-${config.wrap}-${config.glaze}-${config.size}`}
+            key={`${config.productType}-${config.frameColor}-${config.wrap}-${config.glaze}-${config.size}-${config.mount}-${config.mountColor}`}
             color={config.frameColor}
             style={config.frameStyle}
             size={config.size}
