@@ -44,6 +44,9 @@ export const COUNTRIES: Country[] = [
   { code: 'JP', name: 'Japan', flag: '🇯🇵', currency: 'JPY', region: 'Asia-Pacific' },
   { code: 'SG', name: 'Singapore', flag: '🇸🇬', currency: 'SGD', region: 'Asia-Pacific' },
   { code: 'HK', name: 'Hong Kong', flag: '🇭🇰', currency: 'HKD', region: 'Asia-Pacific' },
+  { code: 'BD', name: 'Bangladesh', flag: '🇧🇩', currency: 'BDT', region: 'Asia-Pacific' },
+  { code: 'IN', name: 'India', flag: '🇮🇳', currency: 'INR', region: 'Asia-Pacific' },
+  { code: 'PK', name: 'Pakistan', flag: '🇵🇰', currency: 'PKR', region: 'Asia-Pacific' },
 ];
 
 /**

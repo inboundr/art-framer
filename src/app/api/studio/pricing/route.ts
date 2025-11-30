@@ -9,13 +9,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prodigiSDK } from '@/lib/prodigi-v2';
 import { facetService } from '@/lib/prodigi-v2/azure-search/facet-service';
 import { estimateDeliveryTime, formatDeliveryEstimate } from '@/lib/prodigi-v2/delivery-estimator';
+import { detectUserLocation } from '@/lib/location-detection';
+import { currencyService } from '@/lib/currency';
+import { getCountry } from '@/lib/countries';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  let rawConfig: any = null;
+  let country: string = 'US';
+  
   try {
-    const { config: rawConfig, country: requestCountry } = await request.json();
+    const requestData = await request.json();
+    rawConfig = requestData.config;
+    const requestCountry = requestData.country;
+    
+    // Detect country with priority: requestCountry > config.destinationCountry > IP > default
+    const location = await detectUserLocation(request, requestCountry || rawConfig?.destinationCountry);
+    country = location.country;
+    
+    console.log('[Pricing] Location detected:', {
+      country,
+      confidence: location.confidence,
+      source: location.source,
+    });
 
     console.log('[Pricing] Request received:', {
       productType: rawConfig.productType,
@@ -68,19 +86,27 @@ export async function POST(request: NextRequest) {
       hasWrap: config.wrap,
     });
 
-    // Step 1: Validate configuration against available options
+    // Step 1: Validate configuration against available options (use detected country)
     const validation = await facetService.validateConfiguration(
       config.productType,
       config,
-      'US'
+      country // ✅ Use detected country for validation
     );
 
     if (!validation.valid) {
       console.warn('[Pricing] Invalid configuration:', validation.errors);
+      
+      // Get available options to help user fix the issue
+      const availableOptions = await facetService.getAvailableOptions(
+        config.productType,
+        country
+      );
+      
       return NextResponse.json({
         error: 'Invalid configuration',
         message: validation.errors.join('; '),
         validationErrors: validation.errors,
+        availableOptions, // ✅ Return available options to help user
       }, { status: 400 });
     }
 
@@ -90,8 +116,8 @@ export async function POST(request: NextRequest) {
     let sku: string | null = null;
     
     if (config.productType && config.size) {
-      // Use Azure Search catalog to get real Prodigi SKU
-      sku = await prodigiSDK.catalog.getSKU(config.productType, config.size, 'US');
+      // Use Azure Search catalog to get real Prodigi SKU (with production country optimization)
+      sku = await prodigiSDK.catalog.getSKU(config.productType, config.size, country);
       
       if (!sku) {
         const availableSizes = await prodigiSDK.catalog.getAvailableSizes(config.productType, 'US');
@@ -130,17 +156,10 @@ export async function POST(request: NextRequest) {
     console.log('[Pricing] Attributes being sent:', attributes);
 
     // Step 5: Build quote request
-    // CRITICAL: Use actual destination country for accurate shipping costs
-    // Priority: 1) From request, 2) From config, 3) Default to US
-    const country = requestCountry || config.destinationCountry || 'US';
-    
-    if (!requestCountry && !config.destinationCountry) {
-      console.warn('[Pricing] No destination country provided, defaulting to US. This may result in incorrect shipping costs for international customers.');
-    }
-    
+    // Use detected country for accurate shipping costs
     const quoteRequest = {
       destinationCountryCode: country,
-      shippingMethod: 'Standard' as const,
+      shippingMethod: config.shippingMethod || 'Standard' as const, // Use selected method or default to Standard
       items: [
         {
           sku,
@@ -160,67 +179,175 @@ export async function POST(request: NextRequest) {
       sku,
       attributes,
       country,
+      shippingMethod: quoteRequest.shippingMethod,
     });
 
-    // Step 6: Get real quote from Prodigi
-    const quotes = await prodigiSDK.quotes.create(quoteRequest);
+    // Step 6: Get real quotes from Prodigi for ALL shipping methods
+    // Prodigi API may only return the requested method, so we request all methods
+    const shippingMethods: Array<'Budget' | 'Standard' | 'Express' | 'Overnight'> = 
+      ['Budget', 'Standard', 'Express', 'Overnight'];
+    
+    const quotePromises = shippingMethods.map(method => 
+      prodigiSDK.quotes.create({
+        ...quoteRequest,
+        shippingMethod: method,
+      }).catch(error => {
+        console.warn(`[Pricing] Failed to get quote for ${method}:`, error.message);
+        return []; // Return empty array if method is not available
+      })
+    );
 
-    // Step 7: Find standard shipping quote
-    const standardQuote = quotes.find(q => q.shipmentMethod === 'Standard');
+    const quoteResults = await Promise.all(quotePromises);
+    const quotes = quoteResults.flat().filter(Boolean);
 
-    if (!standardQuote) {
-      throw new Error('No standard shipping quote available');
+    if (quotes.length === 0) {
+      throw new Error('No shipping quotes available');
     }
 
-    // Step 8: Extract pricing information
-    const itemsCost = Number(standardQuote.costSummary.items?.amount) || 0;
-    const shippingCost = Number(standardQuote.costSummary.shipping?.amount) || 0;
-    const totalCost = Number(standardQuote.costSummary.totalCost?.amount) || (itemsCost + shippingCost);
-    const currency = standardQuote.costSummary.totalCost?.currency || 'USD';
-    const productionCountry = standardQuote.shipments?.[0]?.fulfillmentLocation?.countryCode || 'US';
+    console.log(`[Pricing] Received ${quotes.length} quote(s) for ${quotes.map(q => q.shipmentMethod).join(', ')}`);
 
-    // Step 9: Calculate accurate delivery estimate
-    const deliveryEstimate = estimateDeliveryTime(
-      productionCountry,
-      country,
-      standardQuote.shipmentMethod
-    );
-    const deliveryFormatted = formatDeliveryEstimate(deliveryEstimate);
+    // Step 7: Get user's currency from country
+    const userCountry = getCountry(country);
+    const userCurrency = userCountry?.currency || 'USD';
+    console.log(`[Pricing] User currency: ${userCurrency} (from country: ${country})`);
+
+    // Step 8: Process all shipping methods with currency conversion
+    const shippingOptions = await Promise.all(quotes.map(async (quote) => {
+      const productionCountry = quote.shipments?.[0]?.fulfillmentLocation?.countryCode || 'US';
+      const deliveryEstimate = estimateDeliveryTime(
+        productionCountry,
+        country,
+        quote.shipmentMethod
+      );
+      
+      // Get Prodigi's currency from quote
+      const prodigiCurrency = quote.costSummary.totalCost?.currency || 'USD';
+      const prodigiPrices = {
+        items: Number(quote.costSummary.items?.amount) || 0,
+        shipping: Number(quote.costSummary.shipping?.amount) || 0,
+        total: Number(quote.costSummary.totalCost?.amount) || 0,
+      };
+
+      // Convert to user's currency if different
+      let displayCurrency = prodigiCurrency;
+      let displayPrices = prodigiPrices;
+      let originalCurrency = prodigiCurrency;
+      let originalPrices = prodigiPrices;
+
+      if (prodigiCurrency !== userCurrency) {
+        try {
+          console.log(`[Pricing] Converting ${prodigiCurrency} → ${userCurrency} for ${quote.shipmentMethod}`);
+          displayCurrency = userCurrency;
+          displayPrices = {
+            items: await currencyService.convert(prodigiPrices.items, prodigiCurrency, userCurrency),
+            shipping: await currencyService.convert(prodigiPrices.shipping, prodigiCurrency, userCurrency),
+            total: await currencyService.convert(prodigiPrices.total, prodigiCurrency, userCurrency),
+          };
+          console.log(`[Pricing] Converted ${quote.shipmentMethod}: ${prodigiCurrency} ${prodigiPrices.total.toFixed(2)} → ${userCurrency} ${displayPrices.total.toFixed(2)}`);
+        } catch (error) {
+          console.warn(`[Pricing] Currency conversion failed for ${quote.shipmentMethod}, using Prodigi currency:`, error);
+          // Fallback: use Prodigi currency if conversion fails
+          displayCurrency = prodigiCurrency;
+          displayPrices = prodigiPrices;
+        }
+      } else {
+        console.log(`[Pricing] No conversion needed for ${quote.shipmentMethod} (${prodigiCurrency} = ${userCurrency})`);
+      }
+      
+      return {
+        method: quote.shipmentMethod,
+        cost: {
+          items: displayPrices.items,
+          shipping: displayPrices.shipping,
+          total: displayPrices.total,
+          currency: displayCurrency,
+        },
+        originalCost: {
+          items: originalPrices.items,
+          shipping: originalPrices.shipping,
+          total: originalPrices.total,
+          currency: originalCurrency,
+        },
+        delivery: {
+          min: deliveryEstimate.totalDays.min,
+          max: deliveryEstimate.totalDays.max,
+          formatted: formatDeliveryEstimate(deliveryEstimate),
+          note: deliveryEstimate.note,
+        },
+        productionCountry,
+      };
+    }));
+
+    // Step 9: Find selected method or Standard as default
+    const selectedMethod = config.shippingMethod || 'Standard';
+    const selectedQuote = shippingOptions.find(o => o.method === selectedMethod) || shippingOptions.find(o => o.method === 'Standard') || shippingOptions[0];
+
+    // Step 10: Find recommended method (best value: lowest total with reasonable delivery)
+    const recommended = shippingOptions.reduce((best, current) => {
+      // Prefer method with lower total cost
+      // But don't sacrifice too much on delivery time (max 3 days difference)
+      if (current.cost.total < best.cost.total && 
+          current.delivery.max <= best.delivery.max + 3) {
+        return current;
+      }
+      // If same price, prefer faster delivery
+      if (current.cost.total === best.cost.total && 
+          current.delivery.max < best.delivery.max) {
+        return current;
+      }
+      return best;
+    }, shippingOptions[0]);
+
+    const { cost, originalCost, delivery, productionCountry } = selectedQuote;
 
     console.log('[Pricing] Quote received:', {
       sku,
-      total: totalCost,
-      items: itemsCost,
-      shipping: shippingCost,
-      currency,
+      total: cost.total,
+      items: cost.items,
+      shipping: cost.shipping,
+      currency: cost.currency,
+      originalCurrency: originalCost.currency,
       productionCountry,
       destinationCountry: country,
-      deliveryEstimate: deliveryFormatted,
+      deliveryEstimate: delivery.formatted,
+      availableMethods: shippingOptions.map(o => o.method),
+      recommended: recommended.method,
     });
 
-    // Step 10: Return pricing with accurate delivery estimate
+    // Step 11: Return pricing with all shipping options
     return NextResponse.json({
       success: true,
       sku, // Return the SKU so it can be saved to config
       pricing: {
-        total: totalCost,
-        subtotal: itemsCost,
-        shipping: shippingCost,
-        currency,
+        total: cost.total,
+        subtotal: cost.items,
+        shipping: cost.shipping,
+        currency: cost.currency, // Display currency (user's currency)
+        originalCurrency: originalCost.currency, // Prodigi's original currency
+        originalTotal: originalCost.total, // Original price in Prodigi currency
         productionCountry,
         destinationCountry: country,
-        sla: deliveryEstimate.totalDays.max, // Use maximum estimated days for safety
+        sla: delivery.max, // Use maximum estimated days for safety
         deliveryEstimate: {
-          min: deliveryEstimate.totalDays.min,
-          max: deliveryEstimate.totalDays.max,
-          formatted: deliveryFormatted,
-          note: deliveryEstimate.note,
+          min: delivery.min,
+          max: delivery.max,
+          formatted: delivery.formatted,
+          note: delivery.note,
         },
         estimated: false, // This is a REAL quote from Prodigi
       },
+      shippingOptions: shippingOptions.map(option => ({
+        method: option.method,
+        cost: option.cost, // Display cost in user currency
+        originalCost: option.originalCost, // Original cost in Prodigi currency
+        delivery: option.delivery,
+        productionCountry: option.productionCountry,
+      })),
+      recommended: recommended.method, // ✅ Recommended method
     });
   } catch (error: any) {
     console.error('[Pricing] Error:', error);
+    console.error('[Pricing] Error stack:', error.stack);
 
     // Log detailed error info
     if (error.validationErrors) {
@@ -231,11 +358,19 @@ export async function POST(request: NextRequest) {
       console.error('[Pricing] API response:', JSON.stringify(error.data, null, 2));
     }
 
-    // Return error response
+    // Log request details for debugging
+    console.error('[Pricing] Failed request details:', {
+      productType: rawConfig?.productType,
+      size: rawConfig?.size,
+      country,
+      sku: rawConfig?.sku,
+    });
+
+    // Return error response with more details
     return NextResponse.json({
       error: 'Failed to calculate pricing',
       message: error.message || 'Unknown error',
-      details: error.validationErrors || null,
+      details: error.validationErrors || error.data || null,
       statusCode: error.statusCode || 500,
     }, {
       status: error.statusCode || 500,
@@ -317,9 +452,34 @@ function buildProductAttributes(
         if (onlyNoMount) {
           console.warn(`[Attributes] Product only supports "${validMounts[0]}" for mount, but user requested "${mountValue}". Mount will not be applied.`);
           // Don't set mount attribute - product doesn't support it
+          // Clear mount from config to prevent sending invalid attribute
+          config.mount = 'none';
         } else {
           console.warn(`[Attributes] Mount value "${mountValue}" not valid for this product. Valid options:`, validMounts);
           // Don't set mount attribute - invalid value
+          // Try to find closest match or default to none
+          if (validMounts.length > 0) {
+            // Try to find a mount with similar thickness
+            const mountThickness = mountValue.match(/(\d+\.?\d*)mm/)?.[1];
+            if (mountThickness) {
+              const closestMount = validMounts.find(m => 
+                m.includes(mountThickness) || 
+                m.includes(Math.round(parseFloat(mountThickness)).toString())
+              );
+              if (closestMount) {
+                console.log(`[Attributes] Using closest mount match: ${closestMount}`);
+                attributes['mount'] = closestMount;
+                addIfValid('mountColor', config.mountColor);
+              } else {
+                // No close match, don't set mount
+                config.mount = 'none';
+              }
+            } else {
+              config.mount = 'none';
+            }
+          } else {
+            config.mount = 'none';
+          }
         }
       }
     }

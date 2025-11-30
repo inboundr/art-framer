@@ -11,6 +11,8 @@ import { PricingDisplay } from './PricingDisplay';
 import { ConfigurationSummary } from './ConfigurationSummary';
 import { SmartSuggestions } from './SmartSuggestions';
 import { QuickOptions } from './QuickOptions';
+import { CountrySelector } from '../CountrySelector';
+import { ShippingMethodSelector } from '../ShippingMethodSelector';
 
 export function ContextPanel() {
   const { config, suggestions, setSuggestions } = useStudioStore();
@@ -60,8 +62,14 @@ export function ContextPanel() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Country Selector */}
+        <CountrySelector />
+        
         {/* Pricing */}
         {config.imageUrl && <PricingDisplay />}
+        
+        {/* Shipping Method Selector */}
+        {config.imageUrl && <ShippingMethodSelector />}
 
         {/* AI Confidence Score */}
         {config.aiConfidenceScore > 0 && (

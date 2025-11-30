@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { useStudioStore, useTotalPrice } from '@/store/studio';
+import { formatPrice } from '@/lib/prodigi-v2/utils';
 
 export function PricingDisplay() {
   const { config, isPricingLoading } = useStudioStore();
@@ -24,9 +25,13 @@ export function PricingDisplay() {
             ) : totalPrice > 0 ? (
               <>
                 <span className="text-3xl font-bold text-gray-900">
-                  ${totalPrice.toFixed(2)}
+                  {formatPrice(totalPrice, config.currency)}
                 </span>
-                <span className="text-sm font-medium text-gray-600">{config.currency}</span>
+                {config.originalCurrency && config.originalCurrency !== config.currency && (
+                  <span className="text-xs text-gray-500">
+                    (was {formatPrice(config.originalPrice || totalPrice, config.originalCurrency)})
+                  </span>
+                )}
               </>
             ) : (
               <span className="text-sm font-medium text-gray-500 italic">
@@ -50,34 +55,34 @@ export function PricingDisplay() {
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-700 font-medium">Frame & Print</span>
             <span className="font-bold text-gray-900">
-              ${(config.price || 0).toFixed(2)}
+              {formatPrice(config.price || 0, config.currency)}
             </span>
           </div>
 
           {config.mount && config.mount !== 'none' && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-700 font-medium">Mount ({config.mount})</span>
-              <span className="font-bold text-gray-900">$12.00</span>
+              <span className="font-bold text-gray-900">{formatPrice(12, config.currency)}</span>
             </div>
           )}
 
           {config.glaze && config.glaze !== 'none' && config.glaze !== 'acrylic' && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-700 font-medium">Premium {config.glaze} glaze</span>
-              <span className="font-bold text-gray-900">$25.00</span>
+              <span className="font-bold text-gray-900">{formatPrice(25, config.currency)}</span>
             </div>
           )}
 
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-700 font-medium">Shipping</span>
             <span className="font-bold text-gray-900">
-              ${(config.shippingCost || 0).toFixed(2)}
+              {formatPrice(config.shippingCost || 0, config.currency)}
             </span>
           </div>
 
           <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-400 font-bold">
             <span className="text-gray-900">Total</span>
-            <span className="text-gray-900">${totalPrice.toFixed(2)}</span>
+            <span className="text-gray-900">{formatPrice(totalPrice, config.currency)}</span>
           </div>
         </div>
       )}

@@ -62,12 +62,18 @@ export interface FrameConfiguration {
   
   // Pricing
   price: number;
-  currency: string;
+  currency: string; // Display currency (user's currency)
+  originalCurrency?: string; // Prodigi's original currency
+  originalPrice?: number; // Original price in Prodigi currency
   shippingCost: number;
   
   // Production
   sla: number;
   productionCountry: string;
+  
+  // Shipping
+  destinationCountry?: string; // ISO 3166-1 alpha-2 country code
+  shippingMethod?: 'Budget' | 'Standard' | 'Express' | 'Overnight';
   
   // AI Metadata
   aiConfidenceScore: number;
@@ -178,6 +184,30 @@ interface StudioStore {
   isGeneratingImage: boolean;
   isPricingLoading: boolean;
   
+  // Shipping Options
+  shippingOptions?: Array<{
+    method: 'Budget' | 'Standard' | 'Express' | 'Overnight';
+    cost: {
+      items: number;
+      shipping: number;
+      total: number;
+      currency: string; // Display currency (user's currency)
+    };
+    originalCost?: {
+      items: number;
+      shipping: number;
+      total: number;
+      currency: string; // Prodigi's original currency
+    };
+    delivery: {
+      min: number;
+      max: number;
+      formatted: string;
+      note?: string;
+    };
+    productionCountry: string;
+  }>;
+  
   // Chat State
   conversationId: string | null;
   
@@ -252,6 +282,8 @@ const getDefaultConfig = (): FrameConfiguration => ({
   shippingCost: 0,
   sla: 5,
   productionCountry: 'US',
+  destinationCountry: 'US', // Will be updated on page load
+  shippingMethod: 'Standard',
   aiConfidenceScore: 0,
   lastModified: Date.now(),
 });
@@ -584,26 +616,41 @@ export const useStudioStore = create<StudioStore>()(
           const response = await fetch('/api/studio/pricing', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ config }),
+            body: JSON.stringify({ 
+              config,
+              country: config.destinationCountry || 'US', // ✅ Send country
+            }),
           });
           
           if (response.ok) {
             const data = await response.json();
             
             if (data.pricing) {
-              const { total, shipping, sla, productionCountry, currency } = data.pricing;
-              const { sku } = data; // API may return the looked-up SKU
+              const { 
+                total, 
+                shipping, 
+                sla, 
+                productionCountry, 
+                currency,
+                originalCurrency,
+                originalTotal,
+              } = data.pricing;
+              const { sku, shippingOptions, recommended } = data; // ✅ Get shipping options
               
               set((state) => ({
                 config: {
                   ...state.config,
                   price: total || 0,
                   shippingCost: shipping || 0,
-                  currency: currency || 'USD',
+                  currency: currency || 'USD', // Display currency (user's currency)
+                  originalCurrency: originalCurrency || currency, // Prodigi's original currency
+                  originalPrice: originalTotal || total, // Original price in Prodigi currency
                   sla: sla || 5,
                   productionCountry: productionCountry || 'US',
+                  shippingMethod: recommended || config.shippingMethod || 'Standard', // ✅ Set recommended
                   ...(sku && { sku }), // Update SKU if provided by API
                 },
+                shippingOptions: shippingOptions || [], // ✅ Store all options (with converted prices)
               }));
             }
           }

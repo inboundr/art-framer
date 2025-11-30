@@ -10,6 +10,7 @@ import { ToolMessage } from '@langchain/core/messages';
 import { z } from 'zod';
 import type { AgentState } from '../../types';
 import { getLifestyleImages, getChevronImage, getCornerImages, getCrossSectionImage } from '@/lib/prodigi-assets/asset-catalog';
+import { COUNTRIES, getCountry } from '@/lib/countries';
 
 const FRAME_ADVISOR_SYSTEM_PROMPT = `You are a frame advisor and art consultant with 20 years of experience helping customers choose the perfect frames.
 
@@ -48,6 +49,9 @@ CRITICAL - When to Use updateFrame vs recommendFrame:
   * "Add a mount" → use updateFrame with mount: "2.4mm"
   * "Remove the glaze" → use updateFrame with glaze: "none"
   * "Change to white frame" → use updateFrame with frameColor: "white"
+  * "Change shipping to US" → use updateFrame with destinationCountry: "US"
+  * "Ship to Bangladesh" → use updateFrame with destinationCountry: "Bangladesh" (tool will convert to "BD")
+  * "Change shipping country to Canada" → use updateFrame with destinationCountry: "Canada"
   
 - Use **recommendFrame** when the user asks for suggestions or advice:
   * "What frame would you recommend?"
@@ -235,10 +239,37 @@ class RecommendFrameTool extends StructuredTool {
   }
 }
 
+/**
+ * Convert country name or code to ISO country code
+ * Relies on LLM to normalize country names (e.g., "USA" → "United States", "UK" → "United Kingdom")
+ */
+function normalizeCountryCode(countryInput: string): string | null {
+  const normalized = countryInput.trim();
+  
+  // If it's already a 2-letter code, check if it's valid
+  if (normalized.length === 2) {
+    const country = getCountry(normalized.toUpperCase());
+    if (country) return country.code;
+  }
+  
+  // Try to find by country name (case-insensitive, partial match)
+  // LLM should normalize common variations (USA → United States, UK → United Kingdom, etc.)
+  const country = COUNTRIES.find(c => 
+    c.name.toLowerCase() === normalized.toLowerCase() ||
+    c.name.toLowerCase().includes(normalized.toLowerCase()) ||
+    normalized.toLowerCase().includes(c.name.toLowerCase())
+  );
+  
+  if (country) return country.code;
+  
+  // If not found, return null - LLM should handle normalization
+  return null;
+}
+
 // Tool: Update frame configuration directly
 class UpdateFrameTool extends StructuredTool {
   name = 'updateFrame';
-  description = 'Update the frame configuration based on user request. Use this when the user explicitly asks to change something (e.g., "change frame to black", "make it bigger", "switch to canvas"). This tool directly updates the configuration.';
+  description = 'Update the frame configuration based on user request. Use this when the user explicitly asks to change something (e.g., "change frame to black", "make it bigger", "switch to canvas", "change shipping to US", "ship to Bangladesh"). This tool directly updates the configuration.';
 
   schema = z.object({
     productType: z.string().optional().describe('Product type: framed-print, canvas, framed-canvas, acrylic, metal, poster'),
@@ -249,6 +280,7 @@ class UpdateFrameTool extends StructuredTool {
     mount: z.string().optional().describe('Mount size: none, 1.4mm, 2.0mm, 2.4mm'),
     mountColor: z.string().optional().describe('Mount color (e.g., white, off-white, black)'),
     wrap: z.string().optional().describe('Canvas wrap: Black, White, ImageWrap, MirrorWrap'),
+    destinationCountry: z.string().optional().describe('Shipping destination country. Use the full country name from the COUNTRIES list (e.g., "United States", "Canada", "United Kingdom", "Bangladesh") or ISO country code (e.g., "US", "CA", "GB", "BD"). Normalize common variations: "USA" → "United States", "UK" → "United Kingdom", "Bengladesh" → "Bangladesh".'),
   });
 
   async _call(input: z.infer<typeof this.schema>) {
@@ -263,6 +295,17 @@ class UpdateFrameTool extends StructuredTool {
     if (input.mount !== undefined) updates.mount = input.mount;
     if (input.mountColor) updates.mountColor = input.mountColor;
     if (input.wrap) updates.wrap = input.wrap;
+    
+    // Handle destination country - convert name to code if needed
+    if (input.destinationCountry) {
+      const countryCode = normalizeCountryCode(input.destinationCountry);
+      if (countryCode) {
+        updates.destinationCountry = countryCode;
+      } else {
+        // If we can't find the country, still try to use the input (might be a valid code we don't have in our list)
+        updates.destinationCountry = input.destinationCountry.toUpperCase();
+      }
+    }
     
     return JSON.stringify({
       success: true,
@@ -313,7 +356,7 @@ CRITICAL - When user asks to compare options (e.g., "show me example with mount 
 Available Tools:
 - getFrameVisuals: Show lifestyle images, chevrons, corners, cross-sections. Use hasMount parameter (true = with mount, false = without mount) to filter. For comparisons, call this tool MULTIPLE TIMES with different parameters.
 - recommendFrame: Generate personalized recommendations
-- updateFrame: Directly update frame configuration when user requests changes (e.g., "change to black", "make it bigger", "switch to canvas")`;
+- updateFrame: Directly update frame configuration when user requests changes (e.g., "change to black", "make it bigger", "switch to canvas", "change shipping to US", "ship to Bangladesh"). Can update frame properties AND shipping destination country.`;
 
     // Build messages array for LangChain
     const langchainMessages: any[] = [

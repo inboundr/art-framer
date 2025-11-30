@@ -219,6 +219,8 @@ export class ProdigiSDK {
  * - PRODIGI_ENVIRONMENT (sandbox | production)
  * - PRODIGI_CALLBACK_URL
  * 
+ * Only initializes on server-side to prevent client-side errors.
+ * 
  * @example
  * ```ts
  * import { prodigiSDK } from '@/lib/prodigi-v2';
@@ -226,13 +228,44 @@ export class ProdigiSDK {
  * const order = await prodigiSDK.orders.create({...});
  * ```
  */
-export const prodigiSDK = new ProdigiSDK({
-  apiKey: process.env.PRODIGI_API_KEY || '',
-  environment: (process.env.PRODIGI_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
-  callbackUrl: process.env.PRODIGI_CALLBACK_URL,
-  timeout: parseInt(process.env.PRODIGI_TIMEOUT || '30000', 10),
-  retries: parseInt(process.env.PRODIGI_RETRIES || '3', 10),
-  enableCache: process.env.PRODIGI_ENABLE_CACHE !== 'false',
+// Only create SDK instance on server-side (where process.env is available)
+// Client components should use API routes, not direct SDK access
+let _prodigiSDK: ProdigiSDK | null = null;
+
+function createProdigiSDK(): ProdigiSDK {
+  if (typeof window !== 'undefined') {
+    // Client-side: SDK should not be used directly
+    throw new Error('ProdigiSDK can only be used on the server-side. Use API routes for Prodigi operations.');
+  }
+  
+  const apiKey = process.env.PRODIGI_API_KEY || '';
+  if (!apiKey) {
+    throw new Error('Prodigi API key is required. Set PRODIGI_API_KEY in your environment variables.');
+  }
+  
+  return new ProdigiSDK({
+    apiKey,
+    environment: (process.env.PRODIGI_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
+    callbackUrl: process.env.PRODIGI_CALLBACK_URL,
+    timeout: parseInt(process.env.PRODIGI_TIMEOUT || '30000', 10),
+    retries: parseInt(process.env.PRODIGI_RETRIES || '3', 10),
+    enableCache: process.env.PRODIGI_ENABLE_CACHE !== 'false',
+  });
+}
+
+// Lazy initialization - only create when accessed (and only on server)
+export const prodigiSDK = new Proxy({} as ProdigiSDK, {
+  get(_target, prop) {
+    if (!_prodigiSDK) {
+      _prodigiSDK = createProdigiSDK();
+    }
+    const value = _prodigiSDK[prop as keyof ProdigiSDK];
+    // Handle methods
+    if (typeof value === 'function') {
+      return value.bind(_prodigiSDK);
+    }
+    return value;
+  },
 });
 
 // ============================================================================

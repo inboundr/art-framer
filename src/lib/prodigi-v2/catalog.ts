@@ -116,9 +116,12 @@ export class ProdigiCatalogService {
         // This will be handled in the search results filtering below
       }
 
+      // Enable production country optimization for better pricing
       const result = await azureSearchClient.search(filters, {
         top: 20, // Increased to ensure we get non-cork products
         includeFacets: false,
+        scoringProfile: 'Boost by production country', // ✅ Optimize for local production
+        scoringParameter: `prodCountry-${country}`, // ✅ Boost products produced in destination country
       });
 
       // Filter out Cork products for framed-print searches
@@ -138,11 +141,21 @@ export class ProdigiCatalogService {
         return null;
       }
 
-      // Pick the best match (first one is usually the most relevant)
-      const bestMatch = products[0];
+      // Score and rank products for optimal selection
+      const scoredProducts = products.map(product => ({
+        product,
+        score: this.calculateProductScore(product, country),
+      }));
+      
+      // Sort by score (highest first)
+      scoredProducts.sort((a, b) => b.score - a.score);
+      
+      const bestMatch = scoredProducts[0].product;
       console.log(`[Catalog] Found SKU: ${bestMatch.sku} for ${productType} ${size}`, {
         productType: bestMatch.productType,
         dimensions: `${bestMatch.fullProductHorizontalDimensions}x${bestMatch.fullProductVerticalDimensions}${bestMatch.sizeUnits}`,
+        productionCountries: bestMatch.productionCountries,
+        score: scoredProducts[0].score,
       });
 
       // Fetch full product details from Prodigi API
@@ -284,6 +297,59 @@ export class ProdigiCatalogService {
   async isAvailable(productType: string, size: string, country: string = 'US'): Promise<boolean> {
     const sku = await this.getSKU(productType, size, country);
     return sku !== null;
+  }
+
+  /**
+   * Calculate product score for optimal selection
+   * Prioritizes local production, then regional, then price
+   */
+  private calculateProductScore(
+    product: ProdigiCatalogProduct,
+    destinationCountry: string
+  ): number {
+    let score = 0;
+    
+    // Helper to get shipping region
+    const getShippingRegion = (countryCode: string): string => {
+      const euCountries = [
+        'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
+        'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL',
+        'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+      ];
+      if (countryCode === 'GB') return 'GB';
+      if (countryCode === 'US') return 'US';
+      if (countryCode === 'AU') return 'AU';
+      if (euCountries.includes(countryCode)) return 'EU';
+      return 'INTL';
+    };
+    
+    // Priority 1: Prefer local production (highest priority - 100 points)
+    if (product.productionCountries?.includes(destinationCountry)) {
+      score += 100;
+    }
+    
+    // Priority 2: Prefer regional production (50 points)
+    const destinationRegion = getShippingRegion(destinationCountry);
+    const hasRegionalProduction = product.productionCountries?.some(country => 
+      getShippingRegion(country) === destinationRegion
+    );
+    if (hasRegionalProduction) {
+      score += 50;
+    }
+    
+    // Priority 3: Prefer lower base price (inverse price - lower is better)
+    // Normalize price score (assume max price is 10000 cents = 100 USD)
+    if (product.basePriceFrom) {
+      const normalizedPrice = Math.min(product.basePriceFrom / 100, 100); // Convert to USD equivalent
+      score += (100 - normalizedPrice) / 10; // Max 10 points for price
+    }
+    
+    // Priority 4: Prefer higher search weighting (if available)
+    if (product.searchWeighting) {
+      score += product.searchWeighting;
+    }
+    
+    return score;
   }
 
   /**
