@@ -5,18 +5,215 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useStudioStore, useTotalPrice } from '@/store/studio';
 import { PricingDisplay } from './PricingDisplay';
 import { ConfigurationSummary } from './ConfigurationSummary';
 import { SmartSuggestions } from './SmartSuggestions';
-import { QuickOptions } from './QuickOptions';
 import { CountrySelector } from '../CountrySelector';
 import { ShippingMethodSelector } from '../ShippingMethodSelector';
+import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/hooks/use-toast';
 
-export function ContextPanel() {
+interface ContextPanelProps {
+  onOpenAuthModal?: () => void;
+}
+
+export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
   const { config, suggestions, setSuggestions } = useStudioStore();
   const totalPrice = useTotalPrice();
+  const { user, session } = useAuth();
+  const { addToCart, refreshCart } = useCart();
+  const { toast } = useToast();
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  // Function to handle add to cart (extracted for reuse)
+  const handleAddToCart = useCallback(async () => {
+    if (!user || !session?.access_token) {
+      // Show auth modal instead of toast
+      if (onOpenAuthModal) {
+        onOpenAuthModal();
+      } else {
+        // Fallback to toast if no modal handler provided
+        toast({
+          title: 'Authentication Required',
+          description: 'Please sign in to add items to your cart.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
+    if (!config.imageId) {
+      toast({
+        title: 'Image Required',
+        description: 'Please upload an image before adding to cart.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsAddingToCart(true);
+    try {
+      console.log('🛒 ContextPanel: Add to cart clicked', {
+        hasUser: !!user,
+        hasSession: !!session,
+        hasAccessToken: !!session?.access_token,
+        userId: user?.id,
+      });
+
+      // Get auth token - try from session first, fallback to getting it directly
+      let authToken = session?.access_token;
+      
+      if (!authToken) {
+        console.warn('⚠️ ContextPanel: No token in session, trying to get from Supabase directly...');
+        const { supabase } = await import('@/lib/supabase/client');
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('❌ ContextPanel: Error getting session from Supabase:', sessionError);
+        } else if (currentSession?.access_token) {
+          console.log('✅ ContextPanel: Got token from Supabase directly');
+          authToken = currentSession.access_token;
+        } else {
+          console.warn('⚠️ ContextPanel: No session found in Supabase either');
+        }
+      } else {
+        console.log('✅ ContextPanel: Using token from session context');
+      }
+
+      if (!authToken) {
+        console.error('❌ ContextPanel: No auth token available');
+        toast({
+          title: 'Authentication Required',
+          description: 'Your session has expired. Please sign in again.',
+          variant: 'destructive',
+        });
+        setIsAddingToCart(false);
+        return;
+      }
+
+      let imageId = config.imageId;
+
+      // If imageId is a UUID (from /api/upload), we need to save it to the database first
+      // Check if it's a valid UUID format (not a database ID)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(imageId || '');
+      
+      if (isUUID && config.imageUrl && user) {
+        // Save the image to the database first
+        const saveImageResponse = await fetch('/api/save-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            imageUrl: config.imageUrl.startsWith('http') 
+              ? config.imageUrl 
+              : `${window.location.origin}${config.imageUrl}`,
+            prompt: 'Studio upload',
+            aspectRatio: '1x1', // Default, can be enhanced
+            model: 'studio',
+            userId: user.id,
+          }),
+        });
+
+        if (saveImageResponse.ok) {
+          const { image } = await saveImageResponse.json();
+          imageId = image.id;
+        } else {
+          // If save fails, show error
+          const errorData = await saveImageResponse.json();
+          throw new Error(errorData.error || 'Failed to save image to database');
+        }
+      }
+
+      // Map frameColor to valid API values (must match database enum)
+      // Database enum: 'black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey'
+      const validFrameStyles = ['black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey'] as const;
+      const normalizedFrameStyle = (config.frameColor && validFrameStyles.includes(config.frameColor.toLowerCase() as any))
+        ? config.frameColor.toLowerCase()
+        : 'black'; // Default fallback
+
+      // Create a product from the studio configuration
+      const productResponse = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          imageId: imageId,
+          frameSize: config.size === '8x10' ? 'small' : 
+                    config.size === '11x14' ? 'medium' :
+                    config.size === '16x20' ? 'large' : 'extra_large',
+          frameStyle: normalizedFrameStyle, // Use frameColor, normalized to valid database enum values
+          frameMaterial: 'wood', // Default, can be enhanced later
+          price: config.price,
+        }),
+      });
+
+      if (!productResponse.ok) {
+        const errorData = await productResponse.json();
+        throw new Error(errorData.error || 'Failed to create product');
+      }
+
+      const { product } = await productResponse.json();
+
+      // Store destination country and shipping method for cart
+      // This will be used when fetching cart to get correct pricing
+      if (config.destinationCountry) {
+        localStorage.setItem('cartDestinationCountry', config.destinationCountry);
+      }
+      if (config.shippingMethod) {
+        localStorage.setItem('cartShippingMethod', config.shippingMethod);
+      }
+
+      // Then, add the product to cart
+      const success = await addToCart(product.id, 1);
+      
+      if (success) {
+        // Refresh cart to ensure it's up to date before redirect
+        await refreshCart();
+        toast({
+          title: 'Added to Cart',
+          description: 'Item has been added to your cart successfully.',
+        });
+        // Small delay to ensure cart state is updated before redirect
+        setTimeout(() => {
+          window.location.href = '/cart';
+        }, 300);
+      } else {
+        throw new Error('Failed to add to cart');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to add item to cart. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAddingToCart(false);
+    }
+  }, [user, session, config, addToCart, refreshCart, toast, onOpenAuthModal]);
+
+  // Listen for retry event after authentication
+  useEffect(() => {
+    const handleRetryAddToCart = () => {
+      // Retry adding to cart after authentication
+      console.log('🔄 ContextPanel: Retrying add to cart after authentication');
+      handleAddToCart();
+    };
+
+    window.addEventListener('retry-add-to-cart', handleRetryAddToCart);
+    return () => {
+      window.removeEventListener('retry-add-to-cart', handleRetryAddToCart);
+    };
+  }, [handleAddToCart]);
 
   // Load suggestions when configuration changes
   useEffect(() => {
@@ -99,22 +296,18 @@ export function ContextPanel() {
 
         {/* Configuration Summary */}
         {config.imageUrl && <ConfigurationSummary />}
-
-        {/* Quick Options */}
-        {config.imageUrl && <QuickOptions />}
       </div>
 
       {/* Footer - CTA */}
       {config.imageUrl && (
         <div className="border-t border-gray-200 p-4 space-y-3 bg-white">
           <button
-            className="w-full px-6 py-4 bg-black text-white rounded-xl font-bold text-base hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            onClick={() => {
-              // Navigate to checkout
-              window.location.href = '/checkout';
-            }}
+            data-add-to-cart-button
+            className="w-full px-6 py-4 bg-black text-white rounded-xl font-bold text-base hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleAddToCart}
+            disabled={isAddingToCart}
           >
-            Add to Cart · ${totalPrice.toFixed(2)}
+            {isAddingToCart ? 'Adding...' : `Add to Cart · ${totalPrice.toFixed(2)}`}
           </button>
 
           <div className="flex gap-2">

@@ -15,6 +15,7 @@ import { FramePreview } from '@/components/studio/FramePreview';
 import { ContextPanel } from '@/components/studio/ContextPanel';
 import { WelcomeModal } from '@/components/studio/WelcomeModal';
 import { ImageUpload } from '@/components/studio/ImageUpload';
+import { AuthModal } from '@/components/AuthModal';
 
 type MobileTab = 'preview' | 'chat' | 'config';
 
@@ -24,12 +25,23 @@ export default function StudioPage() {
   const [mobileTab, setMobileTab] = useState<MobileTab>('preview');
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [showMobileConfig, setShowMobileConfig] = useState(false);
+  const [authModalVisible, setAuthModalVisible] = useState(false);
+  const [pendingAddToCart, setPendingAddToCart] = useState(false);
 
   useEffect(() => {
     // Initialize conversation
     const conversationId = `conv-${Date.now()}`;
     useStudioStore.getState().setConversationId(conversationId);
-  }, []);
+    
+    // Sync destination country from studio store to localStorage for cart
+    const destinationCountry = config.destinationCountry || 'US';
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cartDestinationCountry', destinationCountry);
+      if (config.shippingMethod) {
+        localStorage.setItem('cartShippingMethod', config.shippingMethod);
+      }
+    }
+  }, [config.destinationCountry, config.shippingMethod]);
 
   return (
     <>
@@ -67,7 +79,10 @@ export default function StudioPage() {
 
           {/* Right Panel - Context & Details */}
           <div className="w-96 flex-shrink-0 border-l border-gray-200 bg-white overflow-y-auto">
-            <ContextPanel />
+            <ContextPanel onOpenAuthModal={() => {
+              setPendingAddToCart(true);
+              setAuthModalVisible(true);
+            }} />
           </div>
         </div>
 
@@ -196,7 +211,10 @@ export default function StudioPage() {
               
               {/* Config Content */}
               <div className="flex-1 overflow-y-auto">
-                <ContextPanel />
+                <ContextPanel onOpenAuthModal={() => {
+                  setPendingAddToCart(true);
+                  setAuthModalVisible(true);
+                }} />
               </div>
             </div>
           </div>
@@ -219,6 +237,27 @@ export default function StudioPage() {
           </div>
         )}
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalVisible}
+        onClose={() => {
+          setAuthModalVisible(false);
+          setPendingAddToCart(false);
+        }}
+        onAuthSuccess={() => {
+          setAuthModalVisible(false);
+          // If there was a pending add to cart, trigger it after auth
+          if (pendingAddToCart) {
+            setPendingAddToCart(false);
+            // Small delay to ensure auth state is updated
+            setTimeout(() => {
+              // Trigger add to cart by dispatching a custom event
+              window.dispatchEvent(new CustomEvent('retry-add-to-cart'));
+            }, 500);
+          }
+        }}
+      />
     </>
   );
 }

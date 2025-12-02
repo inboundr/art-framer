@@ -628,6 +628,7 @@ export const useStudioStore = create<StudioStore>()(
             if (data.pricing) {
               const { 
                 total, 
+                subtotal, // Items cost (frame & print)
                 shipping, 
                 sla, 
                 productionCountry, 
@@ -637,21 +638,35 @@ export const useStudioStore = create<StudioStore>()(
               } = data.pricing;
               const { sku, shippingOptions, recommended } = data; // ✅ Get shipping options
               
-              set((state) => ({
-                config: {
-                  ...state.config,
-                  price: total || 0,
-                  shippingCost: shipping || 0,
-                  currency: currency || 'USD', // Display currency (user's currency)
-                  originalCurrency: originalCurrency || currency, // Prodigi's original currency
-                  originalPrice: originalTotal || total, // Original price in Prodigi currency
-                  sla: sla || 5,
-                  productionCountry: productionCountry || 'US',
-                  shippingMethod: recommended || config.shippingMethod || 'Standard', // ✅ Set recommended
-                  ...(sku && { sku }), // Update SKU if provided by API
-                },
-                shippingOptions: shippingOptions || [], // ✅ Store all options (with converted prices)
-              }));
+              set((state) => {
+                // Preserve user's shipping method selection if it's available in the returned options
+                // Only use recommended method if user's selection is not available
+                const currentShippingMethod = state.config.shippingMethod || 'Standard';
+                const availableMethods = shippingOptions?.map(o => o.method) || [];
+                const isMethodAvailable = availableMethods.includes(currentShippingMethod);
+                
+                // Always preserve user's selection if it's available
+                // Only fall back to recommended if the selected method is not available
+                const finalShippingMethod = isMethodAvailable 
+                  ? currentShippingMethod 
+                  : (recommended || availableMethods[0] || 'Standard');
+
+                return {
+                  config: {
+                    ...state.config,
+                    price: subtotal || 0, // Frame & print cost (items), not total
+                    shippingCost: shipping || 0,
+                    currency: currency || 'USD', // Display currency (user's currency)
+                    originalCurrency: originalCurrency || currency, // Prodigi's original currency
+                    originalPrice: originalTotal || total, // Original total price in Prodigi currency
+                    sla: sla || 5,
+                    productionCountry: productionCountry || 'US',
+                    shippingMethod: finalShippingMethod, // Preserve user selection when available
+                    ...(sku && { sku }), // Update SKU if provided by API
+                  },
+                  shippingOptions: shippingOptions || [], // ✅ Store all options (with converted prices)
+                };
+              });
             }
           }
         } catch (error) {

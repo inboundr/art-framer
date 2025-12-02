@@ -4,54 +4,6 @@ import { authenticateRequest } from '@/lib/auth/jwtAuth';
 import { z } from 'zod';
 import type { ShippingItem } from '@/lib/shipping';
 
-// Helper function to get product attributes based on SKU type
-function getProductAttributesForSku(sku: string, frameStyle: string): Record<string, string> {
-  const attributes: Record<string, string> = {};
-  
-  // Only add attributes for SKUs that require them
-  // GLOBAL-FRA-CAN-* (extra large frames) require both color and wrap
-  if (sku.startsWith('GLOBAL-FRA-CAN-')) {
-    if (frameStyle === 'black') {
-      attributes.color = 'black';
-    } else if (frameStyle === 'white') {
-      attributes.color = 'white';
-    } else if (frameStyle === 'natural') {
-      attributes.color = 'natural';
-    } else if (frameStyle === 'gold') {
-      attributes.color = 'gold';
-    } else if (frameStyle === 'silver') {
-      attributes.color = 'silver';
-    } else if (frameStyle === 'brown') {
-      attributes.color = 'brown';
-    } else if (frameStyle === 'grey') {
-      attributes.color = 'grey';
-    }
-    attributes.wrap = 'ImageWrap';
-  }
-  // GLOBAL-CFPM-* (canvas prints) require color
-  else if (sku.startsWith('GLOBAL-CFPM-')) {
-    if (frameStyle === 'black') {
-      attributes.color = 'black';
-    } else if (frameStyle === 'white') {
-      attributes.color = 'white';
-    } else if (frameStyle === 'natural') {
-      attributes.color = 'natural';
-    } else if (frameStyle === 'gold') {
-      attributes.color = 'gold';
-    } else if (frameStyle === 'silver') {
-      attributes.color = 'silver';
-    } else if (frameStyle === 'brown') {
-      attributes.color = 'brown';
-    } else if (frameStyle === 'grey') {
-      attributes.color = 'grey';
-    }
-  }
-  // GLOBAL-FAP-* (standard frames) don't require attributes
-  // No attributes needed for these SKUs
-  
-  return attributes;
-}
-
 const ShippingAddressSchema = z.object({
   countryCode: z.string().min(2).max(2),
   stateOrCounty: z.string().optional(),
@@ -62,20 +14,12 @@ const ShippingAddressSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Cart Shipping API: Starting request');
-    
     // JWT-only authentication
     const { user, error: authError } = await authenticateRequest(request);
     
     if (authError || !user) {
-      console.log('Cart Shipping API: Authentication failed', { error: authError });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    console.log('Cart Shipping API: Authenticated user', { 
-      userId: user.id, 
-      userEmail: user.email 
-    });
 
     const body = await request.json();
     const validatedAddress = ShippingAddressSchema.parse(body);
@@ -132,63 +76,81 @@ export async function POST(request: NextRequest) {
     
     const prodigiClient = prodigiApiKey ? new ProdigiClient(prodigiApiKey, prodigiEnvironment) : null;
     
-    // Generate fresh SKUs using our improved algorithm instead of using stored ones
-    const shippingItems: ShippingItem[] = await Promise.all(
-      cartItems.map(async (item: { 
-        products: { 
-          sku: string; 
-          price: number; 
-          frame_size: string; 
-          frame_style: string; 
-          frame_material: string;
-          image_id?: string;
-        }; 
-        quantity: number 
-      }) => {
-        // Try to generate a fresh SKU using our improved algorithm
-        if (prodigiClient) {
+    // Use stored SKUs directly - no need to regenerate (already validated when added to cart)
+    // Extract base SKUs and batch fetch product details for attributes
+    const baseSkus = cartItems.map((item: { 
+      products: { 
+        sku: string; 
+      }; 
+    }) => 
+      prodigiClient ? prodigiClient.extractBaseProdigiSku(item.products.sku) : item.products.sku
+    );
+    
+    // Batch fetch product details (deduplicate SKUs first)
+    const uniqueSkus = [...new Set(baseSkus)];
+    const productDetailsCache = new Map<string, any>();
+    
+    if (prodigiClient && uniqueSkus.length > 0) {
+      await Promise.all(
+        uniqueSkus.map(async (sku) => {
           try {
-            const freshSku = await prodigiClient.generateFrameSku(
-              item.products.frame_size,
-              item.products.frame_style,
-              item.products.frame_material,
-              item.products.image_id
-            );
-            
-            // Extract base Prodigi SKU for API calls (remove image ID suffix)
-            const baseProdigiSku = prodigiClient.extractBaseProdigiSku(freshSku);
-            
-            console.log(`🔄 Regenerated SKU for shipping: ${item.products.sku} -> ${freshSku} (using base: ${baseProdigiSku})`);
-            
-            // Get attributes based on SKU type
-            const attributes = getProductAttributesForSku(baseProdigiSku, item.products.frame_style);
-            
-            return {
-              sku: baseProdigiSku, // Use base SKU for Prodigi API calls
-              quantity: item.quantity,
-              price: item.products.price,
-              attributes
-            };
+            const details = await prodigiClient.getProductDetails(sku);
+            productDetailsCache.set(sku, details);
           } catch (error) {
-            console.warn(`⚠️ Failed to regenerate SKU for ${item.products.sku}, using stored SKU:`, error);
+            console.warn(`⚠️ Failed to fetch product details for ${sku}:`, error);
           }
+        })
+      );
+    }
+    
+    // Build shipping items using stored SKUs and cached product details
+    const shippingItems: ShippingItem[] = cartItems.map((item: { 
+      products: { 
+        sku: string; 
+        price: number; 
+        frame_style: string; 
+      }; 
+      quantity: number 
+    }) => {
+      // Extract base SKU (remove image ID suffix if present)
+      const baseSku = prodigiClient ? prodigiClient.extractBaseProdigiSku(item.products.sku) : item.products.sku;
+      
+      // Get attributes from cached product details
+      const productDetails = productDetailsCache.get(baseSku);
+      const attributes: Record<string, string> = {};
+      
+      if (productDetails?.attributes) {
+        const validAttributes = productDetails.attributes;
+        
+        // Map frame_style to color attribute
+        if (validAttributes.color?.length > 0) {
+          const matchingColor = validAttributes.color.find(
+            (opt: string) => opt.toLowerCase() === item.products.frame_style.toLowerCase()
+          );
+          attributes.color = matchingColor || validAttributes.color[0];
         }
         
-        // Fallback to stored SKU if regeneration fails
-        // Extract base Prodigi SKU for API calls (remove image ID suffix if present)
-        const baseStoredSku = prodigiClient ? prodigiClient.extractBaseProdigiSku(item.products.sku) : item.products.sku;
-        
-        return {
-          sku: baseStoredSku, // Use base SKU for Prodigi API calls
-          quantity: item.quantity,
-          price: item.products.price,
-          attributes: {
-            color: item.products.frame_style,
-            wrap: 'ImageWrap'
+        // Add wrap if available
+        if (validAttributes.wrap?.length > 0) {
+          const imageWrap = validAttributes.wrap.find((w: string) => 
+            w.toLowerCase().includes('image') || w.toLowerCase() === 'imagewrap'
+          );
+          if (imageWrap) {
+            attributes.wrap = imageWrap.toLowerCase();
           }
-        };
-      })
-    );
+        }
+      } else {
+        // Fallback: use frame_style as color
+        attributes.color = item.products.frame_style;
+      }
+      
+      return {
+        sku: baseSku,
+        quantity: item.quantity,
+        price: item.products.price,
+        attributes
+      };
+    });
 
     // Calculate shipping cost using GUARANTEED calculation
     const shippingCalculation = await defaultShippingService.calculateShippingGuaranteed(
@@ -206,12 +168,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       shippingCost: shippingCalculation.recommended.cost,
       estimatedDays: shippingCalculation.recommended.estimatedDays,
+      estimatedDaysRange: shippingCalculation.recommended.estimatedDaysRange,  // NEW: Add range
       serviceName: shippingCalculation.recommended.service,
       carrier: shippingCalculation.recommended.carrier,
       currency: shippingCalculation.recommended.currency,
       freeShippingAvailable: shippingCalculation.freeShippingAvailable,
       freeShippingThreshold: shippingCalculation.freeShippingThreshold,
-      allQuotes: shippingCalculation.quotes,
+      allQuotes: shippingCalculation.quotes.map(q => ({
+        carrier: q.carrier,
+        service: q.service,
+        cost: q.cost,
+        currency: q.currency,
+        estimatedDays: q.estimatedDays,
+        estimatedDaysRange: q.estimatedDaysRange,  // NEW: Include range in all quotes
+        trackingAvailable: q.trackingAvailable,
+        insuranceIncluded: q.insuranceIncluded,
+        signatureRequired: q.signatureRequired
+      })),
       isEstimated: shippingCalculation.isEstimated,
       provider: shippingCalculation.provider,
       addressValidated: shippingCalculation.addressValidated,

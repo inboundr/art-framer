@@ -36,7 +36,8 @@ export interface ShippingQuote {
   service: string;
   cost: number;
   currency: string;
-  estimatedDays: number;
+  estimatedDays: number;  // Keep for backward compatibility
+  estimatedDaysRange?: { min: number; max: number };  // NEW: Add range
   trackingAvailable: boolean;
   insuranceIncluded: boolean;
   signatureRequired: boolean;
@@ -234,15 +235,23 @@ export class ShippingService {
       baseCost += Math.max(2.99, subtotal * 0.02);
     }
     
-    // Estimate delivery days
-    let estimatedDays = 7; // Standard
+    // Estimate delivery days with ranges (minimum 4 days)
+    let estimatedDaysRange: { min: number; max: number };
     if (address.countryCode === 'US') {
-      estimatedDays = options.expedited ? 2 : 5;
+      estimatedDaysRange = options.expedited ? { min: 4, max: 6 } : { min: 5, max: 8 };
     } else if (['CA', 'GB'].includes(address.countryCode)) {
-      estimatedDays = options.expedited ? 5 : 10;
+      estimatedDaysRange = options.expedited ? { min: 5, max: 7 } : { min: 7, max: 12 };
     } else {
-      estimatedDays = options.expedited ? 7 : 14;
+      estimatedDaysRange = options.expedited ? { min: 7, max: 10 } : { min: 10, max: 15 };
     }
+    
+    // Ensure minimum is always at least 4 days
+    estimatedDaysRange = {
+      min: Math.max(estimatedDaysRange.min, 4),
+      max: Math.max(estimatedDaysRange.max, estimatedDaysRange.min + 1)
+    };
+    
+    const estimatedDays = estimatedDaysRange.max; // Use max for backward compatibility
     
     // Convert to target currency
     const convertedBaseCost = convertCurrency(baseCost, targetCurrency);
@@ -255,18 +264,24 @@ export class ShippingService {
       cost: convertedBaseCost,
       currency: targetCurrency,
       estimatedDays,
+      estimatedDaysRange,
       trackingAvailable: true,
       insuranceIncluded: options.insurance || false,
       signatureRequired: options.signature || false,
     };
     
     // Create alternative quote (slightly more expensive, faster)
+    const expressRange = {
+      min: Math.max(4, Math.floor(estimatedDaysRange.min * 0.6)),
+      max: Math.max(5, Math.floor(estimatedDaysRange.max * 0.6))
+    };
     const expressQuote: ShippingQuote = {
       carrier: 'Estimated',
       service: 'Express Shipping',
       cost: convertedExpressCost,
       currency: targetCurrency,
-      estimatedDays: Math.max(1, Math.floor(estimatedDays * 0.6)),
+      estimatedDays: expressRange.max,
+      estimatedDaysRange: expressRange,
       trackingAvailable: true,
       insuranceIncluded: true,
       signatureRequired: options.signature || false,
@@ -340,29 +355,14 @@ export class ShippingService {
       // Find recommended quote (cheapest with reasonable delivery time)
       const recommended = this.selectRecommendedQuote(quotes);
 
-      // Check if free shipping is available
+      // Check if free shipping is available (but don't automatically apply it)
+      // Free shipping should be a business decision, not automatic
       const subtotal = this.calculateSubtotal(items);
       const freeShippingAvailable = subtotal >= FREE_SHIPPING_THRESHOLD;
 
-      // If free shipping is available, set shipping cost to 0
-      if (freeShippingAvailable) {
-        const freeShippingQuotes = quotes.map(quote => ({
-          ...quote,
-          cost: 0,
-          service: `Free ${quote.service}`,
-        }));
-        
-        return {
-          quotes: freeShippingQuotes.sort((a, b) => a.cost - b.cost),
-          recommended: freeShippingQuotes[0],
-          freeShippingAvailable: true,
-          freeShippingThreshold: undefined,
-          calculatedAt: new Date(),
-          isEstimated: false,
-          provider: 'prodigi',
-          addressValidated: false,
-        };
-      }
+      // Note: We're not automatically applying free shipping here
+      // The actual shipping cost from Prodigi should always be returned
+      // Free shipping can be applied at checkout/payment time if the business offers it
 
       return {
         quotes: quotes.sort((a, b) => a.cost - b.cost), // Sort by cost
@@ -464,6 +464,7 @@ export class ShippingService {
       cost: result.cost,
       currency: result.currency,
       estimatedDays: result.estimatedDays,
+      estimatedDaysRange: result.estimatedDaysRange,  // Pass through the range
       trackingAvailable: result.trackingAvailable || true,
       insuranceIncluded: options.insurance || false,
       signatureRequired: options.signature || false,

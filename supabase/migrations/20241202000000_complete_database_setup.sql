@@ -527,7 +527,12 @@ CREATE TRIGGER handle_wishlist_items_updated_at
 INSERT INTO storage.buckets (id, name, public) VALUES ('images', 'images', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Set up storage policies
+-- Set up storage policies (drop existing first to make migration idempotent)
+DROP POLICY IF EXISTS "Images are publicly accessible" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload their own images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update their own images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own images" ON storage.objects;
+
 CREATE POLICY "Images are publicly accessible" ON storage.objects
   FOR SELECT USING (bucket_id = 'images');
 

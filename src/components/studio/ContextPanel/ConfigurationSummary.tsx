@@ -32,6 +32,7 @@ export function ConfigurationSummary() {
       editable: boolean;
       options?: string[];
       displayNames?: Record<string, string>;
+      description?: string;
       showIf: boolean;
     }> = [
       {
@@ -91,6 +92,9 @@ export function ConfigurationSummary() {
           acc[key] = g;
           return acc;
         }, {} as Record<string, string>),
+        description: config.glaze === 'motheye' || config.glaze === 'glass' 
+          ? 'Museum-quality glass with 99% UV protection'
+          : 'Standard acrylic protection',
         showIf: true,
       });
     }
@@ -103,6 +107,9 @@ export function ConfigurationSummary() {
         key: 'mount',
         editable: true,
         options: ['none', ...availableOptions.mounts.map(m => m.toLowerCase())],
+        description: config.mount !== 'none' 
+          ? 'Adds breathing room around your artwork'
+          : undefined,
         showIf: true,
       });
 
@@ -187,33 +194,38 @@ export function ConfigurationSummary() {
         {options.map((option) => (
             <div
               key={option.key}
-              className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
+              className="py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
             >
-              <span className="text-sm font-medium text-gray-700">{option.label}</span>
-              {option.editable ? (
-                <select
-                  value={option.value}
-                  onChange={(e) => {
-                    // Use async update to handle facet changes
-                    updateConfigAsync({ [option.key]: e.target.value } as any);
-                  }}
-                  disabled={isFacetsLoading && option.key !== 'productType'}
-                  className="text-sm font-semibold text-gray-900 bg-white border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent cursor-pointer capitalize hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {option.options?.map((opt) => (
-                    <option key={opt} value={opt} className="capitalize bg-white text-gray-900">
-                      {option.displayNames && opt in option.displayNames 
-                        ? option.displayNames[opt as keyof typeof option.displayNames] 
-                        : opt}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <span className="text-sm font-semibold text-gray-900 capitalize">
-                  {option.displayNames && option.value in option.displayNames 
-                    ? option.displayNames[option.value as keyof typeof option.displayNames] 
-                    : option.value}
-                </span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium text-gray-700">{option.label}</span>
+                {option.editable ? (
+                  <select
+                    value={option.value}
+                    onChange={(e) => {
+                      // Use async update to handle facet changes
+                      updateConfigAsync({ [option.key]: e.target.value } as any);
+                    }}
+                    disabled={isFacetsLoading && option.key !== 'productType'}
+                    className="text-sm font-semibold text-gray-900 bg-white border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent cursor-pointer capitalize hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {option.options?.map((opt) => (
+                      <option key={opt} value={opt} className="capitalize bg-white text-gray-900">
+                        {option.displayNames && opt in option.displayNames 
+                          ? option.displayNames[opt as keyof typeof option.displayNames] 
+                          : opt}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-sm font-semibold text-gray-900 capitalize">
+                    {option.displayNames && option.value in option.displayNames 
+                      ? option.displayNames[option.value as keyof typeof option.displayNames] 
+                      : option.value}
+                  </span>
+                )}
+              </div>
+              {option.description && (
+                <p className="text-xs text-gray-600 mt-1.5">{option.description}</p>
               )}
             </div>
           ))}

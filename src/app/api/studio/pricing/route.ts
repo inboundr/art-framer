@@ -214,9 +214,9 @@ export async function POST(request: NextRequest) {
     // Step 8: Process all shipping methods with currency conversion
     const shippingOptions = await Promise.all(quotes.map(async (quote) => {
       const productionCountry = quote.shipments?.[0]?.fulfillmentLocation?.countryCode || 'US';
-      const deliveryEstimate = estimateDeliveryTime(
-        productionCountry,
-        country,
+    const deliveryEstimate = estimateDeliveryTime(
+      productionCountry,
+      country,
         quote.shipmentMethod
       );
       

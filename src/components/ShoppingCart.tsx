@@ -53,6 +53,16 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('ShoppingCart: Cart data updated', {
+      hasCartData: !!cartData,
+      cartItemsCount: cartItems.length,
+      loading,
+      totals
+    });
+  }, [cartData, cartItems.length, loading, totals]);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -283,24 +293,45 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span>Subtotal ({totals.itemCount} items)</span>
-                <span>{formatPrice(totals.subtotal)}</span>
+                <span className="flex items-center gap-1.5">
+                  <span>Subtotal</span>
+                  <span className="text-muted-foreground">({totals.itemCount} {totals.itemCount === 1 ? 'item' : 'items'})</span>
+                </span>
+                <span className="font-semibold">{formatPrice(totals.subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Tax</span>
-                <span>{formatPrice(totals.taxAmount)}</span>
+                <span className="font-semibold">{formatPrice(totals.taxAmount)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Shipping</span>
-                <span className="text-muted-foreground">Calculated at checkout</span>
+                <span className="flex items-center gap-1.5">
+                  <span>Shipping</span>
+                  <span className="text-xs text-amber-600 font-medium" title="Shipping cost calculated at checkout based on your address">
+                    *
+                  </span>
+                </span>
+                <span className="text-muted-foreground italic">Calculated at checkout</span>
               </div>
               <Separator />
               <div className="flex justify-between font-semibold text-lg">
                 <span>Subtotal (excl. shipping)</span>
                 <span>{formatPrice(totals.subtotal + totals.taxAmount)}</span>
               </div>
-              <div className="text-xs text-muted-foreground text-center">
-                Final total will include shipping costs calculated at checkout
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-2.5">
+                <div className="flex items-start gap-2 text-xs text-amber-800">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold mb-0.5">Final pricing at checkout</p>
+                    <p className="leading-relaxed">
+                      Shipping costs and final total will be calculated when you enter your shipping address. 
+                      <span className="font-medium"> Prices may vary</span> based on destination and shipping method selected.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Trust Badges */}

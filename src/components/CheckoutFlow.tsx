@@ -68,6 +68,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
   const [calculatedShipping, setCalculatedShipping] = useState<{
     cost: number;
     estimatedDays: number;
+    estimatedDaysRange?: { min: number; max: number };  // NEW: Add range
     serviceName: string;
     isEstimated: boolean;
     provider: string;
@@ -295,17 +296,53 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('📦 Shipping API response data:', JSON.stringify(data, null, 2));
+        
+        // Extract shipping cost - handle both possible field names and ensure it's a number
+        const shippingCostRaw = data.shippingCost ?? data.cost ?? 0;
+        const shippingCost = typeof shippingCostRaw === 'string' 
+          ? parseFloat(shippingCostRaw) 
+          : typeof shippingCostRaw === 'number' 
+            ? shippingCostRaw 
+            : 0;
+        
+        const estimatedDays = data.estimatedDays ?? data.estimated_days ?? 7;
+        const estimatedDaysRange = data.estimatedDaysRange;  // Extract range if available
+        const serviceName = data.serviceName ?? data.service ?? 'Standard Shipping';
+        const currency = data.currency || getDisplayCurrency();
+        
+        console.log('💰 Extracted shipping values:', {
+          shippingCostRaw,
+          shippingCost,
+          estimatedDays,
+          estimatedDaysRange,
+          serviceName,
+          currency,
+          rawData: data
+        });
+        
+        // Validate shipping cost is a valid number
+        if (isNaN(shippingCost) || shippingCost < 0) {
+          console.error('❌ Invalid shipping cost received:', shippingCostRaw, 'Defaulting to 0');
+        }
+        
         // Use atomic state update to prevent race conditions
         setCalculatedShipping(prev => ({
-          cost: data.shippingCost || 0,
-          estimatedDays: data.estimatedDays || 7,
-          serviceName: data.serviceName || 'Standard Shipping',
+          cost: shippingCost,
+          estimatedDays: estimatedDays,
+          estimatedDaysRange: estimatedDaysRange,  // Include range
+          serviceName: serviceName,
           isEstimated: data.isEstimated || false,
           provider: data.provider || 'unknown',
           addressValidated: data.addressValidated || false,
-          currency: data.currency || getDisplayCurrency(),
+          currency: currency,
         }));
-        console.log('✅ Shipping calculated successfully:', data);
+        console.log('✅ Shipping calculated successfully:', {
+          cost: shippingCost,
+          estimatedDays,
+          serviceName,
+          currency
+        });
       } else {
         console.error('❌ Failed to calculate shipping:', response.status, response.statusText);
         
@@ -1203,30 +1240,34 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
               
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(totals.subtotal, getDisplayCurrency())}</span>
+                  <span className="font-medium">Subtotal</span>
+                  <span className="font-semibold">{formatPrice(totals.subtotal, getDisplayCurrency())}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Tax</span>
-                  <span>{formatPrice(totals.taxAmount, getDisplayCurrency())}</span>
+                  <span className="font-medium">Tax</span>
+                  <span className="font-semibold">{formatPrice(totals.taxAmount, getDisplayCurrency())}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 font-medium">
                     <Truck className="h-3 w-3" />
                     Shipping
                     {calculatedShipping && (
                       <>
                         <span className="text-xs text-muted-foreground">
-                          ({calculatedShipping.estimatedDays} days)
+                          {calculatedShipping.estimatedDaysRange ? (
+                            `(${calculatedShipping.estimatedDaysRange.min}-${calculatedShipping.estimatedDaysRange.max} days)`
+                          ) : (
+                            `(${calculatedShipping.estimatedDays} days)`
+                          )}
                         </span>
                         {calculatedShipping.isEstimated && (
-                          <span className="text-xs text-amber-600 flex items-center gap-1">
+                          <span className="text-xs text-amber-600 flex items-center gap-1" title="Estimated shipping cost">
                             <AlertTriangle className="h-2 w-2" />
                             Est.
                           </span>
                         )}
                         {calculatedShipping.addressValidated && (
-                          <span className="text-xs text-green-600 flex items-center gap-1">
+                          <span className="text-xs text-green-600 flex items-center gap-1" title="Address verified">
                             <CheckCircle className="h-2 w-2" />
                             Verified
                           </span>
@@ -1236,16 +1277,16 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                   </span>
                   <span>
                     {shippingLoading ? (
-                      <span className="text-muted-foreground text-sm">Calculating...</span>
+                      <span className="text-muted-foreground text-sm italic">Calculating...</span>
                     ) : calculatedShipping ? (
                       <div className="text-right">
-                        <div>{formatPrice(calculatedShipping.cost, calculatedShipping.currency || getDisplayCurrency())}</div>
+                        <div className="font-semibold">{formatPrice(calculatedShipping.cost, calculatedShipping.currency || getDisplayCurrency())}</div>
                         {calculatedShipping.isEstimated && (
                           <div className="text-xs text-amber-600">Estimated</div>
                         )}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground text-sm">Enter address</span>
+                      <span className="text-muted-foreground text-sm italic">Enter address</span>
                     )}
                   </span>
                 </div>

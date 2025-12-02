@@ -8,6 +8,9 @@ import { CheckoutFlow } from '@/components/CheckoutFlow';
 export default function CartPage() {
   const [showCheckout, setShowCheckout] = useState(false);
 
+  // Note: CartContext already handles cart fetching on mount and user changes
+  // No need to manually refresh here - it causes duplicate fetches and loading state toggles
+
   const handleCheckout = () => {
     setShowCheckout(true);
   };

@@ -69,7 +69,7 @@ export function useCart(): UseCartReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
 
   const fetchCart = useCallback(async () => {
@@ -89,7 +89,38 @@ export function useCart(): UseCartReturn {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/cart', { credentials: 'include' });
+      // Get auth token from session
+      let authToken = session?.access_token;
+      
+      // Fallback: get token directly from Supabase if not in context
+      if (!authToken) {
+        const { supabase } = await import('@/lib/supabase/client');
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        authToken = currentSession?.access_token || null;
+      }
+
+      // Get destination country and shipping method from localStorage (set by studio)
+      // or default to US/Standard
+      const destinationCountry = typeof window !== 'undefined' 
+        ? (localStorage.getItem('cartDestinationCountry') || 'US')
+        : 'US';
+      const shippingMethod = typeof window !== 'undefined'
+        ? (localStorage.getItem('cartShippingMethod') || 'Standard')
+        : 'Standard';
+
+      // Use v2 checkout API for cart with real-time pricing
+      // Pass destination country and shipping method as query parameters
+      const url = new URL('/api/v2/checkout/cart', window.location.origin);
+      url.searchParams.set('country', destinationCountry);
+      url.searchParams.set('shippingMethod', shippingMethod);
+
+      const response = await fetch(url.toString(), {
+        credentials: 'include',
+        headers: authToken ? {
+          'Authorization': `Bearer ${authToken}`
+        } : {}
+      });
+
       if (!response.ok) {
         if (response.status === 401) {
           // User not authenticated - this is expected, don't show as error
@@ -118,14 +149,31 @@ export function useCart(): UseCartReturn {
       }
 
       const data = await response.json();
-      setCartItems(data.cartItems || []);
-      setTotals(data.totals || {
-        subtotal: 0,
-        taxAmount: 0,
-        shippingAmount: 0,
-        total: 0,
-        itemCount: 0,
-      });
+      
+      // V2 API returns { cart } with items array and totals
+      const cart = data.cart || data;
+      
+      if (cart && Array.isArray(cart.items)) {
+        // V2 format
+        setCartItems(cart.items);
+        setTotals({
+          subtotal: cart.totals?.subtotal || 0,
+          taxAmount: cart.totals?.tax || 0,
+          shippingAmount: cart.totals?.shipping || 0,
+          total: cart.totals?.total || 0,
+          itemCount: cart.items.length,
+        });
+      } else {
+        // V1 format fallback
+        setCartItems(data.cartItems || []);
+        setTotals(data.totals || {
+          subtotal: 0,
+          taxAmount: 0,
+          shippingAmount: 0,
+          total: 0,
+          itemCount: 0,
+        });
+      }
     } catch (err) {
       // Only set error for non-authentication issues
       if (err instanceof Error && !err.message.includes('401')) {
@@ -135,7 +183,7 @@ export function useCart(): UseCartReturn {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, session]);
 
   useEffect(() => {
     fetchCart();
@@ -155,10 +203,26 @@ export function useCart(): UseCartReturn {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/cart', {
+      // Get auth token from session
+      let authToken = session?.access_token;
+      
+      // Fallback: get token directly from Supabase if not in context
+      if (!authToken) {
+        const { supabase } = await import('@/lib/supabase/client');
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        authToken = currentSession?.access_token || null;
+      }
+
+      if (!authToken) {
+        throw new Error('Please sign in to add items to your cart');
+      }
+
+      // Use v2 checkout API for cart with real-time pricing
+      const response = await fetch('/api/v2/checkout/cart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -207,7 +271,7 @@ export function useCart(): UseCartReturn {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, fetchCart]);
+  }, [user, session, toast, fetchCart]);
 
   const updateQuantity = useCallback(async (cartItemId: string, quantity: number): Promise<boolean> => {
     if (!user) {
@@ -253,7 +317,7 @@ export function useCart(): UseCartReturn {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, fetchCart]);
+  }, [user, session, toast, fetchCart]);
 
   const removeFromCart = useCallback(async (cartItemId: string): Promise<boolean> => {
     if (!user) {
@@ -294,7 +358,7 @@ export function useCart(): UseCartReturn {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, fetchCart]);
+  }, [user, session, toast, fetchCart]);
 
   const clearCart = useCallback(async (): Promise<boolean> => {
     if (!user || cartItems.length === 0) {

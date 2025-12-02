@@ -37,15 +37,35 @@ export async function GET(request: NextRequest) {
       console.log(`🔍 Fetching Prodigi product details for SKU: ${sku}`);
       const productDetails = await prodigiClient.getProductDetails(sku);
       
+      // Build attributes based on product requirements and user selection
+      const attributes: Record<string, string> = {};
+      // Prodigi attributes can have various structures, so we use a flexible type
+      const validAttributes = (productDetails.attributes || {}) as Record<string, any>;
+      
+      // Map frameStyle to color attribute if product requires it
+      if (validAttributes.color && Array.isArray(validAttributes.color) && validAttributes.color.length > 0) {
+        // Find matching color from valid options (case-insensitive)
+        const matchingColor = validAttributes.color.find(
+          (opt: string) => opt.toLowerCase() === validatedData.frameStyle.toLowerCase()
+        );
+        if (matchingColor) {
+          attributes.color = matchingColor; // Use exact case from Prodigi
+        } else {
+          // If exact match not found, use first valid option as fallback
+          attributes.color = validAttributes.color[0];
+          console.warn(`⚠️ Frame style "${validatedData.frameStyle}" not found in valid colors, using default: ${attributes.color}`);
+        }
+      }
+      
       // Get real-time pricing from Prodigi quotes (product details endpoint doesn't include prices)
-      console.log(`💰 Fetching real-time pricing for SKU: ${sku}`);
+      console.log(`💰 Fetching real-time pricing for SKU: ${sku} with attributes:`, attributes);
       let price = 0;
       try {
         const quotes = await prodigiClient.getFullQuote({
           items: [{
             sku: sku,
             quantity: 1,
-            attributes: {}
+            attributes: attributes
           }],
           destinationCountryCode: 'US' // Default to US for base pricing
         });

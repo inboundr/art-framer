@@ -1497,6 +1497,7 @@ export class ProdigiClient {
     cost: number;
     currency: string;
     estimatedDays: number;
+    estimatedDaysRange: { min: number; max: number };
     serviceName: string;
   }> {
     try {
@@ -1533,6 +1534,7 @@ export class ProdigiClient {
           shipments: Array<{
             carrier: { name: string; service: string };
             cost: { amount: string; currency: string };
+            fulfillmentLocation?: { countryCode: string; labCode?: string };
           }>;
         }>;
       }>('/quotes', {
@@ -1550,17 +1552,45 @@ export class ProdigiClient {
         const firstQuote = response.quotes[0];
         const shippingCost = parseFloat(firstQuote.costSummary.shipping.amount);
         
+        // Extract carrier and service information for better delivery estimates
+        const carrier = firstQuote.shipments?.[0]?.carrier;
+        const carrierName = carrier?.name || '';
+        const carrierService = carrier?.service || '';
+        const shipmentMethod = firstQuote.shipmentMethod || 'Standard';
+        
+        // Extract fulfillment location (where product is produced)
+        const fulfillmentLocation = firstQuote.shipments?.[0]?.fulfillmentLocation;
+        const fulfillmentCountry = fulfillmentLocation?.countryCode;
+        
+        // Calculate estimated days range based on actual carrier/service and origin
+        const estimatedDaysRange = this.estimateDeliveryDaysFromCarrier(
+          carrierName,
+          carrierService,
+          shipmentMethod,
+          shippingAddress.countryCode,
+          fulfillmentCountry  // Pass fulfillment location
+        );
+        
+        // For backward compatibility, use the max value as single estimate
+        const estimatedDays = estimatedDaysRange.max;
+        
         console.log('✅ Prodigi shipping cost calculated:', {
           cost: shippingCost,
           currency: firstQuote.costSummary.shipping.currency,
-          method: firstQuote.shipmentMethod
+          method: shipmentMethod,
+          carrier: carrierName,
+          service: carrierService,
+          fulfillmentCountry,
+          estimatedDaysRange,
+          estimatedDays
         });
 
         return {
           cost: shippingCost,
           currency: firstQuote.costSummary.shipping.currency,
-          estimatedDays: 7, // Default since API doesn't provide this
-          serviceName: firstQuote.shipmentMethod
+          estimatedDays,  // Keep for backward compatibility (uses max of range)
+          estimatedDaysRange,  // NEW: Add range
+          serviceName: shipmentMethod
         };
       }
       
@@ -1582,6 +1612,107 @@ export class ProdigiClient {
       // Instead of hardcoded fallback, throw error to let shipping service handle it
       throw new Error(`Prodigi shipping calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Estimate delivery days based on carrier, service, and destination
+   * Returns a safe range (min-max) with minimum 4 days to avoid over-promising
+   * Uses actual carrier/service information from Prodigi response
+   */
+  private estimateDeliveryDaysFromCarrier(
+    carrierName: string,
+    carrierService: string,
+    shipmentMethod: string,
+    destinationCountry: string,
+    fulfillmentCountry?: string  // From Prodigi's fulfillmentLocation
+  ): { min: number; max: number } {
+    const origin = fulfillmentCountry || 'US'; // Default if not provided
+    const carrierLower = carrierName.toLowerCase();
+    const serviceLower = carrierService.toLowerCase();
+    
+    // Check if it's a courier service (DHL Express, FedEx, UPS)
+    const isCourier = carrierLower.includes('dhl') || 
+                     carrierLower.includes('fedex') ||
+                     carrierLower.includes('ups');
+    
+    let range: { min: number; max: number };
+    
+    // Courier services: 1-6 working days (per Prodigi FAQ), but we'll adjust to minimum 4
+    if (isCourier) {
+      if (origin === destinationCountry) {
+        range = { min: 4, max: 6 }; // Domestic courier (adjusted from 1-3)
+      } else if (['CA', 'US', 'GB', 'AU', 'DE', 'FR'].includes(destinationCountry)) {
+        range = { min: 4, max: 6 }; // Major markets via courier (adjusted from 2-5)
+      } else {
+        range = { min: 5, max: 7 }; // Other international via courier (adjusted from 3-6)
+      }
+    } else {
+      // Standard postal shipping - use Prodigi's official estimates from FAQ
+      // UK/EU to Canada or US: 10-15 working days
+      if (origin === 'GB' || ['GB', 'EU'].includes(origin)) {
+        if (destinationCountry === 'CA' || destinationCountry === 'US') {
+          range = { min: 10, max: 15 };
+        } else if (destinationCountry === 'GB') {
+          range = { min: 4, max: 5 }; // UK to UK (adjusted from 2-3)
+        } else if (['DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'IE', 'FI'].includes(destinationCountry)) {
+          range = { min: 5, max: 7 }; // UK/EU to EU
+        } else if (destinationCountry === 'AU') {
+          range = { min: 10, max: 15 }; // UK/EU to Australia
+        } else if (destinationCountry === 'NZ') {
+          range = { min: 10, max: 15 }; // UK/EU to New Zealand
+        } else {
+          range = { min: 10, max: 15 }; // UK/EU to rest of world
+        }
+      } else if (origin === 'US') {
+        // US routes
+        if (destinationCountry === 'US') {
+          range = { min: 4, max: 6 }; // US to US (adjusted from 4-6, already safe)
+        } else if (destinationCountry === 'CA') {
+          range = { min: 6, max: 8 }; // US to Canada
+        } else if (destinationCountry === 'GB' || destinationCountry === 'EU') {
+          range = { min: 10, max: 15 }; // US to UK/EU
+        } else if (destinationCountry === 'AU') {
+          range = { min: 10, max: 15 }; // US to Australia
+        } else {
+          range = { min: 10, max: 15 }; // US to rest of world
+        }
+      } else if (origin === 'AU') {
+        // Australia routes
+        if (destinationCountry === 'AU') {
+          range = { min: 4, max: 6 }; // Australia to Australia (adjusted from 2-5)
+        } else if (destinationCountry === 'NZ') {
+          range = { min: 7, max: 10 }; // Australia to New Zealand
+        } else if (destinationCountry === 'US' || destinationCountry === 'GB' || destinationCountry === 'EU') {
+          range = { min: 10, max: 15 }; // Australia to US/UK/EU
+        } else {
+          range = { min: 10, max: 15 }; // Australia to rest of world
+        }
+      } else {
+        // Fallback: Use shipment method as basis with safe ranges (minimum 4 days)
+        const methodEstimates: Record<string, { min: number; max: number }> = {
+          'Overnight': { min: 4, max: 5 },  // Adjusted from 1-2
+          'Express': { min: 4, max: 6 },    // Adjusted from 2-4
+          'Standard': { min: 5, max: 10 },  // Adjusted from 5-7
+          'Budget': { min: 7, max: 15 },    // Adjusted from 7-12
+        };
+        
+        range = methodEstimates[shipmentMethod] || { min: 7, max: 12 };
+        
+        // Adjust for international if origin !== destination
+        if (origin !== destinationCountry) {
+          range = {
+            min: Math.max(range.min, 5),
+            max: Math.max(range.max, 12)
+          };
+        }
+      }
+    }
+    
+    // Ensure minimum is always at least 4 days
+    return {
+      min: Math.max(range.min, 4),
+      max: Math.max(range.max, range.min + 1) // Ensure max is at least min + 1
+    };
   }
 
   /**

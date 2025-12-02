@@ -22,14 +22,29 @@ export function CountrySelector() {
       detectCountryFromBrowser().then(country => {
         setDetectedCountry(country);
         updateConfig({ destinationCountry: country });
+        // Sync to localStorage for cart
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cartDestinationCountry', country);
+        }
         setIsDetecting(false);
       });
     } else {
+      // Sync existing country to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cartDestinationCountry', config.destinationCountry);
+      }
       setIsDetecting(false);
     }
   }, []);
 
   const currentCountry = config.destinationCountry || detectedCountry || 'US';
+
+  // Sync to localStorage whenever the country changes (from store updates)
+  useEffect(() => {
+    if (config.destinationCountry && typeof window !== 'undefined') {
+      localStorage.setItem('cartDestinationCountry', config.destinationCountry);
+    }
+  }, [config.destinationCountry]);
 
   return (
     <div className="space-y-2">
@@ -42,7 +57,12 @@ export function CountrySelector() {
         <select
           value={currentCountry}
           onChange={(e) => {
-            updateConfig({ destinationCountry: e.target.value });
+            const newCountry = e.target.value;
+            updateConfig({ destinationCountry: newCountry });
+            // Sync to localStorage for cart to use
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('cartDestinationCountry', newCountry);
+            }
           }}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 text-sm [&>option]:text-gray-900 [&>option]:bg-white"
           style={{ color: '#111827' }}

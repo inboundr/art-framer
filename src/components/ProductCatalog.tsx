@@ -105,7 +105,8 @@ export function ProductCatalog({
     }
 
     try {
-      const response = await fetch('/api/cart', {
+      // Use v2 checkout API for cart with real-time pricing
+      const response = await fetch('/api/v2/checkout/cart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

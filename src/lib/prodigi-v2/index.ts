@@ -245,11 +245,11 @@ function createProdigiSDK(): ProdigiSDK {
   
   return new ProdigiSDK({
     apiKey,
-    environment: (process.env.PRODIGI_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
-    callbackUrl: process.env.PRODIGI_CALLBACK_URL,
-    timeout: parseInt(process.env.PRODIGI_TIMEOUT || '30000', 10),
-    retries: parseInt(process.env.PRODIGI_RETRIES || '3', 10),
-    enableCache: process.env.PRODIGI_ENABLE_CACHE !== 'false',
+  environment: (process.env.PRODIGI_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
+  callbackUrl: process.env.PRODIGI_CALLBACK_URL,
+  timeout: parseInt(process.env.PRODIGI_TIMEOUT || '30000', 10),
+  retries: parseInt(process.env.PRODIGI_RETRIES || '3', 10),
+  enableCache: process.env.PRODIGI_ENABLE_CACHE !== 'false',
   });
 }
 
