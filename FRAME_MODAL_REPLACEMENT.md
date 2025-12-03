@@ -11,22 +11,25 @@ Replaced the "Choose Your Frame" modal with direct navigation to the `/studio` p
 ### 1. **CreationsModal.tsx**
 
 **Before:**
+
 - Clicking "Order Framed Print" opened a frame selector modal
 - Limited customization options
 - Modal-based workflow
 
 **After:**
+
 ```typescript
 const handleBuyAsFrame = () => {
   // Set the image in studio store
   setImage(normalizedImageUrl, imageId || `gen-${Date.now()}`);
-  
+
   // Navigate to studio
-  router.push('/studio');
+  router.push("/studio");
 };
 ```
 
 **Added Imports:**
+
 - `useRouter` from `next/navigation`
 - `useStudioStore` from `@/store/studio`
 
@@ -35,27 +38,32 @@ const handleBuyAsFrame = () => {
 ### 2. **CuratedImageGallery.tsx**
 
 **Before:**
+
 - "Buy as Frame" button showed frame selector modal
 - Frame selection limited to modal UI
 
 **After:**
+
 ```typescript
 const handleBuyAsFrame = (image: CuratedImage) => {
   // Get the full public URL for the image
-  const { data } = supabase.storage.from('curated-images').getPublicUrl(image.image_url);
+  const { data } = supabase.storage
+    .from("curated-images")
+    .getPublicUrl(image.image_url);
   const publicUrl = data?.publicUrl || image.image_url;
-  
+
   // Set the image in studio store
   setImage(publicUrl, image.id);
-  
+
   // Navigate to studio
-  router.push('/studio');
-  
+  router.push("/studio");
+
   onBuyAsFrame?.(image);
 };
 ```
 
 **Added Imports:**
+
 - `useRouter` from `next/navigation`
 - `useStudioStore` from `@/store/studio`
 
@@ -64,35 +72,38 @@ const handleBuyAsFrame = (image: CuratedImage) => {
 ### 3. **UserImageGallery.tsx**
 
 **Before:**
+
 - "Buy as Frame" opened frame selector modal
 - Basic frame customization only
 
 **After:**
+
 ```typescript
 const handleBuyAsFrame = (image: UserImage) => {
   // Normalize the image URL
   const normalizeImageUrl = (url?: string | null) => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
     try {
-      const { data } = supabase.storage.from('images').getPublicUrl(url);
+      const { data } = supabase.storage.from("images").getPublicUrl(url);
       return data?.publicUrl || url;
     } catch {
       return url;
     }
   };
-  
+
   const publicUrl = normalizeImageUrl(image.image_url);
-  
+
   // Set the image in studio store
   setImage(publicUrl, image.id);
-  
+
   // Navigate to studio
-  router.push('/studio');
+  router.push("/studio");
 };
 ```
 
 **Added Imports:**
+
 - `useRouter` from `next/navigation`
 - `useStudioStore` from `@/store/studio`
 
@@ -101,6 +112,7 @@ const handleBuyAsFrame = (image: UserImage) => {
 ## User Flow Changes
 
 ### Old Flow
+
 1. User clicks "Buy as Frame" / "Order Framed Print"
 2. Modal opens with frame selector
 3. Limited customization options shown
@@ -108,6 +120,7 @@ const handleBuyAsFrame = (image: UserImage) => {
 5. Modal closes
 
 ### New Flow
+
 1. User clicks "Buy as Frame" / "Order Framed Print"
 2. Image loaded into studio store via `setImage(url, id)`
 3. User redirected to `/studio` page
@@ -124,12 +137,14 @@ const handleBuyAsFrame = (image: UserImage) => {
 ## Benefits
 
 ### 1. **Enhanced User Experience**
+
 - Full-screen workspace instead of modal
 - AI assistant for personalized recommendations
 - Real-time preview with room visualization
 - More intuitive and professional interface
 
 ### 2. **Better Customization**
+
 - Access to all product types (framed print, canvas, acrylic, metal, poster)
 - Advanced frame options (color, style, thickness, glazing)
 - Mount/mat customization
@@ -137,17 +152,20 @@ const handleBuyAsFrame = (image: UserImage) => {
 - Size customization including custom dimensions
 
 ### 3. **AI-Powered Features**
+
 - Intelligent frame recommendations based on image analysis
 - Chat interface for questions and guidance
 - Smart suggestions for improvements
 - Confidence scoring for recommendations
 
 ### 4. **Consistency**
+
 - All frame customization now goes through the same studio experience
 - Unified design and UX
 - Single source of truth for product configuration
 
 ### 5. **Code Simplification**
+
 - Removed duplicate frame selector modal code
 - Centralized frame customization logic
 - Easier to maintain and update
@@ -177,23 +195,27 @@ setImage(imageUrl, imageId);
 Each gallery component handles image URL normalization differently:
 
 **CreationsModal:**
+
 - Uses pre-normalized `normalizedImageUrl` from useMemo
 - Handles both curated-images and images buckets
 
 **CuratedImageGallery:**
+
 - Explicitly uses `curated-images` bucket
 - Gets public URL via Supabase storage
 
 **UserImageGallery:**
+
 - Uses `images` bucket for user-generated content
 - Inline normalization function
 
 ### Navigation
 
 All components use Next.js App Router:
+
 ```typescript
 const router = useRouter();
-router.push('/studio');
+router.push("/studio");
 ```
 
 ---
@@ -248,18 +270,21 @@ The following code was simplified or removed from each component:
 When users land on the studio page after clicking "Buy as Frame", they get:
 
 ### Left Panel - AI Chat
+
 - Conversational interface
 - Frame recommendations
 - Customization guidance
 - Questions answered in real-time
 
 ### Center Panel - Frame Preview
+
 - High-quality preview
 - Multiple view modes (3D, room, AR, compare)
 - Zoom and pan controls
 - Real-time updates as options change
 
 ### Right Panel - Context & Details
+
 - Product type selector
 - Frame customization options
 - Size selection (including custom)
@@ -301,15 +326,19 @@ Potential improvements to consider:
 ## Migration Notes
 
 ### Breaking Changes
+
 None - this is a UX enhancement that doesn't break existing functionality
 
 ### Backward Compatibility
+
 - Old modal code kept in components but unused
 - Can be safely removed in future cleanup
 - No database schema changes required
 
 ### Rollback Plan
+
 If issues arise:
+
 1. Revert the three modified files
 2. Restore old `handleBuyAsFrame` implementations
 3. Re-enable frame selector modal rendering
@@ -358,8 +387,8 @@ To measure the success of this change, track:
 
 ```typescript
 // 1. Add imports
-import { useRouter } from 'next/navigation';
-import { useStudioStore } from '@/store/studio';
+import { useRouter } from "next/navigation";
+import { useStudioStore } from "@/store/studio";
 
 // 2. In component
 const router = useRouter();
@@ -368,9 +397,8 @@ const { setImage } = useStudioStore();
 // 3. In handler
 const handleBuyAsFrame = (imageUrl: string, imageId: string) => {
   setImage(imageUrl, imageId);
-  router.push('/studio');
+  router.push("/studio");
 };
 ```
 
 That's it! 🎨
-

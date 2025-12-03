@@ -101,26 +101,52 @@ export function ConfigurationSummary() {
 
     // Mount - only show if available
     if (availableOptions?.hasMount) {
+      // Better display names for mount options
+      const mountDisplayNames: Record<string, string> = {
+        'none': 'No Mat',
+        'no mount / mat': 'No Mat',
+        '1.4mm': '1.4mm (Slim)',
+        '2.0mm': '2.0mm (Standard)',
+        '2.4mm': '2.4mm (Premium)',
+      };
+      
+      // Filter out "no mount / mat" from available options since we're adding 'none' explicitly
+      const mountOptions = availableOptions.mounts
+        .map(m => m.toLowerCase())
+        .filter(m => !m.includes('no mount') && !m.includes('no mat'));
+      
       opts.push({
         label: '📄 Mount',
         value: config.mount,
         key: 'mount',
         editable: true,
-        options: ['none', ...availableOptions.mounts.map(m => m.toLowerCase())],
+        options: ['none', ...mountOptions],
+        displayNames: mountDisplayNames,
         description: config.mount !== 'none' 
-          ? 'Adds breathing room around your artwork'
+          ? 'Mat board creates professional border around artwork'
           : undefined,
         showIf: true,
       });
 
       // Mount Color - only show if mount is not 'none'
       if (config.mount && config.mount !== 'none' && availableOptions?.hasMountColor) {
+        // Better display names for mount colors
+        const mountColorDisplayNames: Record<string, string> = {
+          'snow white': 'Snow White',
+          'off white': 'Off White',
+          'off-white': 'Off White',
+          'black': 'Black',
+          'navy': 'Navy',
+        };
+        
         opts.push({
           label: '🎨 Mount Color',
           value: config.mountColor,
           key: 'mountColor',
           editable: true,
           options: availableOptions.mountColors.map(c => c.toLowerCase()),
+          displayNames: mountColorDisplayNames,
+          description: 'Color of the mat board border',
           showIf: true,
         });
       }

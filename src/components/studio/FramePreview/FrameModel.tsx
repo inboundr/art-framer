@@ -5,13 +5,15 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useFrameMaterial } from '@/hooks/useFrameMaterial';
 import { useMountTexture } from '@/hooks/useMountTexture';
 import { useCanvasTexture } from '@/hooks/useCanvasTexture';
 import type { FrameType } from '@/lib/prodigi-textures/texture-mapper';
+import { applyBoxMappingUVs, getRecommendedUVSettings } from '@/lib/three-utils/frame-uv-mapper';
+import { getFrameTextureConfig } from '@/lib/prodigi-textures/frame-texture-config';
 
 interface FrameModelProps {
   color: string;
@@ -65,16 +67,28 @@ export function FrameModel({
     return 'classic'; // Default to classic
   }, [style]);
 
-  // Frame geometry
+  // Frame geometry with proper UV mapping
   const frameGeometry = useMemo(() => {
-    return createFrameGeometry(width, height, style);
-  }, [width, height, style]);
+    const geometry = createFrameGeometry(width, height, style);
+    
+    // Get texture configuration to determine UV mapping settings
+    const textureConfig = getFrameTextureConfig(frameType, color);
+    
+    // Apply proper UV mapping for textures
+    // Use box mapping which works well for extruded frames
+    if (textureConfig.textureRepeat) {
+      applyBoxMappingUVs(geometry, textureConfig.textureRepeat);
+    }
+    
+    return geometry;
+  }, [width, height, style, frameType, color]);
 
   // Frame material using Prodigi textures
   const {
     material: frameMaterial,
     isLoading: frameMaterialLoading,
     hasTextures: frameHasTextures,
+    textureConfig,
   } = useFrameMaterial({
     frameType,
     color,
@@ -84,35 +98,55 @@ export function FrameModel({
 
   // Mount/Mat geometry (if present)
   // A mount is a border around the artwork with a window cutout (like a picture mat)
+  // The mount sits INSIDE the frame, creating a border around the artwork
   const mountGeometry = useMemo(() => {
     if (!mount || mount === 'none') return null;
 
-    // Mount extends beyond the frame - typical mount border width
-    const mountBorderWidth = 0.15; // Mount border width in Three.js units
-    const outerWidth = width + mountBorderWidth * 2;
-    const outerHeight = height + mountBorderWidth * 2;
+    // Mount border width - how much mat is visible around the artwork
+    // Border width varies slightly with mount thickness for visual accuracy
+    const mountBorderWidthMap: Record<string, number> = {
+      '1.4mm': 0.14,  // Slim mat - slightly narrower border (1.68")
+      '2.0mm': 0.15,  // Standard mat - standard border (1.8")
+      '2.4mm': 0.16,  // Premium mat - slightly wider border (1.92")
+    };
+    const mountBorderWidth = mountBorderWidthMap[mount] || 0.15; // Default to standard
+    
+    // Mount outer dimensions match the artwork opening (frame inner dimensions)
+    // The mount sits inside the frame, so its outer edge = artwork dimensions
+    const mountOuterWidth = width;
+    const mountOuterHeight = height;
+    
+    // Mount inner dimensions - smaller to create visible mat border
+    const mountInnerWidth = width - (mountBorderWidth * 2);
+    const mountInnerHeight = height - (mountBorderWidth * 2);
 
     // Create shape with hole (like frame geometry)
     const shape = new THREE.Shape();
-    // Outer rectangle
-    shape.moveTo(-outerWidth / 2, -outerHeight / 2);
-    shape.lineTo(outerWidth / 2, -outerHeight / 2);
-    shape.lineTo(outerWidth / 2, outerHeight / 2);
-    shape.lineTo(-outerWidth / 2, outerHeight / 2);
-    shape.lineTo(-outerWidth / 2, -outerHeight / 2);
+    // Outer rectangle (fits within frame opening)
+    shape.moveTo(-mountOuterWidth / 2, -mountOuterHeight / 2);
+    shape.lineTo(mountOuterWidth / 2, -mountOuterHeight / 2);
+    shape.lineTo(mountOuterWidth / 2, mountOuterHeight / 2);
+    shape.lineTo(-mountOuterWidth / 2, mountOuterHeight / 2);
+    shape.lineTo(-mountOuterWidth / 2, -mountOuterHeight / 2);
 
-    // Inner rectangle (hole for artwork) - slightly smaller than artwork for reveal
-    const reveal = 0.01; // Small reveal around artwork
+    // Inner rectangle (hole for artwork to show through)
     const hole = new THREE.Path();
-    hole.moveTo(-width / 2 - reveal, -height / 2 - reveal);
-    hole.lineTo(width / 2 + reveal, -height / 2 - reveal);
-    hole.lineTo(width / 2 + reveal, height / 2 + reveal);
-    hole.lineTo(-width / 2 - reveal, height / 2 + reveal);
-    hole.lineTo(-width / 2 - reveal, -height / 2 - reveal);
+    hole.moveTo(-mountInnerWidth / 2, -mountInnerHeight / 2);
+    hole.lineTo(mountInnerWidth / 2, -mountInnerHeight / 2);
+    hole.lineTo(mountInnerWidth / 2, mountInnerHeight / 2);
+    hole.lineTo(-mountInnerWidth / 2, mountInnerHeight / 2);
+    hole.lineTo(-mountInnerWidth / 2, -mountInnerHeight / 2);
     shape.holes.push(hole);
 
     // Extrude to give mount some thickness
-    const mountThickness = 0.01; // Thin mount board
+    // Different mount thicknesses create different visual depth
+    const mountThicknessMap: Record<string, number> = {
+      '1.4mm': 0.0055,  // 1.4mm mat board - thinner
+      '2.0mm': 0.0078,  // 2.0mm mat board - standard
+      '2.4mm': 0.0094,  // 2.4mm mat board - premium (more substantial)
+    };
+    const mountThickness = mountThicknessMap[mount] || 0.0078; // Default to 2.0mm
+    
     const extrudeSettings: THREE.ExtrudeGeometryOptions = {
       depth: mountThickness,
       bevelEnabled: false,
@@ -134,9 +168,16 @@ export function FrameModel({
     if (!mountGeometry || !showMount) return null;
 
     // Build material config - only include map if texture exists
+    // Thicker mounts have slightly more pronounced texture
+    const roughnessMap: Record<string, number> = {
+      '1.4mm': 0.75,  // Thinner mat - slightly smoother
+      '2.0mm': 0.8,   // Standard mat - standard texture
+      '2.4mm': 0.85,  // Thicker mat - more pronounced texture
+    };
+    
     const mountMaterialConfig: any = {
       color: mountFallbackColor,
-      roughness: 0.8,
+      roughness: roughnessMap[mount || '2.0mm'] || 0.8,
       metalness: 0.0,
     };
     
@@ -145,7 +186,7 @@ export function FrameModel({
     }
 
     return new THREE.MeshStandardMaterial(mountMaterialConfig);
-  }, [mountGeometry, mountTexture, mountFallbackColor, showMount]);
+  }, [mountGeometry, mountTexture, mountFallbackColor, showMount, mount]);
 
   // Glaze geometry and material
   const glazeGeometry = useMemo(() => {

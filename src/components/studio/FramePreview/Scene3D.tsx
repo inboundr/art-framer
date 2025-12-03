@@ -73,12 +73,17 @@ export function Scene3D({ config, autoRotate = false, resetTrigger = 0 }: Scene3
 
         {/* Content */}
         <group>
-          {/* Artwork */}
-          <ArtworkPlane imageUrl={config.imageUrl || ''} size={config.size} />
+          {/* Artwork - size adjusts when mount is present */}
+          <ArtworkPlane 
+            imageUrl={config.imageUrl || ''} 
+            size={config.size}
+            hasMount={config.productType === 'framed-print' && !!config.mount && config.mount !== 'none'}
+            mount={config.mount}
+          />
           
           {/* Frame - Key prop forces re-render when critical config changes */}
           <FrameModel
-            key={`${config.productType}-${config.frameColor}-${config.wrap}-${config.glaze}-${config.size}-${config.mount}-${config.mountColor}`}
+            key={`${config.productType}-${config.frameColor}-${config.frameStyle}-${config.wrap}-${config.glaze}-${config.size}-${config.mount}-${config.mountColor}`}
             color={config.frameColor}
             style={config.frameStyle}
             size={config.size}

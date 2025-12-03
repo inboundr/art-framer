@@ -258,8 +258,8 @@ class FacetService {
         
         frameColors: ['Black', 'White', 'Natural', 'Gold', 'Silver'],
         glazes: ['Acrylic / Perspex', 'Float Glass', 'Motheye'],
-        mounts: ['No Mount / Mat', '2.0mm'],
-        mountColors: ['Off White', 'Black'],
+        mounts: ['No Mount / Mat', '1.4mm', '2.0mm', '2.4mm'], // All mount options from Prodigi catalog
+        mountColors: ['Snow White', 'Off White', 'Black'], // Most common mount colors
         paperTypes: ['Budget Photo Paper', 'Enhanced Matte'],
         finishes: [],
         edges: [],

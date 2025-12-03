@@ -737,7 +737,12 @@ export function RoomScene({ config, environment, resetTrigger = 0 }: RoomScenePr
           position={[framePosition[0], framePosition[1], framePosition[2] + 0.02]}
           rotation={frameRotation}
         >
-          <ArtworkPlane imageUrl={config.imageUrl || ''} size={config.size} />
+          <ArtworkPlane 
+            imageUrl={config.imageUrl || ''} 
+            size={config.size}
+            hasMount={config.productType === 'framed-print' && !!config.mount && config.mount !== 'none'}
+            mount={config.mount}
+          />
           <FrameModel
             key={`${config.productType}-${config.frameColor}-${config.wrap}-${config.glaze}-${config.size}`}
             color={config.frameColor}
