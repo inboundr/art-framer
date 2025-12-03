@@ -160,6 +160,37 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
       delete (window as any).testAddToCartFunction;
     };
   }, [user]);
+
+  // Check for pending cart image after login and redirect to studio
+  useEffect(() => {
+    if (user) {
+      const pendingImageData = localStorage.getItem('pending-cart-image');
+      if (pendingImageData) {
+        try {
+          const pendingImage = JSON.parse(pendingImageData);
+          // Check if the data is not too old (within 1 hour)
+          const isRecent = Date.now() - pendingImage.timestamp < 60 * 60 * 1000;
+          if (isRecent) {
+            console.log('🛒 Found pending cart image after login:', pendingImage);
+            const publicUrl = normalizeImageUrl(pendingImage.image_url);
+            setImage(publicUrl, pendingImage.id);
+            localStorage.removeItem('pending-cart-image');
+            
+            // Small delay to ensure session persists
+            setTimeout(() => {
+              router.push('/studio');
+            }, 100);
+          } else {
+            // Clear old pending image
+            localStorage.removeItem('pending-cart-image');
+          }
+        } catch (error) {
+          console.error('Error parsing pending cart image:', error);
+          localStorage.removeItem('pending-cart-image');
+        }
+      }
+    }
+  }, [user, setImage, router, normalizeImageUrl]);
   
   // Normalize any DB-stored storage path into a public URL
   const normalizeImageUrl = useCallback((url?: string | null) => {
