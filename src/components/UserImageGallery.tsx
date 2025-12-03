@@ -161,6 +161,18 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
     };
   }, [user]);
 
+  // Normalize any DB-stored storage path into a public URL
+  const normalizeImageUrl = useCallback((url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    try {
+      const { data } = supabase.storage.from('images').getPublicUrl(url);
+      return data?.publicUrl || url;
+    } catch {
+      return url;
+    }
+  }, []);
+
   // Check for pending cart image after login and redirect to studio
   useEffect(() => {
     if (user) {
@@ -191,18 +203,6 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
       }
     }
   }, [user, setImage, router, normalizeImageUrl]);
-  
-  // Normalize any DB-stored storage path into a public URL
-  const normalizeImageUrl = useCallback((url?: string | null) => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    try {
-      const { data } = supabase.storage.from('images').getPublicUrl(url);
-      return data?.publicUrl || url;
-    } catch {
-      return url;
-    }
-  }, []);
   const [images, setImages] = useState<UserImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
