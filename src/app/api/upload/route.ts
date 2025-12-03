@@ -1,18 +1,39 @@
 /**
  * Image Upload API
- * Handles file uploads to storage
+ * Handles file uploads to Supabase Storage
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import { randomUUID } from 'crypto';
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '@/lib/supabase/client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// In production, you'd upload to S3/Cloudinary
-// For now, we'll save to local /public/uploads folder
+const UPLOADS_BUCKET = 'uploads'; // Bucket for studio uploads
+
+// Lazy Supabase client creation
+let supabase: ReturnType<typeof createClient<Database>> | null = null;
+
+const getSupabaseClient = () => {
+  if (!supabase) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    
+    supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+  }
+  return supabase;
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,30 +66,39 @@ export async function POST(request: NextRequest) {
     // Generate unique filename
     const id = randomUUID();
     const extension = file.name.split('.').pop() || 'jpg';
-    const filename = `${id}.${extension}`;
+    const filename = `studio/${id}.${extension}`;
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // Get Supabase client
+    const supabase = getSupabaseClient();
 
-    // Ensure uploads directory exists
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (error) {
-      // Directory might already exist
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(UPLOADS_BUCKET)
+      .upload(filename, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type,
+      });
+
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError);
+      return NextResponse.json(
+        {
+          error: 'Failed to upload file',
+          details: uploadError.message,
+        },
+        { status: 500 }
+      );
     }
 
-    // Save file
-    const filepath = join(uploadsDir, filename);
-    await writeFile(filepath, buffer);
-
-    // Return URL
-    const url = `/uploads/${filename}`;
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(UPLOADS_BUCKET)
+      .getPublicUrl(filename);
 
     return NextResponse.json({
       id,
-      url,
+      url: publicUrl,
       filename,
       size: file.size,
       type: file.type,

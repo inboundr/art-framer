@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { FrameModel } from './FrameModel';
 import { ArtworkPlane } from './ArtworkPlane';
 import type { FrameConfiguration } from '@/store/studio';
+import { getSupabaseAssetUrlSync } from '@/lib/prodigi-assets/supabase-assets';
 
 export type RoomEnvironment = 
   | 'living-room';
@@ -32,7 +33,7 @@ interface RoomSceneProps {
 
 // GLB file paths for each environment
 const roomGLBPaths: Record<RoomEnvironment, string> = {
-  'living-room': '/samples/rooms/cozy-living-room-baked/cozy_living_room_baked.glb',
+  'living-room': getSupabaseAssetUrlSync('/samples/rooms/cozy-living-room-baked/cozy_living_room_baked.glb'),
 };
 
 // Room configuration presets (for camera and frame positioning)
@@ -684,7 +685,7 @@ function RoomModel({
 }
 
 // Preload GLB files for better performance
-useGLTF.preload('/samples/rooms/cozy-living-room-baked/cozy_living_room_baked.glb');
+useGLTF.preload(getSupabaseAssetUrlSync('/samples/rooms/cozy-living-room-baked/cozy_living_room_baked.glb'));
 
 // Camera controller
 function CameraController({ preset, resetTrigger }: { preset: typeof roomPresets[RoomEnvironment]; resetTrigger?: number }) {
