@@ -285,7 +285,32 @@ export function CuratedImageGallery({
   }, []);
 
   const handleBuyAsFrame = async (image: CuratedImage) => {
-    console.log('🎨 CuratedImageGallery: Redirecting to studio with image');
+    console.log('🎨 CuratedImageGallery: Order Frame clicked', {
+      hasUser: !!user,
+      imageId: image.id
+    });
+    
+    // Check if user is authenticated
+    if (!user) {
+      console.log('🔐 User not authenticated, storing pending image and opening auth modal');
+      
+      // Store the image for after login
+      localStorage.setItem('pending-cart-image', JSON.stringify({
+        id: image.id,
+        image_url: image.image_url,
+        title: image.title,
+        description: image.description,
+        aspect_ratio: image.aspect_ratio,
+        timestamp: Date.now()
+      }));
+      
+      if (onOpenAuthModal) {
+        onOpenAuthModal();
+      }
+      return;
+    }
+    
+    console.log('✅ User authenticated, redirecting to studio');
     
     // Normalize the image URL - check if it's already a full URL
     let publicUrl = image.image_url;

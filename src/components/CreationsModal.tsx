@@ -57,10 +57,37 @@ export function CreationsModal({
   if (!isOpen) return null;
 
   const handleBuyAsFrame = async () => {
-    console.log('🎨 CreationsModal: handleBuyAsFrame called - redirecting to studio', {
+    console.log('🎨 CreationsModal: handleBuyAsFrame called', {
       normalizedImageUrl,
-      imageId
+      imageId,
+      hasUser: !!user
     });
+    
+    // Check if user is authenticated
+    if (!user) {
+      console.log('🔐 User not authenticated, storing pending image and opening auth modal');
+      
+      // Store the image for after login
+      localStorage.setItem('pending-cart-image', JSON.stringify({
+        id: imageId || `gen-${Date.now()}`,
+        image_url: normalizedImageUrl,
+        title: promptText || 'Generated Image',
+        timestamp: Date.now()
+      }));
+      
+      if (onOpenAuthModal) {
+        onOpenAuthModal();
+      } else {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please sign in to order a frame.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+    
+    console.log('✅ User authenticated, redirecting to studio');
     
     // Set the image in studio store
     setImage(normalizedImageUrl, imageId || `gen-${Date.now()}`);
