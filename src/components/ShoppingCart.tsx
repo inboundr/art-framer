@@ -73,7 +73,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
 
 
   const getFrameSizeLabel = (size: string) => {
-    const labels = {
+    const labels: Record<string, string> = {
       small: 'Small',
       medium: 'Medium',
       large: 'Large',

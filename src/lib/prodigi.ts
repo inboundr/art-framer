@@ -1561,17 +1561,8 @@ export class ProdigiClient {
         const fulfillmentLocation = firstQuote.shipments?.[0]?.fulfillmentLocation;
         const fulfillmentCountry = fulfillmentLocation?.countryCode;
         
-        // Calculate estimated days range based on actual carrier/service and origin
-        const estimatedDaysRange = this.estimateDeliveryDaysFromCarrier(
-          carrierName,
-          carrierService,
-          shipmentMethod,
-          shippingAddress.countryCode,
-          fulfillmentCountry  // Pass fulfillment location
-        );
-        
-        // For backward compatibility, use the max value as single estimate
-        const estimatedDays = estimatedDaysRange.max;
+        // Use a simple estimate for delivery days
+        const estimatedDays = shipmentMethod === 'Budget' ? 14 : shipmentMethod === 'Express' ? 3 : 7;
         
         console.log('✅ Prodigi shipping cost calculated:', {
           cost: shippingCost,
@@ -1580,15 +1571,14 @@ export class ProdigiClient {
           carrier: carrierName,
           service: carrierService,
           fulfillmentCountry,
-          estimatedDaysRange,
           estimatedDays
         });
 
         return {
           cost: shippingCost,
           currency: firstQuote.costSummary.shipping.currency,
-          estimatedDays,  // Keep for backward compatibility (uses max of range)
-          estimatedDaysRange,  // NEW: Add range
+          estimatedDays,
+          estimatedDaysRange: { min: estimatedDays - 2, max: estimatedDays + 2 },
           serviceName: shipmentMethod
         };
       }
