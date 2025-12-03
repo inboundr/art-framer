@@ -14,31 +14,29 @@ interface PreviewControlsProps {
 }
 
 export function PreviewControls({ autoRotate, onAutoRotateToggle, onResetView }: PreviewControlsProps) {
-  const { config, updateConfig, undo, redo, canUndo, canRedo } = useStudioStore();
+  const { config, updateConfig } = useStudioStore();
 
   return (
     <>
       {/* Desktop version - Full controls */}
       <div className="hidden md:block bg-white rounded-xl shadow-lg p-4 border border-gray-200">
-        <div className="flex items-center justify-between gap-4">
-          {/* Left side - View controls */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onAutoRotateToggle}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm"
-            >
-              {autoRotate ? '⏸️ Stop' : '▶️ Auto-Rotate'}
-            </button>
+        <div className="flex items-center gap-4">
+          {/* View controls */}
+          <button
+            onClick={onAutoRotateToggle}
+            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm"
+          >
+            {autoRotate ? '⏸️ Stop' : '▶️ Auto-Rotate'}
+          </button>
 
-            <button
-              onClick={onResetView}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm"
-            >
-              🔄 Reset View
-            </button>
-          </div>
+          <button
+            onClick={onResetView}
+            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm"
+          >
+            🔄 Reset View
+          </button>
 
-          {/* Center - Size info */}
+          {/* Size selector */}
           <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
             <span className="text-sm font-medium text-gray-700">Size:</span>
             <select
@@ -57,27 +55,6 @@ export function PreviewControls({ autoRotate, onAutoRotateToggle, onResetView }:
               <option value="30x40">30x40"</option>
               <option value="36x48">36x48"</option>
             </select>
-          </div>
-
-          {/* Right side - History controls */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={undo}
-              disabled={!canUndo()}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300"
-              title="Undo"
-            >
-              ↶ Undo
-            </button>
-
-            <button
-              onClick={redo}
-              disabled={!canRedo()}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300"
-              title="Redo"
-            >
-              ↷ Redo
-            </button>
           </div>
         </div>
       </div>
@@ -103,24 +80,6 @@ export function PreviewControls({ autoRotate, onAutoRotateToggle, onResetView }:
             <option value="36x48">36×48"</option>
           </select>
 
-          {/* Icon buttons */}
-          <button
-            onClick={undo}
-            disabled={!canUndo()}
-            className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Undo"
-          >
-            ↶
-          </button>
-
-          <button
-            onClick={redo}
-            disabled={!canRedo()}
-            className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Redo"
-          >
-            ↷
-          </button>
 
           <button
             onClick={onResetView}

@@ -60,7 +60,7 @@ const roomPresets: Record<RoomEnvironment, {
 };
 
 // Helper function to find and hide wall art in the scene
-function findAndHideWallArt(scene: THREE.Object3D, targetObjectName?: string): { position: [number, number, number]; rotation: [number, number, number] } | null {
+function findAndHideWallArt(scene: THREE.Object3D, targetObjectName?: string): { position: [number, number, number]; rotation: [number, number, number]; size?: [number, number, number] } | null {
   // Ensure scene is valid
   if (!scene) {
     console.warn('⚠️ Scene is null or undefined');
@@ -294,7 +294,8 @@ function findAndHideWallArt(scene: THREE.Object3D, targetObjectName?: string): {
           
           return {
             position: finalPosition,
-            rotation: [euler.x, euler.y, euler.z]
+            rotation: [euler.x, euler.y, euler.z],
+            size: [size.x, size.y, size.z]
           };
       } else {
         // Fallback: use world position from first object
@@ -308,9 +309,15 @@ function findAndHideWallArt(scene: THREE.Object3D, targetObjectName?: string): {
         console.log('📍 Using world position from first object:', [worldPos.x, worldPos.y, worldPos.z]);
         console.log('📍 Rotation:', [euler.x, euler.y, euler.z]);
         
+        // Get bounding box for size
+        const box = new THREE.Box3().setFromObject(firstObj);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        
         return {
           position: [worldPos.x, worldPos.y, worldPos.z],
-          rotation: [euler.x, euler.y, euler.z]
+          rotation: [euler.x, euler.y, euler.z],
+          size: [size.x, size.y, size.z]
         };
       }
     }
@@ -577,12 +584,60 @@ function findAndHideWallArt(scene: THREE.Object3D, targetObjectName?: string): {
 
     return {
       position: [bestCandidate.position.x, bestCandidate.position.y, bestCandidate.position.z],
-      rotation: [bestCandidate.rotation.x, bestCandidate.rotation.y, bestCandidate.rotation.z]
+      rotation: [bestCandidate.rotation.x, bestCandidate.rotation.y, bestCandidate.rotation.z],
+      size: [bestCandidate.size.x, bestCandidate.size.y, bestCandidate.size.z]
     };
   }
 
   console.log('⚠️ No wall art found in scene, using default position');
   return null;
+}
+
+// Helper function to calculate appropriate frame scale based on wall art size and frame size
+function calculateFrameScale(
+  frameSize: string, // e.g., "16x20"
+  wallArtSize?: [number, number, number], // Size of the wall art in the room scene
+  maxWallArtDimension: number = 2.0 // Maximum dimension to constrain frame to realistic size
+): number {
+  if (!wallArtSize) {
+    // Default scale if no wall art detected - conservative sizing
+    return 0.5; // Default to 50% scale to prevent oversized frames
+  }
+  
+  // Parse frame size in inches
+  const [widthInches, heightInches] = frameSize.split('x').map(Number);
+  
+  // Convert to Three.js units (feet)
+  const frameWidthUnits = (widthInches || 16) / 12;
+  const frameHeightUnits = (heightInches || 20) / 12;
+  
+  // Get wall art dimensions (typically in meters in the GLB model)
+  const wallWidth = wallArtSize[0];
+  const wallHeight = wallArtSize[1];
+  
+  // Calculate the maximum dimension of both
+  const maxFrameDimension = Math.max(frameWidthUnits, frameHeightUnits);
+  const maxWallDimension = Math.max(wallWidth, wallHeight);
+  
+  // Calculate scale to fit frame within wall art space
+  // We want the frame to be slightly smaller than the wall art to look realistic
+  const targetScale = (maxWallArtDimension * 0.8) / maxFrameDimension; // 80% of wall art size
+  
+  // Constrain scale to reasonable limits
+  const minScale = 0.3; // Don't go too small
+  const maxScale = 1.5; // Don't go too large
+  
+  const finalScale = Math.max(minScale, Math.min(maxScale, targetScale));
+  
+  console.log('🎯 Frame scaling:', {
+    frameSize,
+    frameDimensions: `${frameWidthUnits.toFixed(2)} x ${frameHeightUnits.toFixed(2)} units`,
+    wallArtDimensions: `${wallWidth.toFixed(2)} x ${wallHeight.toFixed(2)} units`,
+    targetScale: targetScale.toFixed(2),
+    finalScale: finalScale.toFixed(2)
+  });
+  
+  return finalScale;
 }
 
 // Component to load and render the GLB room model
@@ -598,7 +653,7 @@ function RoomModel({
   scale?: number;
   position?: [number, number, number];
   rotation?: [number, number, number];
-  onWallArtFound?: (info: { position: [number, number, number]; rotation: [number, number, number] } | null) => void;
+  onWallArtFound?: (info: { position: [number, number, number]; rotation: [number, number, number]; size?: [number, number, number] } | null) => void;
   targetObjectName?: string;
 }) {
   const { scene } = useGLTF(url);
@@ -674,7 +729,7 @@ export function RoomScene({ config, environment, resetTrigger = 0 }: RoomScenePr
   const glbPath = roomGLBPaths[environment];
   
   // State to store the detected wall art position from the GLB scene
-  const [wallArtInfo, setWallArtInfo] = useState<{ position: [number, number, number]; rotation: [number, number, number] } | null>(null);
+  const [wallArtInfo, setWallArtInfo] = useState<{ position: [number, number, number]; rotation: [number, number, number]; size?: [number, number, number] } | null>(null);
   
   // Use detected wall art position if available, otherwise fall back to preset
   const framePosition = wallArtInfo?.position || preset.framePosition;
@@ -689,14 +744,22 @@ export function RoomScene({ config, environment, resetTrigger = 0 }: RoomScenePr
     baseRotation[2] + Math.PI / 2 // Add 90 degrees (π/2 radians) to Z rotation
   ];
   
-  // Debug: Log frame position
+  // Calculate frame scale based on wall art size
+  const frameScale = useMemo(() => {
+    return calculateFrameScale(config.size, wallArtInfo?.size);
+  }, [config.size, wallArtInfo?.size]);
+  
+  // Debug: Log frame position and scale
   useEffect(() => {
     if (wallArtInfo) {
-      console.log('🎨 Frame will be positioned at:', framePosition, 'with rotation:', frameRotation);
+      console.log('🎨 Frame will be positioned at:', framePosition, 'with rotation:', frameRotation, 'scale:', frameScale);
+      if (wallArtInfo.size) {
+        console.log('🖼️ Wall art size:', wallArtInfo.size.map(v => v.toFixed(2)));
+      }
     } else {
-      console.log('🎨 Using default frame position:', framePosition, 'with rotation:', frameRotation);
+      console.log('🎨 Using default frame position:', framePosition, 'with rotation:', frameRotation, 'scale:', frameScale);
     }
-  }, [wallArtInfo, framePosition, frameRotation]);
+  }, [wallArtInfo, framePosition, frameRotation, frameScale]);
 
   return (
     <Canvas
@@ -733,9 +796,11 @@ export function RoomScene({ config, environment, resetTrigger = 0 }: RoomScenePr
 
         {/* Frame and artwork on wall - positioned where the original wall art was */}
         {/* Move frame slightly forward to ensure it's in front of any back objects */}
+        {/* Scale the frame group to fit realistically on the wall */}
         <group 
           position={[framePosition[0], framePosition[1], framePosition[2] + 0.02]}
           rotation={frameRotation}
+          scale={[frameScale, frameScale, frameScale]}
         >
           <ArtworkPlane 
             imageUrl={config.imageUrl || ''} 

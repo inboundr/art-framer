@@ -5,12 +5,13 @@
 
 'use client';
 
-import { useStudioStore, type FrameConfiguration, type AIChatSuggestion } from '@/store/studio';
+import { useStudioStore, type FrameConfiguration, type AIChatSuggestion, type ConfigurationChangeData } from '@/store/studio';
 import { useEffect, useRef, useState } from 'react';
 import { Message } from './Message';
 import { QuickActions } from './QuickActions';
 import { TypingIndicator } from './TypingIndicator';
 import { SuggestionCard } from './SuggestionCard';
+import { ConfigurationChange } from './ConfigurationChange';
 
 interface ChatMessage {
   id: string;
@@ -35,7 +36,15 @@ interface ChatMessage {
 }
 
 export function AIChat() {
-  const { config, updateConfig, addPendingSuggestion, acceptSuggestion, rejectSuggestion } = useStudioStore();
+  const { 
+    config, 
+    updateConfig, 
+    addPendingSuggestion, 
+    acceptSuggestion, 
+    rejectSuggestion,
+    configurationChanges,
+    revertToConfiguration,
+  } = useStudioStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -121,10 +130,18 @@ export function AIChat() {
     setInput(e.target.value);
   };
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom when messages or configuration changes update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, configurationChanges]);
+  
+  // Debug: Log configuration changes
+  useEffect(() => {
+    if (configurationChanges.length > 0) {
+      console.log('📊 Configuration changes in chat:', configurationChanges.length);
+      console.log('Latest change:', configurationChanges[configurationChanges.length - 1]);
+    }
+  }, [configurationChanges]);
 
   // Send welcome message if no messages
   useEffect(() => {
@@ -316,7 +333,7 @@ export function AIChat() {
     <div className="flex flex-col h-full">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
+        {messages.length === 0 && configurationChanges.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
             <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mb-4">
               <span className="text-2xl">✨</span>
@@ -332,48 +349,83 @@ export function AIChat() {
           </div>
         ) : (
           <>
-            {messages.map((message) => (
-              <div key={message.id} className="space-y-3">
-                <Message 
-                  message={{
-                    ...message,
-                    productType: message.productType || config.productType || 'framed-print',
-                    showLifestyleImages: message.showLifestyleImages,
-                  }}
-                />
-                {/* Show suggestion cards for this message */}
-                {message.suggestions && message.suggestions.length > 0 && (
-                  <div className="ml-10 space-y-2">
-                    {message.suggestions.map((suggestion) => {
-                      // Convert AIChatSuggestion to Suggestion format
-                      const suggestionForCard: import('./SuggestionCard').Suggestion = {
-                        id: suggestion.id,
-                        type: suggestion.type,
-                        title: suggestion.title,
-                        description: suggestion.description,
-                        changes: suggestion.changes,
-                        currentValues: suggestion.currentValues,
-                        estimatedPrice: suggestion.estimatedPrice,
-                        confidence: suggestion.confidence,
-                        reason: suggestion.reason,
-                        frameType: config.frameStyle || 'classic',
-                        frameColor: suggestion.changes?.frameColor || config.frameColor,
-                      };
-                      
-                      return (
-                      <SuggestionCard
-                        key={suggestion.id}
-                          suggestion={suggestionForCard}
-                        onAccept={handleAcceptSuggestion}
-                        onReject={handleRejectSuggestion}
-                        isApplying={applyingSuggestionId === suggestion.id}
+            {/* Interleave messages and configuration changes chronologically */}
+            {(() => {
+              // Combine messages and configuration changes
+              const combined: Array<{ type: 'message' | 'change'; data: any; timestamp: number }> = [
+                ...messages.map(m => ({ 
+                  type: 'message' as const, 
+                  data: m, 
+                  timestamp: parseInt(m.id.split('-')[1]) || 0 
+                })),
+                ...configurationChanges.map(c => ({ 
+                  type: 'change' as const, 
+                  data: c, 
+                  timestamp: c.timestamp 
+                })),
+              ];
+              
+              // Sort by timestamp
+              combined.sort((a, b) => a.timestamp - b.timestamp);
+              
+              return combined.map((item) => {
+                if (item.type === 'message') {
+                  const message = item.data;
+                  return (
+                    <div key={message.id} className="space-y-3">
+                      <Message 
+                        message={{
+                          ...message,
+                          productType: message.productType || config.productType || 'framed-print',
+                          showLifestyleImages: message.showLifestyleImages,
+                        }}
                       />
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ))}
+                      {/* Show suggestion cards for this message */}
+                      {message.suggestions && message.suggestions.length > 0 && (
+                        <div className="ml-10 space-y-2">
+                          {message.suggestions.map((suggestion) => {
+                            // Convert AIChatSuggestion to Suggestion format
+                            const suggestionForCard: import('./SuggestionCard').Suggestion = {
+                              id: suggestion.id,
+                              type: suggestion.type,
+                              title: suggestion.title,
+                              description: suggestion.description,
+                              changes: suggestion.changes,
+                              currentValues: suggestion.currentValues,
+                              estimatedPrice: suggestion.estimatedPrice,
+                              confidence: suggestion.confidence,
+                              reason: suggestion.reason,
+                              frameType: config.frameStyle || 'classic',
+                              frameColor: suggestion.changes?.frameColor || config.frameColor,
+                            };
+                            
+                            return (
+                            <SuggestionCard
+                              key={suggestion.id}
+                                suggestion={suggestionForCard}
+                              onAccept={handleAcceptSuggestion}
+                              onReject={handleRejectSuggestion}
+                              isApplying={applyingSuggestionId === suggestion.id}
+                            />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                } else {
+                  // Configuration change
+                  const change = item.data;
+                  return (
+                    <ConfigurationChange
+                      key={change.id}
+                      change={change}
+                      onRevert={revertToConfiguration}
+                    />
+                  );
+                }
+              });
+            })()}
             {isLoading && <TypingIndicator />}
             <div ref={messagesEndRef} />
           </>

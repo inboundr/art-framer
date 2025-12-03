@@ -154,25 +154,6 @@ export function FramePreview() {
         </div>
       )}
 
-      {/* Info Overlay - Hidden on small mobile, shown on sm and up */}
-      <div className="hidden sm:block absolute top-16 sm:top-20 right-2 sm:right-4 z-10">
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 sm:p-4 space-y-2 text-xs sm:text-sm">
-          <div className="flex items-center justify-between gap-2 sm:gap-4">
-            <span className="text-gray-600 font-medium">Size:</span>
-            <span className="font-bold text-gray-900">{config.size}</span>
-          </div>
-          <div className="flex items-center justify-between gap-2 sm:gap-4">
-            <span className="text-gray-600 font-medium">Frame:</span>
-            <span className="font-bold text-gray-900 capitalize">{config.frameColor}</span>
-          </div>
-          {config.glaze && config.glaze !== 'none' && (
-            <div className="flex items-center justify-between gap-2 sm:gap-4">
-              <span className="text-gray-600 font-medium">Glaze:</span>
-              <span className="font-bold text-gray-900 capitalize">{config.glaze}</span>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

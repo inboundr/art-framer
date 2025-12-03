@@ -113,6 +113,15 @@ export interface AIChatSuggestion {
   timestamp: number;
 }
 
+export interface ConfigurationChangeData {
+  id: string;
+  timestamp: number;
+  changes: Partial<FrameConfiguration>;
+  previousConfig: FrameConfiguration;
+  source: 'user' | 'ai' | 'suggestion';
+  description?: string;
+}
+
 export interface RoomVisualization {
   id: string;
   roomImageUrl: string;
@@ -210,8 +219,12 @@ interface StudioStore {
   
   // Chat State
   conversationId: string | null;
+  configurationChanges: ConfigurationChangeData[];
   
   // Actions
+  addConfigurationChange: (change: ConfigurationChangeData) => void;
+  getConfigurationChanges: () => ConfigurationChangeData[];
+  revertToConfiguration: (config: FrameConfiguration) => void;
   updateConfig: (updates: Partial<FrameConfiguration>) => void;
   updateConfigAsync: (updates: Partial<FrameConfiguration>) => Promise<void>;
   resetConfig: () => void;
@@ -309,10 +322,12 @@ export const useStudioStore = create<StudioStore>()(
       isGeneratingImage: false,
       isPricingLoading: false,
       conversationId: null,
+      configurationChanges: [],
       
       // Update configuration
       updateConfig: (updates) => {
         set((state) => {
+          const previousConfig = state.config;
           const newConfig = {
             ...state.config,
             ...updates,
@@ -328,10 +343,23 @@ export const useStudioStore = create<StudioStore>()(
           // Keep last 50 history items
           const trimmedHistory = newHistory.slice(-50);
           
+          // Create configuration change record
+          const change: ConfigurationChangeData = {
+            id: `change-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: Date.now(),
+            changes: updates,
+            previousConfig,
+            source: 'user', // Default to user; can be overridden with updateConfigFromSource
+          };
+          
+          // Add to configuration changes (keep last 100)
+          const newConfigChanges = [...state.configurationChanges, change].slice(-100);
+          
           return {
             config: newConfig,
             history: trimmedHistory,
             currentHistoryIndex: trimmedHistory.length - 1,
+            configurationChanges: newConfigChanges,
           };
         });
         
@@ -674,6 +702,51 @@ export const useStudioStore = create<StudioStore>()(
         } finally {
           setPricingLoading(false);
         }
+      },
+      
+      // Configuration changes
+      addConfigurationChange: (change) => {
+        set((state) => ({
+          configurationChanges: [...state.configurationChanges, change].slice(-100),
+        }));
+      },
+      
+      getConfigurationChanges: () => {
+        return get().configurationChanges;
+      },
+      
+      revertToConfiguration: (targetConfig) => {
+        set((state) => {
+          const previousConfig = state.config;
+          
+          // Create a revert change record
+          const change: ConfigurationChangeData = {
+            id: `revert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: Date.now(),
+            changes: targetConfig,
+            previousConfig,
+            source: 'user',
+            description: 'Reverted configuration',
+          };
+          
+          // Add to history
+          const newHistory = [
+            ...state.history.slice(0, state.currentHistoryIndex + 1),
+            targetConfig,
+          ];
+          const trimmedHistory = newHistory.slice(-50);
+          
+          return {
+            config: targetConfig,
+            history: trimmedHistory,
+            currentHistoryIndex: trimmedHistory.length - 1,
+            configurationChanges: [...state.configurationChanges, change].slice(-100),
+          };
+        });
+        
+        // Update pricing
+        const newConfig = get().config;
+        updatePricingAsync(newConfig);
       },
       
       // Chat
