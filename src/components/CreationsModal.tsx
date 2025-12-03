@@ -39,6 +39,7 @@ export function CreationsModal({
   const { toast } = useToast();
   const { addToCart } = useCart();
   const { showCartNotification } = useCartNotification();
+  const { setImage } = useStudioStore();
 
   // Normalize any storage path into a public URL so the browser doesn't request /images/...
   const normalizedImageUrl = useMemo(() => {
@@ -55,32 +56,36 @@ export function CreationsModal({
 
   if (!isOpen) return null;
 
-  const handleBuyAsFrame = () => {
-    console.log('🎨 CreationsModal: handleBuyAsFrame called', { 
-      hasUser: !!user, 
-      showFrameSelector,
-      hasOnOpenAuthModal: !!onOpenAuthModal 
+  const handleBuyAsFrame = async () => {
+    console.log('🎨 CreationsModal: handleBuyAsFrame called - redirecting to studio', {
+      normalizedImageUrl,
+      imageId
     });
     
     if (!user) {
-      // If we have an auth modal handler, use it instead of showing a toast
+      console.log('🔐 User not authenticated, storing pending image');
+      localStorage.setItem('pending-cart-image', JSON.stringify({
+        id: imageId || `gen-${Date.now()}`,
+        image_url: normalizedImageUrl,
+        title: promptText || 'AI Generated Image',
+        timestamp: Date.now()
+      }));
       if (onOpenAuthModal) {
-        console.log('🔐 CreationsModal: Calling onOpenAuthModal');
         onOpenAuthModal();
       } else {
-        // Fallback to toast if no auth modal handler provided
-      toast({
-        title: 'Authentication Required',
-        description: 'Please sign in to purchase framed art.',
-        variant: 'destructive',
-      });
+        toast({
+          title: 'Authentication Required',
+          description: 'Please sign in to order a frame.',
+          variant: 'destructive',
+        });
       }
       return;
     }
+
+    setImage(normalizedImageUrl, imageId || `gen-${Date.now()}`);
     
-    console.log('✅ CreationsModal: User authenticated, setting showFrameSelector to true');
-    setShowFrameSelector(true);
-    console.log('✅ CreationsModal: showFrameSelector state updated');
+    await new Promise(resolve => setTimeout(resolve, 100)); // Delay for session persistence
+    router.push('/studio');
   };
 
   const handleFrameSelect = (frame: any) => {

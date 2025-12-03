@@ -15,6 +15,7 @@ import { useCartNotification } from './CartNotificationToast';
 import { supabase } from '@/lib/supabase/client';
 import { CreationsModal } from './CreationsModal';
 import { FrameSelector } from './FrameSelector';
+import { useStudioStore } from '@/store/studio';
 
 interface CuratedImageCardProps {
   image: CuratedImage;
@@ -175,6 +176,7 @@ export function CuratedImageGallery({
   const router = useRouter();
   const { images, loading, error, hasMore, loadMore } = useCuratedGallery();
   const { user, session } = useAuth();
+  const { setImage } = useStudioStore();
   
   // Debug logging
   useEffect(() => {
@@ -300,10 +302,40 @@ export function CuratedImageGallery({
     setIsHydrated(true);
   }, []);
 
-  const handleBuyAsFrame = (image: CuratedImage) => {
-    // Show frame selector directly
-    setFrameSelectorImage(image);
-    setShowFrameSelector(true);
+  const handleBuyAsFrame = async (image: CuratedImage) => {
+    console.log('🎨 CuratedImageGallery: Redirecting to studio with image');
+    
+    if (!user) {
+      console.log('🔐 User not authenticated, storing pending image');
+      localStorage.setItem('pending-cart-image', JSON.stringify({
+        id: image.id,
+        image_url: image.image_url,
+        title: image.title,
+        description: image.description,
+        aspect_ratio: image.aspect_ratio,
+        timestamp: Date.now()
+      }));
+      if (onOpenAuthModal) {
+        onOpenAuthModal();
+      } else {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please sign in to order a frame.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
+    let publicUrl = image.image_url;
+    if (!image.image_url.startsWith('http://') && !image.image_url.startsWith('https://')) {
+      const { data } = supabase.storage.from('curated-images').getPublicUrl(image.image_url);
+      publicUrl = data?.publicUrl || image.image_url;
+    }
+    setImage(publicUrl, image.id);
+    
+    await new Promise(resolve => setTimeout(resolve, 100)); // Delay for session persistence
+    router.push('/studio');
     onBuyAsFrame?.(image);
   };
 

@@ -12,6 +12,7 @@ import { ShoppingCart, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useCartNotification } from './CartNotificationToast';
+import { useStudioStore } from '@/store/studio';
 
 interface UserImage {
   id: string;
@@ -132,6 +133,8 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
   const { toast } = useToast();
   const { addToCart } = useCart();
   const { showCartNotification } = useCartNotification();
+  const { setImage } = useStudioStore();
+  const router = useRouter();
   
   // Debug function - expose to window for testing
   useEffect(() => {
@@ -386,9 +389,35 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
     setSelectedImage(null);
   };
 
-  const handleBuyAsFrame = (image: UserImage) => {
-    setFrameSelectorImage(image);
-    setShowFrameSelector(true);
+  const handleBuyAsFrame = async (image: UserImage) => {
+    console.log('🎨 UserImageGallery: Redirecting to studio with image');
+    
+    if (!user) {
+      console.log('🔐 User not authenticated, storing pending image');
+      localStorage.setItem('pending-cart-image', JSON.stringify({
+        id: image.id,
+        image_url: image.image_url,
+        prompt: image.prompt,
+        aspect_ratio: image.aspect_ratio,
+        timestamp: Date.now()
+      }));
+      if (onOpenAuthModal) {
+        onOpenAuthModal();
+      } else {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please sign in to order a frame.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
+    const publicUrl = normalizeImageUrl(image.image_url);
+    setImage(publicUrl, image.id);
+    
+    await new Promise(resolve => setTimeout(resolve, 100)); // Delay for session persistence
+    router.push('/studio');
   };
 
   const handleAddToCart = async (frame: any) => {
