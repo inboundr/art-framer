@@ -10,6 +10,7 @@ import { ExpandableImage } from './ExpandableImage';
 import { useLifestyleImages } from '@/hooks/useLifestyleImages';
 import { ProductComparison } from './ProductComparison';
 import { ImageSuggestions } from './ImageSuggestions';
+import { getSupabaseAssetUrlSync } from '@/lib/prodigi-assets/supabase-assets';
 
 interface ComparisonData {
   option1: any;
@@ -109,6 +110,11 @@ export function Message({ message }: MessageProps) {
       // Ensure prodigi-assets-extracted paths are correct
       if (url.includes('prodigi-assets-extracted') && !url.startsWith('/prodigi-assets-extracted')) {
         url = url.replace(/.*?(prodigi-assets-extracted.*)/, '/$1');
+      }
+      
+      // Convert Prodigi asset paths to Supabase URLs
+      if (url.startsWith('/prodigi-assets') || url.startsWith('/prodigi-assets-extracted')) {
+        url = getSupabaseAssetUrlSync(url);
       }
       
       images.push({ url, alt });

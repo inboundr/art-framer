@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { getSupabaseAssetUrlSync } from '@/lib/prodigi-assets/supabase-assets';
 
 interface ExpandableImageProps {
   src: string;
@@ -25,65 +26,75 @@ export function ExpandableImage({
 }: ExpandableImageProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Normalize path to always be a local absolute path
+  // Normalize path and convert to Supabase URL if it's a Prodigi asset
   let imagePath = src;
   
-  // Remove any protocol (http://, https://) if present
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    try {
-      const url = new URL(imagePath);
-      // If hostname is "prodigi-assets-extracted", preserve it in the path
-      if (url.hostname === 'prodigi-assets-extracted') {
-        // Reconstruct path with hostname as part of path
-        imagePath = `/prodigi-assets-extracted${url.pathname}`;
-      } else {
-        // For other URLs, just use pathname
-        imagePath = url.pathname;
-      }
-    } catch {
-      // If URL parsing fails, manually extract path
-      imagePath = imagePath.replace(/^https?:\/\//, '');
-      // If it contains prodigi-assets-extracted, preserve it
-      if (imagePath.includes('prodigi-assets-extracted')) {
-        const match = imagePath.match(/(prodigi-assets-extracted\/.*)/);
-        if (match) {
-          imagePath = `/${match[1]}`;
-        } else {
-          imagePath = `/prodigi-assets-extracted${imagePath.substring(imagePath.indexOf('/'))}`;
-        }
-      } else {
-        // Remove hostname (everything before first /)
-        const firstSlash = imagePath.indexOf('/');
-        if (firstSlash > 0) {
-          imagePath = imagePath.substring(firstSlash);
-        } else {
-          imagePath = `/${imagePath}`;
-        }
-      }
-    }
-  }
+  // Check if this is already a Supabase URL (contains supabase.co)
+  const isSupabaseUrl = imagePath.includes('supabase.co');
   
-  // Handle paths that might have hostname-like prefix without protocol
-  // e.g., "prodigi-assets-extracted/..." should become "/prodigi-assets-extracted/..."
-  if (imagePath.includes('prodigi-assets-extracted')) {
-    // Extract everything from /prodigi-assets-extracted onwards
-    const match = imagePath.match(/(\/prodigi-assets-extracted\/.*)/);
-    if (match) {
-      imagePath = match[1];
-    } else if (imagePath.includes('prodigi-assets-extracted/')) {
-      // Handle case where it's "prodigi-assets-extracted/..." without leading /
-      const match2 = imagePath.match(/(prodigi-assets-extracted\/.*)/);
-      if (match2) {
-        imagePath = `/${match2[1]}`;
+  if (!isSupabaseUrl) {
+    // Remove any protocol (http://, https://) if present
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      try {
+        const url = new URL(imagePath);
+        // If hostname is "prodigi-assets-extracted", preserve it in the path
+        if (url.hostname === 'prodigi-assets-extracted') {
+          // Reconstruct path with hostname as part of path
+          imagePath = `/prodigi-assets-extracted${url.pathname}`;
+        } else {
+          // For other URLs, just use pathname
+          imagePath = url.pathname;
+        }
+      } catch {
+        // If URL parsing fails, manually extract path
+        imagePath = imagePath.replace(/^https?:\/\//, '');
+        // If it contains prodigi-assets-extracted, preserve it
+        if (imagePath.includes('prodigi-assets-extracted')) {
+          const match = imagePath.match(/(prodigi-assets-extracted\/.*)/);
+          if (match) {
+            imagePath = `/${match[1]}`;
+          } else {
+            imagePath = `/prodigi-assets-extracted${imagePath.substring(imagePath.indexOf('/'))}`;
+          }
+        } else {
+          // Remove hostname (everything before first /)
+          const firstSlash = imagePath.indexOf('/');
+          if (firstSlash > 0) {
+            imagePath = imagePath.substring(firstSlash);
+          } else {
+            imagePath = `/${imagePath}`;
+          }
+        }
       }
-    } else if (!imagePath.startsWith('/')) {
-      // If it doesn't start with /, add it
-      imagePath = `/${imagePath}`;
     }
-  } else {
-    // For other paths, ensure they start with /
-    if (!imagePath.startsWith('/')) {
-      imagePath = `/${imagePath}`;
+    
+    // Handle paths that might have hostname-like prefix without protocol
+    // e.g., "prodigi-assets-extracted/..." should become "/prodigi-assets-extracted/..."
+    if (imagePath.includes('prodigi-assets-extracted')) {
+      // Extract everything from /prodigi-assets-extracted onwards
+      const match = imagePath.match(/(\/prodigi-assets-extracted\/.*)/);
+      if (match) {
+        imagePath = match[1];
+      } else if (imagePath.includes('prodigi-assets-extracted/')) {
+        // Handle case where it's "prodigi-assets-extracted/..." without leading /
+        const match2 = imagePath.match(/(prodigi-assets-extracted\/.*)/);
+        if (match2) {
+          imagePath = `/${match2[1]}`;
+        }
+      } else if (!imagePath.startsWith('/')) {
+        // If it doesn't start with /, add it
+        imagePath = `/${imagePath}`;
+      }
+    } else {
+      // For other paths, ensure they start with /
+      if (!imagePath.startsWith('/')) {
+        imagePath = `/${imagePath}`;
+      }
+    }
+    
+    // Convert Prodigi asset paths to Supabase URLs
+    if (imagePath.startsWith('/prodigi-assets') || imagePath.startsWith('/prodigi-assets-extracted')) {
+      imagePath = getSupabaseAssetUrlSync(imagePath);
     }
   }
 

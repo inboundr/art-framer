@@ -3,6 +3,8 @@
  * Provides metadata and paths for all Prodigi assets
  */
 
+import { getSupabaseAssetUrlSync } from './supabase-assets';
+
 export type ProductType = 
   | 'framed-print'
   | 'framed-canvas'
@@ -116,7 +118,8 @@ export function getLifestyleImages(productType: ProductType, hasMount?: boolean)
     }
   }
   
-  return images;
+  // Convert all paths to Supabase URLs
+  return images.map(path => getSupabaseAssetUrlSync(path));
 }
 
 /**
@@ -156,7 +159,8 @@ export function getChevronImage(frameType: string, color: string): string | null
     },
   };
   
-  return chevronMap[frameType]?.[normalizedColor] || null;
+  const path = chevronMap[frameType]?.[normalizedColor];
+  return path ? getSupabaseAssetUrlSync(path) : null;
 }
 
 /**
@@ -195,7 +199,8 @@ export function getCornerImages(frameType: string, color: string): string[] {
     },
   };
   
-  return cornerMap[frameType]?.[normalizedColor] || [];
+  const paths = cornerMap[frameType]?.[normalizedColor] || [];
+  return paths.map(path => getSupabaseAssetUrlSync(path));
 }
 
 /**
@@ -211,7 +216,8 @@ export function getCrossSectionImage(frameType: string): string | null {
     instagram: `${basePath}/prodigi-instagram-framed-prints-photo-assets/Instagram frame cross-section.png`,
   };
   
-  return crossSectionMap[frameType] || null;
+  const path = crossSectionMap[frameType];
+  return path ? getSupabaseAssetUrlSync(path) : null;
 }
 
 /**
@@ -229,7 +235,8 @@ export function getMountSampleImage(color: string): string {
     'snowwhite': `${basePath}/prodigi-classic-frames-photo-assets/Snow white mount.jpg`,
   };
   
-  return mountMap[normalizedColor] || mountMap['off-white'];
+  const path = mountMap[normalizedColor] || mountMap['off-white'];
+  return getSupabaseAssetUrlSync(path);
 }
 
 

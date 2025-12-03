@@ -3,6 +3,8 @@
  * Maps Prodigi frame types and colors to texture file paths
  */
 
+import { getSupabaseAssetUrlSync } from '@/lib/prodigi-assets/supabase-assets';
+
 export type FrameType = 'classic' | 'aluminium' | 'box' | 'spacer' | 'float';
 export type TextureMapType = 'diffuse' | 'normal' | 'roughness' | 'metalness';
 export type TextureResolution = '1x' | '2x';
@@ -63,10 +65,11 @@ export function getTexturePath({
   const normalizedColor = normalizeColorName(color);
   const extension = mapType === 'diffuse' ? 'webp' : 'webp';
   
-  // Build path: /prodigi-assets/frames/{frameType}/textures/{color}-{mapType}-{resolution}.webp
-  const path = `/prodigi-assets/frames/${frameType}/textures/${normalizedColor}-${mapType}-${resolution}.${extension}`;
+  // Build local path: /prodigi-assets/frames/{frameType}/textures/{color}-{mapType}-{resolution}.webp
+  const localPath = `/prodigi-assets/frames/${frameType}/textures/${normalizedColor}-${mapType}-${resolution}.${extension}`;
   
-  return path;
+  // Convert to Supabase storage URL
+  return getSupabaseAssetUrlSync(localPath);
 }
 
 /**
@@ -74,21 +77,24 @@ export function getTexturePath({
  */
 export function getMountTexturePath(color: string): string {
   const normalizedColor = normalizeColorName(color);
-  return `/prodigi-assets/mounts/${normalizedColor}-mount.webp`;
+  const localPath = `/prodigi-assets/mounts/${normalizedColor}-mount.webp`;
+  return getSupabaseAssetUrlSync(localPath);
 }
 
 /**
  * Gets canvas texture path
  */
 export function getCanvasTexturePath(textureName: 'substrate' | 'blank'): string {
-  return `/prodigi-assets/canvas/textures/${textureName}.webp`;
+  const localPath = `/prodigi-assets/canvas/textures/${textureName}.webp`;
+  return getSupabaseAssetUrlSync(localPath);
 }
 
 /**
  * Gets canvas wrap texture path
  */
 export function getCanvasWrapTexturePath(wrapType: 'black' | 'white' | 'image' | 'mirror'): string {
-  return `/prodigi-assets/canvas/wraps/${wrapType}-wrap.webp`;
+  const localPath = `/prodigi-assets/canvas/wraps/${wrapType}-wrap.webp`;
+  return getSupabaseAssetUrlSync(localPath);
 }
 
 /**
