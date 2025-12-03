@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { Button } from '@/components/ui/button';
-import { FrameSelector } from '@/components/FrameSelector';
 import { Package, Download, Share2, XCircle, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -33,8 +32,6 @@ export function CreationsModal({
   onOpenAuthModal
 }: CreationsModalProps) {
   const router = useRouter();
-  const [showFrameSelector, setShowFrameSelector] = useState(false);
-  const [selectedFrame, setSelectedFrame] = useState<any>(null);
   const { user, session } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
@@ -86,191 +83,6 @@ export function CreationsModal({
     
     await new Promise(resolve => setTimeout(resolve, 100)); // Delay for session persistence
     router.push('/studio');
-  };
-
-  const handleFrameSelect = (frame: any) => {
-    setSelectedFrame(frame);
-  };
-
-  const handleAddToCart = async (frame: any) => {
-    if (!user) {
-      // If we have an auth modal handler, use it instead of showing a toast
-      if (onOpenAuthModal) {
-        console.log('🔐 CreationsModal: Calling onOpenAuthModal from handleAddToCart');
-        onOpenAuthModal();
-      } else {
-        // Fallback to toast if no auth modal handler provided
-      toast({
-        title: 'Authentication Required',
-        description: 'Please sign in to add items to your cart.',
-        variant: 'destructive',
-      });
-      }
-      return;
-    }
-
-    if (!imageId) {
-      toast({
-        title: 'Image Error',
-        description: 'Image ID is missing. Please try again.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Validate that imageId is a proper UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(imageId)) {
-      toast({
-        title: 'Image Not Ready',
-        description: 'The image is still being processed. Please wait a moment and try again.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      // Use session from useAuth hook (no need to call getSession())
-      console.log('🔑 CreationsModal: Using session from useAuth context...');
-      
-      if (!session?.access_token) {
-        console.warn('⚠️ CreationsModal: No session token available from context');
-        toast({
-          title: 'Authentication Required',
-          description: 'Please sign in to add items to your cart.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      const authToken = session.access_token;
-      console.log('🔑 CreationsModal: Auth token status:', { hasToken: !!authToken });
-      
-      // Use the explicit flag passed from the parent component to determine if this is a curated image
-      // This is more reliable than trying to guess based on URL or prompt content
-
-      console.log('🚀 CreationsModal: About to make API call', { 
-        isCuratedImage, 
-        imageId, 
-        hasToken: !!authToken,
-        frame: {
-          size: frame.size,
-          style: frame.style,
-          material: frame.material,
-          price: frame.price
-        }
-      });
-
-      let response;
-      if (isCuratedImage) {
-        console.log('🖼️ CreationsModal: Using curated products API for imageId:', imageId);
-        // Use curated products API
-        response = await fetch('/api/curated-products', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            curatedImageId: imageId,
-            frameSize: frame.size,
-            frameStyle: frame.style,
-            frameMaterial: frame.material,
-            price: frame.price,
-          }),
-        });
-      } else {
-        console.log('🖼️ CreationsModal: Using regular products API for imageId:', imageId);
-        // Use regular products API
-        response = await fetch('/api/products', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            imageId: imageId,
-            frameSize: frame.size,
-            frameStyle: frame.style,
-            frameMaterial: frame.material,
-            price: frame.price,
-          }),
-        });
-      }
-      
-      console.log('📡 CreationsModal: API response:', { 
-        status: response.status, 
-        ok: response.ok,
-        statusText: response.statusText 
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API Error:', errorData);
-        
-        // Provide more specific error messages
-        if (response.status === 401) {
-          throw new Error('Please log in to add items to your cart');
-        } else if (response.status === 404) {
-          throw new Error('Image not found or no longer available');
-        } else if (response.status === 500) {
-          throw new Error(errorData.details || errorData.error || 'Failed to create product');
-        } else {
-          throw new Error(errorData.error || 'Failed to create product');
-        }
-      }
-
-      const data = await response.json();
-      
-      // Use the cart context to add to cart
-      const success = await addToCart(data.product.id, 1);
-
-      if (!success) {
-        throw new Error('Failed to add to cart');
-      }
-
-      console.log('✅ CreationsModal: Item successfully added to cart, showing notification');
-
-      // Show enhanced cart notification with action buttons
-      try {
-      showCartNotification({
-        itemName: `${frame.size} ${frame.style} Frame`,
-        itemImage: imageUrl,
-        onViewCart: () => {
-          // Close the modal and navigate to cart
-          setShowFrameSelector(false);
-          onClose();
-          window.location.href = '/cart';
-        },
-        onContinueShopping: () => {
-          // Just close the frame selector
-          setShowFrameSelector(false);
-        }
-      });
-        console.log('✅ CreationsModal: Cart notification displayed');
-      } catch (notificationError) {
-        console.error('❌ CreationsModal: Error showing cart notification', notificationError);
-        // Fallback to simple toast notification
-        toast({
-          title: 'Added to Cart',
-          description: `${frame.size} ${frame.style} Frame has been added to your cart.`,
-        });
-      }
-    } catch (error) {
-      console.error('❌ CreationsModal: Error adding to cart:', error);
-      console.error('❌ CreationsModal: Error details:', {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        error
-      });
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to add framed art to cart. Please try again.',
-        variant: 'destructive',
-      });
-    }
   };
 
   const handleDownload = () => {
@@ -410,19 +222,9 @@ export function CreationsModal({
     );
   }
 
-  // Debug log for rendering
-  console.log('🖼️ CreationsModal: Rendering', { 
-    isOpen, 
-    showFrameSelector, 
-    hasUser: !!user,
-    imageId 
-  });
-
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
       <div className="flex h-full">
-        {/* Desktop Layout - Hidden when FrameSelector is open */}
-        {!showFrameSelector && (
         <div className="flex flex-col lg:flex-row flex-1 bg-background">
           {/* Left Side - Image Area */}
           <div className="flex-1 flex items-center justify-center p-4 relative min-h-[50vh] lg:min-h-full">
@@ -517,59 +319,7 @@ export function CreationsModal({
           </div>
           */}
         </div>
-        )}
-
-        {/* Frame Selector - shown in place of main content */}
-        {(() => {
-          console.log('🎨 CreationsModal: Frame selector conditional check', { 
-            showFrameSelector, 
-            willRender: showFrameSelector 
-          });
-          return showFrameSelector;
-        })() && (
-            <div className="flex-1 bg-background overflow-y-auto">
-              <div className="max-w-4xl mx-auto p-6">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <h2 className="text-2xl font-bold">Choose Your Frame</h2>
-                      <div className="relative group">
-                        <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help" />
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                          <div className="text-center">
-                            <div className="font-semibold mb-1">How to choose your frame</div>
-                            <div className="text-xs">
-                              Select your preferred size, style, and material. Options will automatically update to show only available combinations. Unavailable options are grayed out.
-                            </div>
-                          </div>
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowFrameSelector(false)}
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Frame Selector */}
-                <FrameSelector
-                  imageUrl={imageUrl}
-                  imagePrompt={promptText}
-                  onFrameSelect={handleFrameSelect}
-                  onAddToCart={handleAddToCart}
-                  selectedFrame={selectedFrame}
-                  showPreview={true}
-                onOpenAuthModal={onOpenAuthModal}
-                />
-            </div>
-          </div>
-        )}
-        </div>
+      </div>
     </div>
   );
 }
