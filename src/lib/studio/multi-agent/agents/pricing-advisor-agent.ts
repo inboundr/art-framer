@@ -46,7 +46,7 @@ const getPriceQuoteTool = tool({
     glaze: z.string().optional(),
     country: z.string().optional().describe('Country code (defaults to US)'),
   }),
-  execute: async (params) => {
+  execute: async (params: any) => {
     try {
       // This would integrate with the pricing API
       // For now, return a structured response
@@ -91,7 +91,7 @@ const comparePricesTool = tool({
     }).describe('Second configuration with pricing'),
     includeShipping: z.boolean().optional().describe('Whether to include shipping costs (defaults to true)'),
   }),
-  execute: async (params) => {
+  execute: async (params: any) => {
     const option1 = params.option1 || {};
     const option2 = params.option2 || {};
     const includeShipping = params.includeShipping !== false; // Default to true
@@ -136,7 +136,7 @@ const suggestOptimizationsTool = tool({
     budget: z.number().optional().describe('Target budget'),
     priorities: z.array(z.string()).optional().describe('What user values most (quality, size, speed, etc.)'),
   }),
-  execute: async (params) => {
+  execute: async (params: any) => {
     const currentConfig = params.currentConfig || {};
     const optimizations = [];
     

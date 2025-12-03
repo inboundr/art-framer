@@ -670,7 +670,7 @@ export const useStudioStore = create<StudioStore>()(
                 // Preserve user's shipping method selection if it's available in the returned options
                 // Only use recommended method if user's selection is not available
                 const currentShippingMethod = state.config.shippingMethod || 'Standard';
-                const availableMethods = shippingOptions?.map(o => o.method) || [];
+                const availableMethods = shippingOptions?.map((o: any) => o.method) || [];
                 const isMethodAvailable = availableMethods.includes(currentShippingMethod);
                 
                 // Always preserve user's selection if it's available

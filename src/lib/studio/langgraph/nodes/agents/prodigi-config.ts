@@ -261,7 +261,7 @@ Available Tools:
       // Add conversation history
       if (messages && messages.length > 0) {
         messages.forEach(msg => {
-          if (msg.role === 'user' || msg.role === 'human') {
+          if (msg.role === 'user') {
             followUpMessages.push({ role: 'human', content: msg.content });
           } else if (msg.role === 'assistant') {
             followUpMessages.push({ role: 'assistant', content: msg.content });

@@ -23,9 +23,6 @@ export function createAgentGraph() {
   workflow.addNode('router', routerNode);
   workflow.addNode('synthesizer', synthesizerNode);
 
-  // Set entry point
-  workflow.setEntryPoint('router');
-
   // Add a node to handle multiple agents in parallel
   workflow.addNode('execute-agents', async (state: AgentState) => {
     const selectedAgents = state.selectedAgents || ['frame-advisor'];
@@ -73,14 +70,17 @@ export function createAgentGraph() {
     return results;
   });
 
-  // Route from router to execute-agents
-  workflow.addEdge('router', 'execute-agents');
+  // Set entry point - START to router (cast to satisfy type constraint)
+  workflow.addEdge(START, 'router' as any);
 
-  // All agents go to synthesizer
-  workflow.addEdge('execute-agents', 'synthesizer');
+  // Route from router to execute-agents (cast to satisfy type constraint)
+  workflow.addEdge('router' as any, 'execute-agents' as any);
 
-  // Synthesizer is the end
-  workflow.addEdge('synthesizer', END);
+  // All agents go to synthesizer (cast to satisfy type constraint)
+  workflow.addEdge('execute-agents' as any, 'synthesizer' as any);
+
+  // Synthesizer is the end (cast to satisfy type constraint)
+  workflow.addEdge('synthesizer' as any, END);
 
   return workflow.compile();
 }
