@@ -242,16 +242,11 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
   };
 
   const getFrameSizeLabel = (size: string) => {
-    // Use the utility function for size conversion
-    if (size.includes('x')) {
-      return formatSizeWithCm(size);
-    }
-    // Fallback for old labels (backward compatibility)
-    const labels: Record<string, string> = {
-      small: '8×10" (20×25 cm)',
-      medium: '11×14" (28×36 cm)',
-      large: '16×20" (41×51 cm)',
-      extra_large: '24×36" (61×91 cm)',
+    const labels = {
+      small: 'Small',
+      medium: 'Medium',
+      large: 'Large',
+      extra_large: 'Extra Large',
     };
     return labels[size] || size;
   };

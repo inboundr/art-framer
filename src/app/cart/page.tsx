@@ -53,8 +53,8 @@ export default function CartPage() {
         {/* Main Content */}
         <div className="flex-1 container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Shopping Cart</h1>
-            <p className="text-gray-600 mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Shopping Cart</h1>
+            <p className="text-muted-foreground mb-8">
               Review your selected items and proceed to checkout.
             </p>
             <ShoppingCart onCheckout={handleCheckout} />

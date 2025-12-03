@@ -793,7 +793,7 @@ export function FrameSelector({
                         {formatPrice(currentFrame.price)}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {currentFrame.dimensions.width}&quot; × {currentFrame.dimensions.height}&quot; ({(currentFrame.dimensions.width * 2.54).toFixed(1)} × {(currentFrame.dimensions.height * 2.54).toFixed(1)} cm)
+                        {currentFrame.dimensions.width}&quot; × {currentFrame.dimensions.height}&quot; × {currentFrame.dimensions.depth}&quot;
                       </div>
                     </div>
                   </div>

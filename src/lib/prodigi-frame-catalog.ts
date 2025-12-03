@@ -648,4 +648,3 @@ export class ProdigiFrameCatalog {
 // Export singleton instance
 export const prodigiFrameCatalog = new ProdigiFrameCatalog();
 
-

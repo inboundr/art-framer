@@ -89,38 +89,7 @@ export function useCart(): UseCartReturn {
       setLoading(true);
       setError(null);
 
-      // Get auth token from session
-      let authToken = session?.access_token;
-      
-      // Fallback: get token directly from Supabase if not in context
-      if (!authToken) {
-        const { supabase } = await import('@/lib/supabase/client');
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        authToken = currentSession?.access_token || null;
-      }
-
-      // Get destination country and shipping method from localStorage (set by studio)
-      // or default to US/Standard
-      const destinationCountry = typeof window !== 'undefined' 
-        ? (localStorage.getItem('cartDestinationCountry') || 'US')
-        : 'US';
-      const shippingMethod = typeof window !== 'undefined'
-        ? (localStorage.getItem('cartShippingMethod') || 'Standard')
-        : 'Standard';
-
-      // Use v2 checkout API for cart with real-time pricing
-      // Pass destination country and shipping method as query parameters
-      const url = new URL('/api/v2/checkout/cart', window.location.origin);
-      url.searchParams.set('country', destinationCountry);
-      url.searchParams.set('shippingMethod', shippingMethod);
-
-      const response = await fetch(url.toString(), {
-        credentials: 'include',
-        headers: authToken ? {
-          'Authorization': `Bearer ${authToken}`
-        } : {}
-      });
-
+      const response = await fetch('/api/cart', { credentials: 'include' });
       if (!response.ok) {
         if (response.status === 401) {
           // User not authenticated - this is expected, don't show as error

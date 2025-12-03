@@ -73,16 +73,11 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
 
 
   const getFrameSizeLabel = (size: string) => {
-    // Use the utility function for size conversion
-    if (size.includes('x')) {
-      return formatSizeWithCm(size);
-    }
-    // Fallback for old labels (backward compatibility)
-    const labels: Record<string, string> = {
-      small: '8×10" (20×25 cm)',
-      medium: '11×14" (28×36 cm)',
-      large: '16×20" (41×51 cm)',
-      extra_large: '24×36" (61×91 cm)',
+    const labels = {
+      small: 'Small',
+      medium: 'Medium',
+      large: 'Large',
+      extra_large: 'Extra Large',
     };
     return labels[size] || size;
   };
@@ -191,10 +186,10 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                     <h4 className="font-medium text-base line-clamp-2 mb-2">
                       {getFrameSizeLabel(item.products.frame_size)} Frame
                     </h4>
-                    <p className="text-sm text-gray-600 mb-2">
+                    <p className="text-sm text-muted-foreground mb-2">
                       {getFrameStyleLabel(item.products.frame_style)} {getFrameMaterialLabel(item.products.frame_material)}
                     </p>
-                    <p className="text-sm text-gray-600 line-clamp-3 mb-4">
+                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
                           &ldquo;{item.products.images.prompt}&rdquo;
                     </p>
                     
@@ -248,7 +243,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                       <div className="font-semibold text-lg">
                         {formatPrice(item.products.price * item.quantity)}
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         {formatPrice(item.products.price)} each
                       </div>
                     </div>
@@ -266,12 +261,12 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Shipping</CardTitle>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     Shipping costs will be calculated during checkout when you provide your address
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Truck className="h-4 w-4" />
                     <span>Accurate shipping rates calculated at checkout</span>
                   </div>

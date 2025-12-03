@@ -15,7 +15,6 @@ import { useCartNotification } from './CartNotificationToast';
 import { supabase } from '@/lib/supabase/client';
 import { CreationsModal } from './CreationsModal';
 import { FrameSelector } from './FrameSelector';
-import { useStudioStore } from '@/store/studio';
 
 interface CuratedImageCardProps {
   image: CuratedImage;
@@ -176,7 +175,6 @@ export function CuratedImageGallery({
   const router = useRouter();
   const { images, loading, error, hasMore, loadMore } = useCuratedGallery();
   const { user, session } = useAuth();
-  const { setImage } = useStudioStore();
   
   // Debug logging
   useEffect(() => {
@@ -232,17 +230,35 @@ export function CuratedImageGallery({
           const isRecent = Date.now() - pendingImage.timestamp < 60 * 60 * 1000;
           if (isRecent) {
             console.log('🛒 Found pending cart image after login:', pendingImage);
-            
-            // Normalize the image URL
-            let publicUrl = pendingImage.image_url;
-            if (!pendingImage.image_url.startsWith('http://') && !pendingImage.image_url.startsWith('https://')) {
-              const { data } = supabase.storage.from('curated-images').getPublicUrl(pendingImage.image_url);
-              publicUrl = data?.publicUrl || pendingImage.image_url;
-            }
-            
-            // Set the image in studio store
-            setImage(publicUrl, pendingImage.id);
-            
+            // Convert to CuratedImage format and show modal
+            const curatedImage: CuratedImage = {
+              id: pendingImage.id,
+              image_url: pendingImage.image_url,
+              title: pendingImage.title,
+              description: pendingImage.description,
+              category: 'curated',
+              tags: [],
+              thumbnail_url: null,
+              width: 800,
+              height: 600,
+              aspect_ratio: pendingImage.aspect_ratio,
+              display_order: 0,
+              is_featured: false,
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            // Close the CreationsModal if it's open
+            console.log('🔄 CuratedImageGallery: Closing CreationsModal and opening FrameSelector');
+            setShowCreationsModal(false);
+            setSelectedImage(null);
+            // Go directly to frame selection for pending image
+            setFrameSelectorImage(curatedImage);
+            setShowFrameSelector(true);
+            console.log('🎨 CuratedImageGallery: Frame selector state set', { 
+              frameSelectorImage: !!curatedImage, 
+              showFrameSelector: true 
+            });
             // Clear the pending image
             localStorage.removeItem('pending-cart-image');
             
@@ -284,51 +300,10 @@ export function CuratedImageGallery({
     setIsHydrated(true);
   }, []);
 
-  const handleBuyAsFrame = async (image: CuratedImage) => {
-    console.log('🎨 CuratedImageGallery: Order Frame clicked', {
-      hasUser: !!user,
-      imageId: image.id
-    });
-    
-    // Check if user is authenticated
-    if (!user) {
-      console.log('🔐 User not authenticated, storing pending image and opening auth modal');
-      
-      // Store the image for after login
-      localStorage.setItem('pending-cart-image', JSON.stringify({
-        id: image.id,
-        image_url: image.image_url,
-        title: image.title,
-        description: image.description,
-        aspect_ratio: image.aspect_ratio,
-        timestamp: Date.now()
-      }));
-      
-      if (onOpenAuthModal) {
-        onOpenAuthModal();
-      }
-      return;
-    }
-    
-    console.log('✅ User authenticated, redirecting to studio');
-    
-    // Normalize the image URL - check if it's already a full URL
-    let publicUrl = image.image_url;
-    if (!image.image_url.startsWith('http://') && !image.image_url.startsWith('https://')) {
-      // Only get public URL if it's a storage path
-      const { data } = supabase.storage.from('curated-images').getPublicUrl(image.image_url);
-      publicUrl = data?.publicUrl || image.image_url;
-    }
-    
-    // Set the image in studio store
-    setImage(publicUrl, image.id);
-    
-    // Small delay to ensure session is persisted before navigation
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Navigate to studio
-    router.push('/studio');
-    
+  const handleBuyAsFrame = (image: CuratedImage) => {
+    // Show frame selector directly
+    setFrameSelectorImage(image);
+    setShowFrameSelector(true);
     onBuyAsFrame?.(image);
   };
 
@@ -649,7 +624,7 @@ export function CuratedImageGallery({
       {showFrameSelector && frameSelectorImage && (
         <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-sm">
           <div className="flex h-full">
-            <div className="flex-1 bg-gray-50 overflow-y-auto">
+            <div className="flex-1 bg-background overflow-y-auto">
               <div className="max-w-4xl mx-auto p-6">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -657,8 +632,8 @@ export function CuratedImageGallery({
                     <div className="flex items-center gap-2 mb-2">
                       <h2 className="text-2xl font-bold">Choose Your Frame</h2>
                       <div className="relative group">
-                        <HelpCircle className="h-5 w-5 text-gray-600 cursor-help" />
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-gray-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                        <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help" />
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
                           <div className="text-center">
                             <div className="font-semibold mb-1">How to choose your frame</div>
                             <div className="text-xs">

@@ -38,25 +38,25 @@ export function CartNotificationToast({
   };
 
   return (
-    <div className="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg shadow-xl max-w-md">
+    <div className="flex items-start gap-3 p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-xl max-w-md backdrop-blur-sm">
       {/* Item Image with Success Icon Overlay */}
       {itemImage ? (
         <div className="flex-shrink-0 relative">
           <img 
             src={itemImage} 
             alt={itemName || 'Item'} 
-            className="w-16 h-16 rounded-lg object-cover border-2 border-gray-200 shadow-sm"
+            className="w-16 h-16 rounded-lg object-cover border-2 border-gray-600 shadow-lg"
           />
           {/* Success Icon - Top Right of Image */}
-          <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-gray-800 shadow-lg">
             <Check className="w-3 h-3 text-white" />
           </div>
         </div>
       ) : (
         /* Fallback Success Icon if no image */
         <div className="flex-shrink-0">
-          <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center border-2 border-green-200">
-            <Check className="w-5 h-5 text-green-600" />
+          <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center border-2 border-emerald-500/30">
+            <Check className="w-5 h-5 text-emerald-400" />
           </div>
         </div>
       )}
@@ -65,10 +65,10 @@ export function CartNotificationToast({
       <div className="flex-1 min-w-0">
         {/* Text Content */}
         <div className="mb-3">
-          <p className="text-sm font-semibold text-gray-900 mb-1">
+          <p className="text-sm font-semibold text-white mb-1">
             {itemName ? `${itemName} added to cart` : 'Item added to cart'}
           </p>
-          <p className="text-xs text-gray-600 font-medium">
+          <p className="text-xs text-gray-300 font-medium">
             Ready to checkout?
           </p>
         </div>
@@ -79,7 +79,7 @@ export function CartNotificationToast({
             <Button
               size="sm"
               onClick={handleViewCart}
-              className="h-8 px-3 text-xs font-semibold bg-black hover:bg-gray-800 text-white shadow-sm border-0"
+              className="h-8 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg border-0"
             >
               <ShoppingCart className="w-3 h-3 mr-1" />
               View Cart
@@ -90,7 +90,7 @@ export function CartNotificationToast({
             variant="outline"
             size="sm"
             onClick={handleContinueShopping}
-            className="h-8 px-3 text-xs font-medium border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700"
+            className="h-8 px-3 text-xs font-medium border border-gray-600 hover:border-gray-500 hover:bg-gray-700 text-gray-200 hover:text-white"
           >
             Continue
           </Button>

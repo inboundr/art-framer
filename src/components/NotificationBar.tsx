@@ -8,12 +8,12 @@ export function NotificationBar({ onClose }: NotificationBarProps) {
       <div className="flex items-center flex-1 justify-center">
         <div className="flex items-start">
           <div className="flex flex-col items-start pr-2">
-            <span className="text-gray-900 text-sm md:text-base">🚚</span>
+            <span className="text-gray-text text-sm md:text-base">🚚</span>
           </div>
           <div className="flex flex-col items-start">
-            <div className="text-gray-600 text-sm md:text-base leading-5 md:leading-6">
-              <span className="text-gray-900 font-bold">Free shipping over $100</span>
-              <span className="text-gray-600 hidden sm:inline"> on all framed art orders</span>
+            <div className="text-gray-text text-sm md:text-base leading-5 md:leading-6">
+              <span className="text-gray-light font-bold">Free shipping over $100</span>
+              <span className="text-gray-text hidden sm:inline"> on all framed art orders</span>
             </div>
           </div>
         </div>

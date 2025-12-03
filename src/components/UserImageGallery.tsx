@@ -12,7 +12,6 @@ import { ShoppingCart, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useCartNotification } from './CartNotificationToast';
-import { useStudioStore } from '@/store/studio';
 
 interface UserImage {
   id: string;
@@ -129,12 +128,10 @@ interface UserImageGalleryProps {
 }
 
 export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}) {
-  const router = useRouter();
   const { user, session } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
   const { showCartNotification } = useCartNotification();
-  const { setImage } = useStudioStore();
   
   // Debug function - expose to window for testing
   useEffect(() => {
@@ -173,33 +170,30 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
           const isRecent = Date.now() - pendingImage.timestamp < 60 * 60 * 1000;
           if (isRecent) {
             console.log('🛒 Found pending cart image after login:', pendingImage);
-            
-            // Normalize the image URL
-            const normalizeUrl = (url?: string | null) => {
-              if (!url) return '';
-              if (url.startsWith('http://') || url.startsWith('https://')) return url;
-              try {
-                const { data } = supabase.storage.from('images').getPublicUrl(url);
-                return data?.publicUrl || url;
-              } catch {
-                return url;
-              }
+            // Convert to UserImage format and show modal
+            const userImage: UserImage = {
+              id: pendingImage.id,
+              image_url: pendingImage.image_url,
+              prompt: pendingImage.prompt || pendingImage.title || '',
+              created_at: new Date().toISOString(),
+              width: 800,
+              height: 600,
+              likes: 0,
+              aspect_ratio: pendingImage.aspect_ratio
             };
-            
-            const publicUrl = normalizeUrl(pendingImage.image_url);
-            
-            // Set the image in studio store
-            setImage(publicUrl, pendingImage.id);
-            
+            // Close the CreationsModal if it's open
+            console.log('🔄 UserImageGallery: Closing CreationsModal and opening FrameSelector');
+            setModalOpen(false);
+            setSelectedImage(null);
+            // Go directly to frame selection for pending image
+            setFrameSelectorImage(userImage);
+            setShowFrameSelector(true);
+            console.log('🎨 UserImageGallery: Frame selector state set', { 
+              frameSelectorImage: !!userImage, 
+              showFrameSelector: true 
+            });
             // Clear the pending image
             localStorage.removeItem('pending-cart-image');
-            
-            console.log('🎨 UserImageGallery: Redirecting to studio with pending image');
-            
-            // Small delay to ensure session persists
-            setTimeout(() => {
-              router.push('/studio');
-            }, 100);
           } else {
             // Clear old pending image
             localStorage.removeItem('pending-cart-image');
@@ -392,55 +386,9 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
     setSelectedImage(null);
   };
 
-  const handleBuyAsFrame = async (image: UserImage) => {
-    console.log('🎨 UserImageGallery: Order Frame clicked', {
-      hasUser: !!user,
-      imageId: image.id
-    });
-    
-    // Check if user is authenticated (should always be true for user gallery, but defensive check)
-    if (!user) {
-      console.log('🔐 User not authenticated, storing pending image and opening auth modal');
-      
-      // Store the image for after login
-      localStorage.setItem('pending-cart-image', JSON.stringify({
-        id: image.id,
-        image_url: image.image_url,
-        prompt: image.prompt || '',
-        aspect_ratio: image.aspect_ratio,
-        timestamp: Date.now()
-      }));
-      
-      if (onOpenAuthModal) {
-        onOpenAuthModal();
-      }
-      return;
-    }
-    
-    console.log('✅ User authenticated, redirecting to studio');
-    
-    // Normalize the image URL
-    const normalizeImageUrl = (url?: string | null) => {
-      if (!url) return '';
-      if (url.startsWith('http://') || url.startsWith('https://')) return url;
-      try {
-        const { data } = supabase.storage.from('images').getPublicUrl(url);
-        return data?.publicUrl || url;
-      } catch {
-        return url;
-      }
-    };
-    
-    const publicUrl = normalizeImageUrl(image.image_url);
-    
-    // Set the image in studio store
-    setImage(publicUrl, image.id);
-    
-    // Small delay to ensure session is persisted before navigation
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Navigate to studio
-    router.push('/studio');
+  const handleBuyAsFrame = (image: UserImage) => {
+    setFrameSelectorImage(image);
+    setShowFrameSelector(true);
   };
 
   const handleAddToCart = async (frame: any) => {
@@ -773,13 +721,13 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
       })() && (
         <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-sm">
           <div className="flex h-full">
-            <div className="flex-1 bg-gray-50 overflow-y-auto">
+            <div className="flex-1 bg-background overflow-y-auto">
               <div className="max-w-4xl mx-auto p-6">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-2xl font-bold">Choose Your Frame</h2>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       Select the perfect frame for your AI-generated art
                     </p>
                   </div>

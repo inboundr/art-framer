@@ -4,6 +4,54 @@ import { authenticateRequest } from '@/lib/auth/jwtAuth';
 import { z } from 'zod';
 import type { ShippingItem } from '@/lib/shipping';
 
+// Helper function to get product attributes based on SKU type
+function getProductAttributesForSku(sku: string, frameStyle: string): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  
+  // Only add attributes for SKUs that require them
+  // GLOBAL-FRA-CAN-* (extra large frames) require both color and wrap
+  if (sku.startsWith('GLOBAL-FRA-CAN-')) {
+    if (frameStyle === 'black') {
+      attributes.color = 'black';
+    } else if (frameStyle === 'white') {
+      attributes.color = 'white';
+    } else if (frameStyle === 'natural') {
+      attributes.color = 'natural';
+    } else if (frameStyle === 'gold') {
+      attributes.color = 'gold';
+    } else if (frameStyle === 'silver') {
+      attributes.color = 'silver';
+    } else if (frameStyle === 'brown') {
+      attributes.color = 'brown';
+    } else if (frameStyle === 'grey') {
+      attributes.color = 'grey';
+    }
+    attributes.wrap = 'ImageWrap';
+  }
+  // GLOBAL-CFPM-* (canvas prints) require color
+  else if (sku.startsWith('GLOBAL-CFPM-')) {
+    if (frameStyle === 'black') {
+      attributes.color = 'black';
+    } else if (frameStyle === 'white') {
+      attributes.color = 'white';
+    } else if (frameStyle === 'natural') {
+      attributes.color = 'natural';
+    } else if (frameStyle === 'gold') {
+      attributes.color = 'gold';
+    } else if (frameStyle === 'silver') {
+      attributes.color = 'silver';
+    } else if (frameStyle === 'brown') {
+      attributes.color = 'brown';
+    } else if (frameStyle === 'grey') {
+      attributes.color = 'grey';
+    }
+  }
+  // GLOBAL-FAP-* (standard frames) don't require attributes
+  // No attributes needed for these SKUs
+  
+  return attributes;
+}
+
 const ShippingAddressSchema = z.object({
   countryCode: z.string().min(2).max(2),
   stateOrCounty: z.string().optional(),
@@ -14,12 +62,20 @@ const ShippingAddressSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Cart Shipping API: Starting request');
+    
     // JWT-only authentication
     const { user, error: authError } = await authenticateRequest(request);
     
     if (authError || !user) {
+      console.log('Cart Shipping API: Authentication failed', { error: authError });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    console.log('Cart Shipping API: Authenticated user', { 
+      userId: user.id, 
+      userEmail: user.email 
+    });
 
     const body = await request.json();
     const validatedAddress = ShippingAddressSchema.parse(body);
