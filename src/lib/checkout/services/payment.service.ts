@@ -148,7 +148,7 @@ export class PaymentService {
         id: session.id,
         url: session.url || '',
         paymentStatus: session.payment_status,
-        status: session.status,
+        status: session.status as 'expired' | 'open' | 'complete',
         customerEmail: session.customer_email || undefined,
         metadata: session.metadata || {},
       };

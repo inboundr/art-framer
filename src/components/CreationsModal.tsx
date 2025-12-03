@@ -56,7 +56,7 @@ export function CreationsModal({
 
   if (!isOpen) return null;
 
-  const handleBuyAsFrame = () => {
+  const handleBuyAsFrame = async () => {
     console.log('🎨 CreationsModal: handleBuyAsFrame called - redirecting to studio', {
       normalizedImageUrl,
       imageId
@@ -64,6 +64,9 @@ export function CreationsModal({
     
     // Set the image in studio store
     setImage(normalizedImageUrl, imageId || `gen-${Date.now()}`);
+    
+    // Small delay to ensure session is persisted before navigation
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Navigate to studio
     router.push('/studio');

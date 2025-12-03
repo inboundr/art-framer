@@ -72,6 +72,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Don't fetch if session isn't ready yet
+    if (!session?.access_token) {
+      console.log('Cart: Waiting for session to be ready...');
+      return;
+    }
+
     setLoading(true);
     try {
       console.log('Cart: Session data', { 
@@ -416,12 +422,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [fetchCart]);
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
+      // Only fetch when both user and session token are available
+      console.log('Cart: User and session ready, fetching cart');
       fetchCart();
+    } else if (user && !session?.access_token) {
+      // User exists but session not ready - wait for it
+      console.log('Cart: User exists but session not ready, waiting...');
     } else {
+      // No user - clear cart
       setCartData(null);
     }
-  }, [user, session, fetchCart]);
+  }, [user, session?.access_token, fetchCart]);
 
   const value: CartContextType = {
     cartData,

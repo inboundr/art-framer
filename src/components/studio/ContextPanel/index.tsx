@@ -6,6 +6,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStudioStore, useTotalPrice } from '@/store/studio';
 import { PricingDisplay } from './PricingDisplay';
 import { ConfigurationSummary } from './ConfigurationSummary';
@@ -21,6 +22,7 @@ interface ContextPanelProps {
 }
 
 export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
+  const router = useRouter();
   const { config, suggestions, setSuggestions } = useStudioStore();
   const totalPrice = useTotalPrice();
   const { user, session } = useAuth();
@@ -182,10 +184,11 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
           title: 'Added to Cart',
           description: 'Item has been added to your cart successfully.',
         });
-        // Small delay to ensure cart state is updated before redirect
+        // Use router.push for client-side navigation (preserves session)
+        // Small delay to ensure cart state is updated and user sees the toast
         setTimeout(() => {
-          window.location.href = '/cart';
-        }, 300);
+          router.push('/cart');
+        }, 500);
       } else {
         throw new Error('Failed to add to cart');
       }

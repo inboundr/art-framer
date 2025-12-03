@@ -232,37 +232,26 @@ export function CuratedImageGallery({
           const isRecent = Date.now() - pendingImage.timestamp < 60 * 60 * 1000;
           if (isRecent) {
             console.log('🛒 Found pending cart image after login:', pendingImage);
-            // Convert to CuratedImage format and show modal
-            const curatedImage: CuratedImage = {
-              id: pendingImage.id,
-              image_url: pendingImage.image_url,
-              title: pendingImage.title,
-              description: pendingImage.description,
-              category: 'curated',
-              tags: [],
-              thumbnail_url: null,
-              width: 800,
-              height: 600,
-              aspect_ratio: pendingImage.aspect_ratio,
-              display_order: 0,
-              is_featured: false,
-              is_active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            };
-            // Close the CreationsModal if it's open
-            console.log('🔄 CuratedImageGallery: Closing CreationsModal and opening FrameSelector');
-            setShowCreationsModal(false);
-            setSelectedImage(null);
-            // Go directly to frame selection for pending image
-            setFrameSelectorImage(curatedImage);
-            setShowFrameSelector(true);
-            console.log('🎨 CuratedImageGallery: Frame selector state set', { 
-              frameSelectorImage: !!curatedImage, 
-              showFrameSelector: true 
-            });
+            
+            // Normalize the image URL
+            let publicUrl = pendingImage.image_url;
+            if (!pendingImage.image_url.startsWith('http://') && !pendingImage.image_url.startsWith('https://')) {
+              const { data } = supabase.storage.from('curated-images').getPublicUrl(pendingImage.image_url);
+              publicUrl = data?.publicUrl || pendingImage.image_url;
+            }
+            
+            // Set the image in studio store
+            setImage(publicUrl, pendingImage.id);
+            
             // Clear the pending image
             localStorage.removeItem('pending-cart-image');
+            
+            console.log('🎨 CuratedImageGallery: Redirecting to studio with pending image');
+            
+            // Small delay to ensure session persists
+            setTimeout(() => {
+              router.push('/studio');
+            }, 100);
           } else {
             // Clear old pending image
             localStorage.removeItem('pending-cart-image');
@@ -295,7 +284,7 @@ export function CuratedImageGallery({
     setIsHydrated(true);
   }, []);
 
-  const handleBuyAsFrame = (image: CuratedImage) => {
+  const handleBuyAsFrame = async (image: CuratedImage) => {
     console.log('🎨 CuratedImageGallery: Redirecting to studio with image');
     
     // Normalize the image URL - check if it's already a full URL
@@ -308,6 +297,9 @@ export function CuratedImageGallery({
     
     // Set the image in studio store
     setImage(publicUrl, image.id);
+    
+    // Small delay to ensure session is persisted before navigation
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Navigate to studio
     router.push('/studio');

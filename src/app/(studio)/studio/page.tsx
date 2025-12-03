@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 
 export const dynamic = 'force-dynamic';
 import { useStudioStore } from '@/store/studio';
+import { useAuth } from '@/hooks/useAuth';
 import { AIChat } from '@/components/studio/AIChat';
 import { FramePreview } from '@/components/studio/FramePreview';
 import { ContextPanel } from '@/components/studio/ContextPanel';
@@ -22,6 +23,7 @@ type MobileTab = 'preview' | 'chat' | 'config';
 
 export default function StudioPage() {
   const { config, isAnalyzing } = useStudioStore();
+  const { refreshSession, isInitialized } = useAuth();
   const hasImage = !!config.imageUrl;
   const [mobileTab, setMobileTab] = useState<MobileTab>('preview');
   const [showMobileChat, setShowMobileChat] = useState(false);
@@ -44,6 +46,14 @@ export default function StudioPage() {
       }
     }
   }, [config.destinationCountry, config.shippingMethod]);
+  
+  // Ensure session is restored when navigating to studio page
+  useEffect(() => {
+    if (isInitialized) {
+      console.log('🎨 Studio: Refreshing session on page load');
+      refreshSession();
+    }
+  }, [isInitialized, refreshSession]);
 
   return (
     <>

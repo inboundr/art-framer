@@ -464,7 +464,6 @@ export class ShippingService {
       cost: result.cost,
       currency: result.currency,
       estimatedDays: result.estimatedDays,
-      estimatedDaysRange: result.estimatedDaysRange,  // Pass through the range
       trackingAvailable: result.trackingAvailable || true,
       insuranceIncluded: options.insurance || false,
       signatureRequired: options.signature || false,

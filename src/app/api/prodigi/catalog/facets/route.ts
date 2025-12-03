@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prodigiService } from '@/lib/prodigi-v2/azure-search/service';
-import type { ProdigiSearchFilters } from '@/lib/prodigi/types';
+import type { ProdigiSearchFilters } from '@/lib/prodigi-v2/azure-search/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

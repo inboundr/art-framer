@@ -6,7 +6,7 @@
  */
 
 import { azureSearchClient } from './client';
-import type { ProdigiSearchFilters, ProdigiSearchResult } from './types';
+import type { ProdigiSearchFilters, SearchResult } from './types';
 
 export interface FacetOption {
   value: string;
@@ -166,12 +166,12 @@ class FacetService {
       ...additionalFilters,
     };
 
-    const result: ProdigiSearchResult = await azureSearchClient.search(filters, {
+    const result: SearchResult = await azureSearchClient.search(filters, {
       top: 0, // We only need facets, not products
       includeFacets: true,
     });
 
-    return result.facets || {};
+    return (result.facets || {}) as ProductFacets;
   }
 
   /**

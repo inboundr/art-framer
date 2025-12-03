@@ -173,30 +173,33 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
           const isRecent = Date.now() - pendingImage.timestamp < 60 * 60 * 1000;
           if (isRecent) {
             console.log('🛒 Found pending cart image after login:', pendingImage);
-            // Convert to UserImage format and show modal
-            const userImage: UserImage = {
-              id: pendingImage.id,
-              image_url: pendingImage.image_url,
-              prompt: pendingImage.prompt || pendingImage.title || '',
-              created_at: new Date().toISOString(),
-              width: 800,
-              height: 600,
-              likes: 0,
-              aspect_ratio: pendingImage.aspect_ratio
+            
+            // Normalize the image URL
+            const normalizeUrl = (url?: string | null) => {
+              if (!url) return '';
+              if (url.startsWith('http://') || url.startsWith('https://')) return url;
+              try {
+                const { data } = supabase.storage.from('images').getPublicUrl(url);
+                return data?.publicUrl || url;
+              } catch {
+                return url;
+              }
             };
-            // Close the CreationsModal if it's open
-            console.log('🔄 UserImageGallery: Closing CreationsModal and opening FrameSelector');
-            setModalOpen(false);
-            setSelectedImage(null);
-            // Go directly to frame selection for pending image
-            setFrameSelectorImage(userImage);
-            setShowFrameSelector(true);
-            console.log('🎨 UserImageGallery: Frame selector state set', { 
-              frameSelectorImage: !!userImage, 
-              showFrameSelector: true 
-            });
+            
+            const publicUrl = normalizeUrl(pendingImage.image_url);
+            
+            // Set the image in studio store
+            setImage(publicUrl, pendingImage.id);
+            
             // Clear the pending image
             localStorage.removeItem('pending-cart-image');
+            
+            console.log('🎨 UserImageGallery: Redirecting to studio with pending image');
+            
+            // Small delay to ensure session persists
+            setTimeout(() => {
+              router.push('/studio');
+            }, 100);
           } else {
             // Clear old pending image
             localStorage.removeItem('pending-cart-image');
@@ -389,7 +392,7 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
     setSelectedImage(null);
   };
 
-  const handleBuyAsFrame = (image: UserImage) => {
+  const handleBuyAsFrame = async (image: UserImage) => {
     console.log('🎨 UserImageGallery: Redirecting to studio with image');
     
     // Normalize the image URL
@@ -408,6 +411,9 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
     
     // Set the image in studio store
     setImage(publicUrl, image.id);
+    
+    // Small delay to ensure session is persisted before navigation
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Navigate to studio
     router.push('/studio');
