@@ -34,14 +34,14 @@ export default function ShopPage() {
   if (!user) {
     return (
       <AuthenticatedLayout>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
+          <div className="text-center bg-white rounded-2xl border-2 border-gray-200 p-12 max-w-md shadow-sm">
             <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In Required</h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-6">
               Please sign in to access the shop and purchase framed art.
             </p>
-            <Button onClick={() => window.location.href = '/login'}>
+            <Button onClick={() => window.location.href = '/login'} className="w-full">
               Sign In
             </Button>
           </div>
@@ -53,7 +53,7 @@ export default function ShopPage() {
   if (showCheckout) {
     return (
       <AuthenticatedLayout>
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-gray-50">
           <div className="container mx-auto px-4 py-8">
             <CheckoutFlow
               onSuccess={handleCheckoutSuccess}
@@ -67,7 +67,7 @@ export default function ShopPage() {
 
   return (
     <AuthenticatedLayout>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Art Shop</h1>

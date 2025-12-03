@@ -16,6 +16,7 @@ import { ContextPanel } from '@/components/studio/ContextPanel';
 import { WelcomeModal } from '@/components/studio/WelcomeModal';
 import { ImageUpload } from '@/components/studio/ImageUpload';
 import { AuthModal } from '@/components/AuthModal';
+import { Sidebar } from '@/components/Sidebar';
 
 type MobileTab = 'preview' | 'chat' | 'config';
 
@@ -27,6 +28,7 @@ export default function StudioPage() {
   const [showMobileConfig, setShowMobileConfig] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [pendingAddToCart, setPendingAddToCart] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     // Initialize conversation
@@ -47,11 +49,14 @@ export default function StudioPage() {
     <>
       {/* Desktop Layout (lg and above) */}
       <div className="hidden lg:flex h-screen w-full overflow-hidden bg-gray-50">
+        {/* Sidebar */}
+        <Sidebar onOpenAuthModal={() => setAuthModalVisible(true)} />
+
         {/* Welcome Modal - shown on first visit */}
         {!hasImage && <WelcomeModal />}
 
-        {/* Three-panel layout */}
-        <div className="flex w-full">
+        {/* Three-panel layout - with left padding to account for fixed sidebar */}
+        <div className="flex w-full pl-20">
           {/* Left Panel - AI Chat */}
           <div className="w-96 flex-shrink-0 border-r border-gray-200 bg-white flex flex-col">
             <div className="border-b border-gray-200 p-4">
@@ -106,18 +111,47 @@ export default function StudioPage() {
 
       {/* Mobile Layout (below lg) */}
       <div className="lg:hidden flex flex-col h-screen w-full overflow-hidden bg-gray-50">
+        {/* Mobile Sidebar */}
+        <Sidebar 
+          isMobile={true}
+          isOpen={mobileSidebarOpen}
+          onClose={() => setMobileSidebarOpen(false)}
+          onOpenAuthModal={() => setAuthModalVisible(true)}
+        />
+
+        {/* Backdrop for mobile sidebar */}
+        {mobileSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+
         {/* Welcome Modal - shown on first visit */}
         {!hasImage && <WelcomeModal />}
 
         {/* Mobile Header */}
         <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-shrink-0">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">
-              Art Framer
-            </h1>
-            <p className="text-xs text-gray-500">
-              AI Studio
-            </p>
+          <div className="flex items-center gap-2">
+            {/* Menu Toggle Button */}
+            <button
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+              aria-label="Toggle menu"
+            >
+              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">
+                Art Framer
+              </h1>
+              <p className="text-xs text-gray-500">
+                AI Studio
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center gap-2">

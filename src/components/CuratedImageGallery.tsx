@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCuratedGallery } from '@/hooks/useCuratedGallery';
 import type { CuratedImage } from '@/lib/curated-images';
 import { Heart, Eye, Download, Share2, ShoppingCart, XCircle, HelpCircle } from 'lucide-react';
@@ -14,6 +15,7 @@ import { useCartNotification } from './CartNotificationToast';
 import { supabase } from '@/lib/supabase/client';
 import { CreationsModal } from './CreationsModal';
 import { FrameSelector } from './FrameSelector';
+import { useStudioStore } from '@/store/studio';
 
 interface CuratedImageCardProps {
   image: CuratedImage;
@@ -171,8 +173,10 @@ export function CuratedImageGallery({
   onBuyAsFrame,
   onOpenAuthModal
 }: CuratedImageGalleryProps) {
+  const router = useRouter();
   const { images, loading, error, hasMore, loadMore } = useCuratedGallery();
   const { user, session } = useAuth();
+  const { setImage } = useStudioStore();
   
   // Debug logging
   useEffect(() => {
@@ -292,9 +296,22 @@ export function CuratedImageGallery({
   }, []);
 
   const handleBuyAsFrame = (image: CuratedImage) => {
-    // Show frame selector directly
-    setFrameSelectorImage(image);
-    setShowFrameSelector(true);
+    console.log('🎨 CuratedImageGallery: Redirecting to studio with image');
+    
+    // Normalize the image URL - check if it's already a full URL
+    let publicUrl = image.image_url;
+    if (!image.image_url.startsWith('http://') && !image.image_url.startsWith('https://')) {
+      // Only get public URL if it's a storage path
+      const { data } = supabase.storage.from('curated-images').getPublicUrl(image.image_url);
+      publicUrl = data?.publicUrl || image.image_url;
+    }
+    
+    // Set the image in studio store
+    setImage(publicUrl, image.id);
+    
+    // Navigate to studio
+    router.push('/studio');
+    
     onBuyAsFrame?.(image);
   };
 
@@ -526,8 +543,8 @@ export function CuratedImageGallery({
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load images</h3>
-          <p className="text-muted-foreground mb-4">{error.message}</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load images</h3>
+          <p className="text-gray-600 mb-4">{error.message}</p>
           <Button onClick={() => window.location.reload()}>
             Try Again
           </Button>
@@ -538,7 +555,7 @@ export function CuratedImageGallery({
 
   return (
     <div 
-      className={`flex flex-col items-center self-stretch bg-background text-foreground ${className}`}
+      className={`flex flex-col items-center self-stretch bg-gray-50 text-gray-900 ${className}`}
     >
       <div 
         className="flex flex-col items-center w-full max-w-7xl mx-auto py-6 px-4"
@@ -571,10 +588,10 @@ export function CuratedImageGallery({
             {loading ? (
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-muted-foreground">Loading more images...</span>
+                <span className="text-gray-600">Loading more images...</span>
               </div>
             ) : (
-              <div className="text-muted-foreground">Scroll to load more</div>
+              <div className="text-gray-600">Scroll to load more</div>
             )}
           </div>
         )}
@@ -582,7 +599,7 @@ export function CuratedImageGallery({
         {/* No more images */}
         {!hasMore && images.length > 0 && (
           <div className="flex justify-center items-center py-8">
-            <div className="text-muted-foreground">No more images to load</div>
+            <div className="text-gray-600">No more images to load</div>
           </div>
         )}
 
@@ -590,8 +607,8 @@ export function CuratedImageGallery({
         {!loading && images.length === 0 && (
           <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-foreground mb-2">No images found</h3>
-              <p className="text-muted-foreground">Check back later for new curated content.</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No images found</h3>
+              <p className="text-gray-600">Check back later for new curated content.</p>
             </div>
           </div>
         )}
@@ -615,7 +632,7 @@ export function CuratedImageGallery({
       {showFrameSelector && frameSelectorImage && (
         <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-sm">
           <div className="flex h-full">
-            <div className="flex-1 bg-background overflow-y-auto">
+            <div className="flex-1 bg-gray-50 overflow-y-auto">
               <div className="max-w-4xl mx-auto p-6">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -623,8 +640,8 @@ export function CuratedImageGallery({
                     <div className="flex items-center gap-2 mb-2">
                       <h2 className="text-2xl font-bold">Choose Your Frame</h2>
                       <div className="relative group">
-                        <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help" />
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                        <HelpCircle className="h-5 w-5 text-gray-600 cursor-help" />
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-gray-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
                           <div className="text-center">
                             <div className="font-semibold mb-1">How to choose your frame</div>
                             <div className="text-xs">

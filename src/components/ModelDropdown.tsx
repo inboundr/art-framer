@@ -115,19 +115,19 @@ export function ModelDropdown({
   return (
     <div 
       ref={dropdownRef}
-      className="absolute top-full mt-2 left-0 w-80 bg-dark-secondary border border-gray-border rounded-lg shadow-lg p-4 z-50"
+      className="absolute top-full mt-2 left-0 w-80 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50"
       onClick={(e) => e.stopPropagation()}
       style={{ position: 'absolute', zIndex: 1000 }}
     >
       {/* Number of Images Section */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-gray-light text-sm font-medium">Number of images</h3>
+          <h3 className="text-gray-900 text-sm font-medium">Number of images</h3>
           <div className="flex items-center gap-1">
             <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
-              <path d="M8 1L9.5 5.5H14L10.5 8.5L12 13L8 10L4 13L5.5 8.5L2 5.5H6.5L8 1Z" fill="#F7F7F8"/>
+              <path d="M8 1L9.5 5.5H14L10.5 8.5L12 13L8 10L4 13L5.5 8.5L2 5.5H6.5L8 1Z" fill="currentColor"/>
             </svg>
-            <span className="text-gray-light text-sm">{selectedImages}</span>
+            <span className="text-gray-900 text-sm">{selectedImages}</span>
           </div>
         </div>
         <div className="flex gap-2">
@@ -138,7 +138,7 @@ export function ModelDropdown({
               className={`px-3 py-2 rounded text-sm transition-colors ${
                 selectedImages === option.name
                   ? 'bg-gray-light text-dark'
-                  : 'text-gray-text hover:text-gray-light hover:bg-gray-border/20'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-border/20'
               }`}
             >
               {option.name}
@@ -149,7 +149,7 @@ export function ModelDropdown({
 
       {/* Model Section */}
       <div className="mb-6">
-        <h3 className="text-gray-light text-sm font-medium mb-3">Model</h3>
+        <h3 className="text-gray-900 text-sm font-medium mb-3">Model</h3>
         <div className="space-y-2">
           {modelOptions.map((model) => (
             <button
@@ -158,7 +158,7 @@ export function ModelDropdown({
               className={`w-full text-left p-3 rounded transition-colors ${
                 selectedModel === model.id
                   ? 'bg-gray-light text-dark'
-                  : 'text-gray-text hover:text-gray-light hover:bg-gray-border/20'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-border/20'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -181,7 +181,7 @@ export function ModelDropdown({
 
       {/* Render Speed Section */}
       <div>
-        <h3 className="text-gray-light text-sm font-medium mb-3">Render speed</h3>
+        <h3 className="text-gray-900 text-sm font-medium mb-3">Render speed</h3>
         <div className="space-y-2">
           {renderSpeedOptions.map((speed) => (
             <button
@@ -190,7 +190,7 @@ export function ModelDropdown({
               className={`w-full text-left p-3 rounded transition-colors ${
                 selectedSpeed === speed.id
                   ? 'bg-gray-light text-dark'
-                  : 'text-gray-text hover:text-gray-light hover:bg-gray-border/20'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-border/20'
               }`}
             >
               <div className="flex items-center justify-between">

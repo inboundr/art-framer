@@ -213,7 +213,7 @@ export function AspectRatioDropdown({
   return (
     <div 
       ref={dropdownRef}
-      className="absolute top-full mt-2 left-0 w-96 bg-dark-secondary border border-gray-border rounded-lg shadow-lg p-4 z-50"
+      className="absolute top-full mt-2 left-0 w-96 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50"
       onClick={(e) => e.stopPropagation()}
       style={{ position: 'absolute', zIndex: 1000 }}
     >
@@ -221,7 +221,7 @@ export function AspectRatioDropdown({
         {/* Left Side - Preview and Controls */}
         <div className="flex-1">
           {/* Preview Box */}
-          <div className="w-full h-32 bg-dark-tertiary border border-gray-border rounded-lg flex items-center justify-center mb-4 overflow-hidden relative">
+          <div className="w-full h-32 bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center mb-4 overflow-hidden relative">
             {(() => {
               const containerWidth = 80;
               const containerHeight = 60;
@@ -241,7 +241,7 @@ export function AspectRatioDropdown({
               
               return (
                 <div 
-                  className="bg-gray-light/20 border border-gray-border rounded"
+                  className="bg-gray-light/20 border border-gray-300 rounded"
                   style={{
                     width: `${previewWidth}px`,
                     height: `${previewHeight}px`,
@@ -253,7 +253,7 @@ export function AspectRatioDropdown({
             })()}
             {/* Aspect Ratio Text Overlay */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-gray-light text-sm font-medium bg-dark-tertiary/80 px-2 py-1 rounded">
+              <div className="text-gray-900 text-sm font-medium bg-gray-100/80 px-2 py-1 rounded">
                 {sliderRatio.label}
               </div>
             </div>
@@ -275,14 +275,14 @@ export function AspectRatioDropdown({
           </div>
           
           {/* Dimensions */}
-          <div className="flex justify-between text-sm text-gray-text">
+          <div className="flex justify-between text-sm text-gray-600">
             <div>
-              <p className="text-gray-text">Width</p>
-              <p className="text-gray-light">{sliderRatio.width} px</p>
+              <p className="text-gray-600">Width</p>
+              <p className="text-gray-900">{sliderRatio.width} px</p>
             </div>
             <div>
-              <p className="text-gray-text">Height</p>
-              <p className="text-gray-light">{sliderRatio.height} px</p>
+              <p className="text-gray-600">Height</p>
+              <p className="text-gray-900">{sliderRatio.height} px</p>
             </div>
           </div>
         </div>
@@ -293,9 +293,9 @@ export function AspectRatioDropdown({
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
-                <rect width="15" height="8" x="14" y="2.5" stroke="#FFFFFF" opacity="0.9" rx="1" transform="rotate(90 14 2.5)"/>
+                <rect width="15" height="8" x="14" y="2.5" stroke="currentColor" opacity="0.9" rx="1" transform="rotate(90 14 2.5)"/>
               </svg>
-              <p className="text-gray-light text-sm">Portrait</p>
+              <p className="text-gray-900 text-sm">Portrait</p>
             </div>
             <div className="space-y-1">
               {portraitRatios.map((ratio) => (
@@ -309,7 +309,7 @@ export function AspectRatioDropdown({
                   className={`w-full text-left px-2 py-1 rounded text-sm transition-colors ${
                     currentRatio.value === ratio.value
                       ? 'bg-gray-light text-dark'
-                      : 'text-gray-text hover:text-gray-light hover:bg-gray-border/20'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-border/20'
                   } ${ratio.locked ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center justify-between">
@@ -329,9 +329,9 @@ export function AspectRatioDropdown({
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
-                <rect width="15" height="8" x="2.5" y="6" stroke="#FFFFFF" rx="1"/>
+                <rect width="15" height="8" x="2.5" y="6" stroke="currentColor" rx="1"/>
               </svg>
-              <p className="text-gray-light text-sm">Landscape</p>
+              <p className="text-gray-900 text-sm">Landscape</p>
             </div>
             <div className="space-y-1">
               {landscapeRatios.map((ratio) => (
@@ -345,7 +345,7 @@ export function AspectRatioDropdown({
                   className={`w-full text-left px-2 py-1 rounded text-sm transition-colors ${
                     currentRatio.value === ratio.value
                       ? 'bg-gray-light text-dark'
-                      : 'text-gray-text hover:text-gray-light hover:bg-gray-border/20'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-border/20'
                   } ${ratio.locked ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center justify-between">
@@ -372,7 +372,7 @@ export function AspectRatioDropdown({
                 className={`w-full text-left px-2 py-1 rounded text-sm transition-colors ${
                   currentRatio.value === squareRatio.value
                     ? 'bg-gray-light text-dark'
-                    : 'text-gray-text hover:text-gray-light hover:bg-gray-border/20'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-border/20'
                 }`}
               >
                 {squareRatio.label}
@@ -389,7 +389,7 @@ export function AspectRatioDropdown({
                 className={`w-full text-left px-2 py-1 rounded text-sm transition-colors ${
                   currentRatio.value === customRatio.value
                     ? 'bg-gray-light text-dark'
-                    : 'text-gray-text hover:text-gray-light hover:bg-gray-border/20'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-border/20'
                 } ${customRatio.locked ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <div className="flex items-center justify-between">

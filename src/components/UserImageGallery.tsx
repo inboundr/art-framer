@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
@@ -11,6 +12,7 @@ import { ShoppingCart, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useCartNotification } from './CartNotificationToast';
+import { useStudioStore } from '@/store/studio';
 
 interface UserImage {
   id: string;
@@ -61,7 +63,7 @@ function UserImageCard({ image, onImageClick, onBuyAsFrame, onOpenAuthModal }: U
     <div className="break-inside-avoid mb-2">
       <div className="relative group cursor-pointer" onClick={() => onImageClick(image)}>
         {/* Image Container */}
-        <div className={`${getAspectRatioClass()} w-full overflow-hidden rounded-lg bg-dark-tertiary`}>
+        <div className={`${getAspectRatioClass()} w-full overflow-hidden rounded-lg bg-gray-100`}>
           {/* Gradient Background */}
           <div 
             className="w-full h-full bg-gradient-to-br from-pink-primary/20 via-purple-500/20 to-blue-500/20 relative"
@@ -127,10 +129,12 @@ interface UserImageGalleryProps {
 }
 
 export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}) {
+  const router = useRouter();
   const { user, session } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
   const { showCartNotification } = useCartNotification();
+  const { setImage } = useStudioStore();
   
   // Debug function - expose to window for testing
   useEffect(() => {
@@ -386,8 +390,27 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
   };
 
   const handleBuyAsFrame = (image: UserImage) => {
-    setFrameSelectorImage(image);
-    setShowFrameSelector(true);
+    console.log('🎨 UserImageGallery: Redirecting to studio with image');
+    
+    // Normalize the image URL
+    const normalizeImageUrl = (url?: string | null) => {
+      if (!url) return '';
+      if (url.startsWith('http://') || url.startsWith('https://')) return url;
+      try {
+        const { data } = supabase.storage.from('images').getPublicUrl(url);
+        return data?.publicUrl || url;
+      } catch {
+        return url;
+      }
+    };
+    
+    const publicUrl = normalizeImageUrl(image.image_url);
+    
+    // Set the image in studio store
+    setImage(publicUrl, image.id);
+    
+    // Navigate to studio
+    router.push('/studio');
   };
 
   const handleAddToCart = async (frame: any) => {
@@ -627,7 +650,7 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">Please sign in to view your creations</p>
+          <p className="text-gray-600 mb-4">Please sign in to view your creations</p>
         </div>
       </div>
     );
@@ -638,7 +661,7 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your creations...</p>
+          <p className="text-gray-600">Loading your creations...</p>
         </div>
       </div>
     );
@@ -648,15 +671,15 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center py-12">
-          <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted-foreground">
+          <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-600">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
               <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" strokeWidth="2"/>
               <polyline points="21,15 16,10 5,21" stroke="currentColor" strokeWidth="2"/>
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">No creations yet</h3>
-          <p className="text-muted-foreground mb-6">Start creating amazing AI art to see your images here</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No creations yet</h3>
+          <p className="text-gray-600 mb-6">Start creating amazing AI art to see your images here</p>
           <button 
             onClick={() => window.location.href = '/'}
             className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
@@ -720,13 +743,13 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
       })() && (
         <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-sm">
           <div className="flex h-full">
-            <div className="flex-1 bg-background overflow-y-auto">
+            <div className="flex-1 bg-gray-50 overflow-y-auto">
               <div className="max-w-4xl mx-auto p-6">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-2xl font-bold">Choose Your Frame</h2>
-                    <p className="text-muted-foreground">
+                    <p className="text-gray-600">
                       Select the perfect frame for your AI-generated art
                     </p>
                   </div>

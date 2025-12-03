@@ -54,7 +54,7 @@ export function AIArtGenerator() {
         {/* Input Section */}
         <div className="space-y-6">
           <div>
-            <label htmlFor="prompt" className="block text-sm font-medium text-gray-light mb-2">
+            <label htmlFor="prompt" className="block text-sm font-medium text-gray-900 mb-2">
               Describe the artwork you want to order framed
             </label>
             <textarea
@@ -62,7 +62,7 @@ export function AIArtGenerator() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="A serene mountain landscape at sunset with golden clouds - order it framed to your house"
-              className="w-full h-32 p-4 border border-gray-border rounded-lg resize-none focus:ring-2 focus:ring-pink-primary focus:border-transparent bg-dark-secondary text-gray-light placeholder-gray-muted"
+              className="w-full h-32 p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-pink-primary focus:border-transparent bg-white text-gray-900 placeholder-gray-muted"
               maxLength={500}
             />
             <div className="text-sm text-gray-muted mt-1">
@@ -71,14 +71,14 @@ export function AIArtGenerator() {
           </div>
 
           <div>
-            <label htmlFor="style" className="block text-sm font-medium text-gray-light mb-2">
+            <label htmlFor="style" className="block text-sm font-medium text-gray-900 mb-2">
               Art Style
             </label>
             <select
               id="style"
               value={style}
               onChange={(e) => setStyle(e.target.value)}
-              className="w-full p-3 border border-gray-border rounded-lg focus:ring-2 focus:ring-pink-primary focus:border-transparent bg-dark-secondary text-gray-light"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-primary focus:border-transparent bg-white text-gray-900"
             >
               {styles.map((styleOption) => (
                 <option key={styleOption.value} value={styleOption.value}>
@@ -131,8 +131,8 @@ export function AIArtGenerator() {
                 </div>
               </div>
 
-              <div className="bg-dark-secondary p-4 rounded-lg shadow-sm border border-gray-border">
-                <h3 className="font-semibold text-gray-light mb-2">Generated Artwork</h3>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-300">
+                <h3 className="font-semibold text-gray-900 mb-2">Generated Artwork</h3>
                 <p className="text-sm text-gray-muted mb-3">{generatedImage.prompt}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-muted capitalize">
@@ -146,7 +146,7 @@ export function AIArtGenerator() {
               </div>
             </div>
           ) : (
-            <div className="h-96 bg-dark-secondary rounded-lg flex items-center justify-center border-2 border-dashed border-gray-border">
+            <div className="h-96 bg-white rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
               <div className="text-center text-gray-muted">
                 <Wand2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium">Your artwork will appear here</p>

@@ -118,13 +118,13 @@ export function ColorDropdown({
   return (
     <div 
       ref={dropdownRef}
-      className="absolute top-full mt-2 left-0 w-80 bg-dark-secondary border border-gray-border rounded-lg shadow-lg p-4 z-50"
+      className="absolute top-full mt-2 left-0 w-80 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50"
       onClick={(e) => e.stopPropagation()}
       style={{ position: 'absolute', zIndex: 1000 }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-gray-light text-sm font-medium">Color palette</h3>
+        <h3 className="text-gray-900 text-sm font-medium">Color palette</h3>
       </div>
 
       {/* Predefined Palettes */}
@@ -136,7 +136,7 @@ export function ColorDropdown({
             className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
               selectedPalette === palette.id
                 ? 'bg-gray-light text-dark'
-                : 'text-gray-light hover:bg-gray-border/20'
+                : 'text-gray-900 hover:bg-gray-border/20'
             }`}
           >
             <span className="text-sm font-medium">{palette.name}</span>
@@ -145,7 +145,7 @@ export function ColorDropdown({
                 {palette.colors.map((color, index) => (
                   <div
                     key={index}
-                    className="w-4 h-4 rounded border border-gray-border"
+                    className="w-4 h-4 rounded border border-gray-300"
                     style={{ backgroundColor: color }}
                   />
                 ))}
@@ -156,10 +156,10 @@ export function ColorDropdown({
       </div>
 
       {/* Custom Palette Section */}
-      <div className="border-t border-gray-border pt-4">
+      <div className="border-t border-gray-300 pt-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-gray-light text-sm font-medium">Custom</span>
+            <span className="text-gray-900 text-sm font-medium">Custom</span>
             <svg 
               width="12" 
               height="12" 
@@ -176,7 +176,7 @@ export function ColorDropdown({
           </div>
           <button
             onClick={handleAddCustomPalette}
-            className="flex items-center justify-center w-6 h-6 rounded border border-gray-border bg-dark-tertiary text-gray-light hover:bg-gray-border/20 transition-colors"
+            className="flex items-center justify-center w-6 h-6 rounded border border-gray-300 bg-gray-100 text-gray-900 hover:bg-gray-border/20 transition-colors"
           >
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24">
               <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -190,7 +190,7 @@ export function ColorDropdown({
           value={customPaletteCode}
           onChange={handleCustomPaletteChange}
           placeholder="Enter custom color palette..."
-          className="w-full p-3 rounded-lg border border-gray-border bg-dark-tertiary text-gray-light placeholder:text-gray-text focus:outline-none focus:border-gray-light transition-colors"
+          className="w-full p-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-gray-light transition-colors"
         />
       </div>
     </div>

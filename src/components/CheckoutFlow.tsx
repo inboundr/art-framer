@@ -871,9 +871,9 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
   if (cartItems.length === 0) {
     return (
       <div className="text-center py-12">
-        <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">Your cart is empty</h3>
-        <p className="text-muted-foreground mb-4">Add some items to your cart before checking out.</p>
+        <Package className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
+        <p className="text-gray-600 mb-4">Add some items to your cart before checking out.</p>
         <Button onClick={onCancel} variant="outline">
           Continue Shopping
         </Button>
@@ -893,7 +893,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
           return (
             <div key={step.number} className="flex items-center">
               <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                isActive ? 'border-primary bg-primary text-white' :
+                isActive ? 'border-black bg-black text-white' :
                 isCompleted ? 'border-green-500 bg-green-500 text-white' :
                 'border-gray-300 bg-white text-gray-500'
               }`}>
@@ -904,7 +904,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                 )}
               </div>
               <span className={`ml-2 text-sm font-medium ${
-                isActive ? 'text-primary' :
+                isActive ? 'text-gray-900' :
                 isCompleted ? 'text-green-600' :
                 'text-gray-500'
               }`}>
@@ -966,7 +966,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                     required={true}
                     error={errors.address1}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-gray-600 mt-1">
                     Select your address from the suggestions for accurate shipping calculation
                   </p>
                   
@@ -1000,7 +1000,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                         }
                       }}
                       disabled={shippingLoading}
-                      className="bg-blue-600 text-white hover:bg-blue-700 text-xs px-3 py-1"
+                      className="bg-blue-600 text-gray-900 hover:bg-blue-700 text-xs px-3 py-1"
                     >
                       {shippingLoading ? 'Calculating...' : 'Calculate'}
                     </Button>
@@ -1253,7 +1253,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                     Shipping
                     {calculatedShipping && (
                       <>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-gray-600">
                           {calculatedShipping.estimatedDaysRange ? (
                             `(${calculatedShipping.estimatedDaysRange.min}-${calculatedShipping.estimatedDaysRange.max} days)`
                           ) : (
@@ -1277,7 +1277,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                   </span>
                   <span>
                     {shippingLoading ? (
-                      <span className="text-muted-foreground text-sm italic">Calculating...</span>
+                      <span className="text-gray-600 text-sm italic">Calculating...</span>
                     ) : calculatedShipping ? (
                       <div className="text-right">
                         <div className="font-semibold">{formatPrice(calculatedShipping.cost, calculatedShipping.currency || getDisplayCurrency())}</div>
@@ -1286,7 +1286,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                         )}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground text-sm italic">Enter address</span>
+                      <span className="text-gray-600 text-sm italic">Enter address</span>
                     )}
                   </span>
                 </div>

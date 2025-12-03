@@ -165,14 +165,14 @@ function CheckoutSuccessContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         <Card className="shadow-xl bg-card border-border">
           <CardHeader className="text-center pb-8">
             <div className="mx-auto w-16 h-16 bg-pink-primary/20 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="h-8 w-8 text-pink-primary" />
             </div>
-            <CardTitle className="text-3xl font-bold text-foreground mb-2">
+            <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
               Payment Successful!
             </CardTitle>
             <p className="text-muted-foreground text-lg">
@@ -183,7 +183,7 @@ function CheckoutSuccessContent() {
           <CardContent className="space-y-6">
             {sessionId && (
               <div className="bg-muted rounded-lg p-4 border border-border">
-                <p className="text-sm text-foreground">
+                <p className="text-sm text-gray-900">
                   <strong>Order ID:</strong> {sessionId}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -194,11 +194,11 @@ function CheckoutSuccessContent() {
 
             {storedAddress && (
               <div className="bg-muted rounded-lg p-4 border border-border">
-                <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <Truck className="h-4 w-4 text-pink-primary" />
                   Shipping Address
                 </h4>
-                <div className="text-sm text-foreground space-y-1">
+                <div className="text-sm text-gray-900 space-y-1">
                   {storedAddress.firstName && storedAddress.lastName && (
                     <p><strong>Name:</strong> {storedAddress.firstName} {storedAddress.lastName}</p>
                   )}
@@ -230,7 +230,7 @@ function CheckoutSuccessContent() {
             )}
 
             <div className="space-y-4">
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                 <Package className="h-5 w-5 text-pink-primary" />
                 What happens next?
               </h3>
@@ -241,7 +241,7 @@ function CheckoutSuccessContent() {
                     <span className="text-xs font-semibold text-pink-primary">1</span>
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">Order Processing</p>
+                    <p className="font-medium text-gray-900">Order Processing</p>
                     <p className="text-sm text-muted-foreground">
                       We&apos;re preparing your framed art for production. This usually takes 1-2 business days.
                     </p>
@@ -253,7 +253,7 @@ function CheckoutSuccessContent() {
                     <span className="text-xs font-semibold text-pink-primary">2</span>
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">Production & Framing</p>
+                    <p className="font-medium text-gray-900">Production & Framing</p>
                     <p className="text-sm text-muted-foreground">
                       Your artwork is printed and professionally framed by our partners.
                     </p>
@@ -265,7 +265,7 @@ function CheckoutSuccessContent() {
                     <span className="text-xs font-semibold text-pink-primary">3</span>
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">Shipping</p>
+                    <p className="font-medium text-gray-900">Shipping</p>
                     <p className="text-sm text-muted-foreground">
                       Your framed art is carefully packaged and shipped to your address.
                     </p>
@@ -277,7 +277,7 @@ function CheckoutSuccessContent() {
                     <Truck className="h-3 w-3 text-pink-primary" />
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">Delivery</p>
+                    <p className="font-medium text-gray-900">Delivery</p>
                     <p className="text-sm text-muted-foreground">
                       You&apos;ll receive tracking information and your art will arrive in 5-7 business days.
                     </p>
@@ -287,7 +287,7 @@ function CheckoutSuccessContent() {
             </div>
 
             <div className="bg-muted rounded-lg p-4 border border-border">
-              <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-pink-primary" />
                 Need Help?
               </h4>
@@ -319,7 +319,7 @@ function CheckoutSuccessContent() {
 export default function CheckoutSuccessPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-2xl w-full">
           <Card className="shadow-xl bg-card border-border">
             <CardContent className="p-8 text-center">

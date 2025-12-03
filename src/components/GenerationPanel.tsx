@@ -295,14 +295,14 @@ export function GenerationPanel({
 
   return (
     <div className="fixed bottom-0 right-2 md:right-4 w-full max-w-[662px] md:w-[662px] max-h-[1080px] z-50 px-2 md:px-0">
-      <div className="flex flex-col items-end p-1 px-1 md:px-[5px] pb-1 rounded-t-xl border-t border-r border-l border-gray-border bg-dark-secondary shadow-lg">
+      <div className="flex flex-col items-end p-1 px-1 md:px-[5px] pb-1 rounded-t-xl border-t border-r border-l border-gray-300 bg-white shadow-lg">
         {/* Header with Status and Controls */}
-        <div className="flex justify-between items-center self-stretch bg-dark-secondary p-1">
+        <div className="flex justify-between items-center self-stretch bg-white p-1">
           <div className="flex justify-center items-center">
             <div className="flex flex-col items-start">
-              <div className="flex h-8 md:h-10 p-1.5 md:p-2 justify-center items-center rounded-md">
+              <div className="flex h-8 md:h-10 p-1.5 md:p-2 justify-center items-center rounded-lg">
                 <div className="flex justify-center items-center">
-                  <span className="text-gray-light text-center text-xs md:text-sm font-semibold leading-4 md:leading-5 tracking-[-0.4px] md:tracking-[-0.56px]">
+                  <span className="text-gray-900 text-center text-xs md:text-sm font-semibold leading-4 md:leading-5 tracking-[-0.4px] md:tracking-[-0.56px]">
                     <span className="hidden sm:inline">{generationStatus}</span>
                     <span className="sm:hidden">{generationStatus.length > 20 ? generationStatus.substring(0, 20) + '...' : generationStatus}</span>
                   </span>
@@ -315,7 +315,7 @@ export function GenerationPanel({
             <div className="flex flex-col items-start">
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex w-8 md:w-10 h-8 md:h-10 justify-center items-center rounded-md hover:bg-gray-border/20 transition-colors"
+                className="flex w-8 md:w-10 h-8 md:h-10 justify-center items-center rounded-lg hover:bg-gray-border/20 transition-colors"
               >
                 <div className="flex flex-col items-start">
                   <svg
@@ -340,7 +340,7 @@ export function GenerationPanel({
             
             <button 
               onClick={onClose}
-              className="flex w-8 md:w-10 h-8 md:h-10 justify-center items-center rounded-md hover:bg-gray-border/20 transition-colors"
+              className="flex w-8 md:w-10 h-8 md:h-10 justify-center items-center rounded-lg hover:bg-gray-border/20 transition-colors"
             >
               <svg
                 width="20"
@@ -374,7 +374,7 @@ export function GenerationPanel({
                   <div key={image.id} className="flex max-w-full sm:max-w-[165px] pt-2 pl-2 flex-col items-start flex-1 self-stretch">
                     <div className="flex flex-col items-start self-stretch rounded">
                       <div 
-                        className="h-[100px] sm:h-[153px] self-stretch rounded bg-dark-tertiary cursor-pointer hover:opacity-80 transition-opacity"
+                        className="h-[100px] sm:h-[153px] self-stretch rounded bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => handleImageClick(image)}
                       >
                         <RobustImage
@@ -407,22 +407,22 @@ export function GenerationPanel({
                   <>
                 <div className="flex max-w-full sm:max-w-[165px] pt-2 pl-2 flex-col items-start flex-1 self-stretch">
                   <div className="flex flex-col items-start self-stretch rounded">
-                    <div className="h-[100px] sm:h-[153px] self-stretch rounded bg-dark-tertiary" />
+                    <div className="h-[100px] sm:h-[153px] self-stretch rounded bg-gray-100" />
                   </div>
                 </div>
                 <div className="flex max-w-full sm:max-w-[165px] pt-2 pl-2 flex-col items-start flex-1 self-stretch">
                   <div className="flex flex-col items-start self-stretch rounded">
-                    <div className="h-[100px] sm:h-[153px] self-stretch rounded bg-dark-tertiary" />
+                    <div className="h-[100px] sm:h-[153px] self-stretch rounded bg-gray-100" />
                   </div>
                 </div>
                 <div className="hidden sm:flex max-w-[165px] pt-2 pl-2 flex-col items-start flex-1 self-stretch">
                   <div className="flex flex-col items-start self-stretch rounded">
-                    <div className="h-[153px] self-stretch rounded bg-dark-tertiary" />
+                    <div className="h-[153px] self-stretch rounded bg-gray-100" />
                   </div>
                 </div>
                 <div className="hidden sm:flex max-w-[165px] pt-2 pl-2 flex-col items-start flex-1 self-stretch">
                   <div className="flex flex-col items-start self-stretch rounded">
-                    <div className="h-[153px] self-stretch rounded bg-dark-tertiary" />
+                    <div className="h-[153px] self-stretch rounded bg-gray-100" />
                   </div>
                 </div>
                   </>
@@ -436,14 +436,14 @@ export function GenerationPanel({
       {/* Main Input Section */}
       <div className="flex w-full max-h-10 md:max-h-12 justify-center items-center self-stretch mt-[-40px] md:mt-[-56px] relative z-10">
         <div className="flex h-10 md:h-12 max-w-full justify-center items-center self-stretch">
-          <div className="flex w-full h-10 md:h-12 justify-center items-start rounded-[10px] bg-dark-secondary border border-gray-border/50 shadow-sm absolute">
+          <div className="flex w-full h-10 md:h-12 justify-center items-start rounded-[10px] bg-white border border-gray-300/50 shadow-sm absolute">
             <div className="flex flex-col items-start flex-1 self-stretch">
               <div className="flex w-full min-h-10 md:min-h-12 p-1 md:p-1.5 flex-col items-start">
                 <div className="flex pl-[60%] md:pl-[712px] items-end self-stretch">
-                  <div className="flex items-center gap-2 bg-dark-secondary">
+                  <div className="flex items-center gap-2 bg-white">
                     {/* Camera Icon */}
                     <button className="flex flex-col items-start">
-                      <div className="flex w-7 md:w-9 h-7 md:h-9 justify-center items-center rounded-md">
+                      <div className="flex w-7 md:w-9 h-7 md:h-9 justify-center items-center rounded-lg">
                         <svg
                           width="20"
                           height="20"
@@ -454,12 +454,12 @@ export function GenerationPanel({
                         >
                           <path 
                             d="M10.6641 9.06055C10.9595 9.06055 11.2521 9.11875 11.5251 9.23182C11.7981 9.34489 12.0461 9.51062 12.2551 9.71956C12.464 9.92849 12.6297 10.1765 12.7428 10.4495C12.8559 10.7225 12.9141 11.0151 12.9141 11.3105C12.9141 11.606 12.8559 11.8986 12.7428 12.1716C12.6297 12.4446 12.464 12.6926 12.2551 12.9015C12.0461 13.1105 11.7981 13.2762 11.5251 13.3893C11.2521 13.5023 10.9595 13.5605 10.6641 13.5605C10.0673 13.5605 9.49503 13.3235 9.07307 12.9015C8.65112 12.4796 8.41406 11.9073 8.41406 11.3105C8.41406 10.7138 8.65112 10.1415 9.07307 9.71956C9.49503 9.2976 10.0673 9.06055 10.6641 9.06055Z" 
-                            stroke="#AAAAB1" 
+                            stroke="currentColor" 
                             strokeWidth="1.5"
                           />
                           <path 
                             d="M14.6641 5.81055H13.5811L12.9311 4.39355C12.8512 4.21956 12.7232 4.07214 12.562 3.9688C12.4009 3.86545 12.2135 3.81053 12.0221 3.81055H9.30606C9.11447 3.81034 8.92685 3.86517 8.76552 3.96853C8.6042 4.07188 8.47596 4.21941 8.39606 4.39355L7.74806 5.81055H6.66406C5.86841 5.81055 5.10535 6.12662 4.54274 6.68923C3.98013 7.25184 3.66406 8.0149 3.66406 8.81055V13.8105C3.66406 14.6062 3.98013 15.3693 4.54274 15.9319C5.10535 16.4945 5.86841 16.8105 6.66406 16.8105H14.6641C15.4597 16.8105 16.2228 16.4945 16.7854 15.9319C17.348 15.3693 17.6641 14.6062 17.6641 13.8105V8.81055C17.6641 8.0149 17.348 7.25184 16.7854 6.68923C16.2228 6.12662 15.4597 5.81055 14.6641 5.81055Z" 
-                            stroke="#AAAAB1" 
+                            stroke="currentColor" 
                             strokeWidth="1.5" 
                             strokeLinecap="round" 
                             strokeLinejoin="round"
@@ -473,7 +473,7 @@ export function GenerationPanel({
                       <button 
                         onClick={handleGenerate}
                         disabled={!localPromptText.trim() || isGenerating}
-                        className="flex w-16 md:w-[91px] h-7 md:h-9 min-w-16 md:min-w-[91px] px-2 md:px-3 py-1 md:py-1.5 justify-center items-center rounded-md bg-gray-light shadow-sm hover:bg-gray-light/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex w-16 md:w-[91px] h-7 md:h-9 min-w-16 md:min-w-[91px] px-2 md:px-3 py-1 md:py-1.5 justify-center items-center rounded-lg bg-gray-light shadow-sm hover:bg-gray-light/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <div className="flex flex-col items-center">
                           {isGenerating ? (
@@ -496,7 +496,7 @@ export function GenerationPanel({
                     value={localPromptText}
                     onChange={(e) => setLocalPromptText(e.target.value)}
                     placeholder="Describe what you want to see and order it framed to your house"
-                    className="text-gray-text text-sm md:text-base font-normal leading-5 md:leading-6 tracking-[-0.12px] md:tracking-[-0.16px] bg-transparent border-none outline-none resize-none w-full min-h-6 md:min-h-8 placeholder:text-gray-text"
+                    className="text-gray-600 text-sm md:text-base font-normal leading-5 md:leading-6 tracking-[-0.12px] md:tracking-[-0.16px] bg-transparent border-none outline-none resize-none w-full min-h-6 md:min-h-8 placeholder:text-gray-600"
                     rows={1}
                     onKeyPress={(e) => {
                       if (e.key === 'Enter' && e.ctrlKey) {

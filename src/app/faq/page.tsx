@@ -313,21 +313,21 @@ export default function FAQPage() {
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-                <div className="flex flex-col items-center p-4 bg-background/50 rounded-lg">
+                <div className="flex flex-col items-center p-4 bg-white/50 rounded-lg">
                   <Mail className="h-6 w-6 text-pink-primary mb-2" />
                   <h4 className="font-medium mb-1">Email Support</h4>
                   <p className="text-sm text-muted-foreground">support@artframer.com</p>
                   <p className="text-xs text-muted-foreground mt-1">Response within 24 hours</p>
                 </div>
                 
-                <div className="flex flex-col items-center p-4 bg-background/50 rounded-lg">
+                <div className="flex flex-col items-center p-4 bg-white/50 rounded-lg">
                   <MessageCircle className="h-6 w-6 text-pink-primary mb-2" />
                   <h4 className="font-medium mb-1">Live Chat</h4>
                   <p className="text-sm text-muted-foreground">Available 9 AM - 6 PM EST</p>
                   <p className="text-xs text-muted-foreground mt-1">Instant responses</p>
                 </div>
                 
-                <div className="flex flex-col items-center p-4 bg-background/50 rounded-lg">
+                <div className="flex flex-col items-center p-4 bg-white/50 rounded-lg">
                   <Phone className="h-6 w-6 text-pink-primary mb-2" />
                   <h4 className="font-medium mb-1">Phone Support</h4>
                   <p className="text-sm text-muted-foreground">1-800-ART-FRAME</p>

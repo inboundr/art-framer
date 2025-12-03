@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { Button } from '@/components/ui/button';
 import { FrameSelector } from '@/components/FrameSelector';
@@ -8,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useCartNotification } from './CartNotificationToast';
 import { supabase } from '@/lib/supabase/client';
+import { useStudioStore } from '@/store/studio';
 
 interface CreationsModalProps {
   isOpen: boolean;
@@ -30,12 +32,14 @@ export function CreationsModal({
   isCuratedImage = false,
   onOpenAuthModal
 }: CreationsModalProps) {
+  const router = useRouter();
   const [showFrameSelector, setShowFrameSelector] = useState(false);
   const [selectedFrame, setSelectedFrame] = useState<any>(null);
   const { user, session } = useAuth();
   const { toast } = useToast();
   const { addToCart } = useCart();
   const { showCartNotification } = useCartNotification();
+  const { setImage } = useStudioStore();
 
   // Normalize any storage path into a public URL so the browser doesn't request /images/...
   const normalizedImageUrl = useMemo(() => {
@@ -53,31 +57,16 @@ export function CreationsModal({
   if (!isOpen) return null;
 
   const handleBuyAsFrame = () => {
-    console.log('🎨 CreationsModal: handleBuyAsFrame called', { 
-      hasUser: !!user, 
-      showFrameSelector,
-      hasOnOpenAuthModal: !!onOpenAuthModal 
+    console.log('🎨 CreationsModal: handleBuyAsFrame called - redirecting to studio', {
+      normalizedImageUrl,
+      imageId
     });
     
-    if (!user) {
-      // If we have an auth modal handler, use it instead of showing a toast
-      if (onOpenAuthModal) {
-        console.log('🔐 CreationsModal: Calling onOpenAuthModal');
-        onOpenAuthModal();
-      } else {
-        // Fallback to toast if no auth modal handler provided
-      toast({
-        title: 'Authentication Required',
-        description: 'Please sign in to purchase framed art.',
-        variant: 'destructive',
-      });
-      }
-      return;
-    }
+    // Set the image in studio store
+    setImage(normalizedImageUrl, imageId || `gen-${Date.now()}`);
     
-    console.log('✅ CreationsModal: User authenticated, setting showFrameSelector to true');
-    setShowFrameSelector(true);
-    console.log('✅ CreationsModal: showFrameSelector state updated');
+    // Navigate to studio
+    router.push('/studio');
   };
 
   const handleFrameSelect = (frame: any) => {
@@ -296,10 +285,10 @@ export function CreationsModal({
       <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
         <div className="flex flex-col h-full">
           {/* Mobile Header */}
-          <div className="flex items-center justify-between p-4 bg-background/95 backdrop-blur-sm border-b border-border">
+          <div className="flex items-center justify-between p-4 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200">
             <button
               onClick={onClose}
-              className="flex w-10 h-10 items-center justify-center rounded-lg hover:bg-secondary/50 transition-colors"
+              className="flex w-10 h-10 items-center justify-center rounded-lg hover:bg-gray-100/50 transition-colors"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -312,7 +301,7 @@ export function CreationsModal({
           {/* Mobile Content */}
           <div className="flex-1 overflow-y-auto">
             {/* Main Image */}
-            <div className="relative w-full h-[50vh] min-h-[300px] bg-secondary border border-border m-4">
+            <div className="relative w-full h-[50vh] min-h-[300px] bg-gray-100 border border-gray-200 m-4">
               <div
                 className="w-full h-full relative rounded-lg overflow-hidden"
                 style={{
@@ -332,7 +321,7 @@ export function CreationsModal({
               {/* User Info - Commented out as Order Frame button is sufficient */}
               {/* <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex w-10 h-10 items-center justify-center rounded-full bg-background">
+                  <div className="flex w-10 h-10 items-center justify-center rounded-full bg-gray-50">
                     <img 
                       src="https://api.builder.io/api/v1/image/assets/TEMP/a620186a6b3fd1d48fb3473778ffea7db5ca5824?width=68" 
                       alt="User Profile" 
@@ -340,12 +329,12 @@ export function CreationsModal({
                     />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-foreground text-sm font-semibold">medhatem2</span>
-                    <span className="text-muted-foreground text-xs">Just now</span>
+                    <span className="text-gray-900 text-sm font-semibold">medhatem2</span>
+                    <span className="text-gray-600 text-xs">Just now</span>
                   </div>
                 </div>
                 <button className="flex h-9 px-4 items-center justify-center rounded-lg bg-muted/18 hover:bg-muted/30 transition-colors">
-                  <span className="text-muted-foreground text-sm font-semibold">Share</span>
+                  <span className="text-gray-600 text-sm font-semibold">Share</span>
                 </button>
               </div> */}
 
@@ -358,19 +347,19 @@ export function CreationsModal({
                   <Package className="w-4 h-4 mr-2" />
                   <span className="text-sm font-medium">Order Framed Print</span>
                 </button>
-                <button className="flex h-10 px-4 items-center justify-center rounded-lg border border-border hover:bg-secondary/50 transition-colors">
-                  <span className="text-muted-foreground text-sm font-medium">Try Different Frame</span>
+                <button className="flex h-10 px-4 items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100/50 transition-colors">
+                  <span className="text-gray-600 text-sm font-medium">Try Different Frame</span>
                 </button>
-                <button className="flex h-10 px-4 items-center justify-center rounded-lg border border-border hover:bg-secondary/50 transition-colors">
-                  <span className="text-muted-foreground text-sm font-medium">Save for Later</span>
+                <button className="flex h-10 px-4 items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100/50 transition-colors">
+                  <span className="text-gray-600 text-sm font-medium">Save for Later</span>
                 </button>
               </div> */}
 
               {/* Mobile Prompt Section - Commented out */}
               {/* <div className="space-y-4">
                 <div className="space-y-2">
-                  <h3 className="text-foreground text-sm font-semibold">Prompt</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
+                  <h3 className="text-gray-900 text-sm font-semibold">Prompt</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">
                     {promptText}
                   </p>
                 </div>
@@ -379,20 +368,20 @@ export function CreationsModal({
               {/* Mobile Model Details - Commented out */}
               {/* <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <span className="text-foreground text-sm font-semibold block">Model</span>
-                  <span className="text-muted-foreground text-sm">Art Framer AI</span>
+                  <span className="text-gray-900 text-sm font-semibold block">Model</span>
+                  <span className="text-gray-600 text-sm">Art Framer AI</span>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-foreground text-sm font-semibold block">Style</span>
-                  <span className="text-muted-foreground text-sm">Realistic</span>
+                  <span className="text-gray-900 text-sm font-semibold block">Style</span>
+                  <span className="text-gray-600 text-sm">Realistic</span>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-foreground text-sm font-semibold block">Resolution</span>
-                  <span className="text-muted-foreground text-sm">1:1 (1024 x 1024)</span>
+                  <span className="text-gray-900 text-sm font-semibold block">Resolution</span>
+                  <span className="text-gray-600 text-sm">1:1 (1024 x 1024)</span>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-foreground text-sm font-semibold block">Seed</span>
-                  <span className="text-muted-foreground text-sm">{Math.floor(Math.random() * 1000000000)}</span>
+                  <span className="text-gray-900 text-sm font-semibold block">Seed</span>
+                  <span className="text-gray-600 text-sm">{Math.floor(Math.random() * 1000000000)}</span>
                 </div>
               </div> */}
             </div>
@@ -415,7 +404,7 @@ export function CreationsModal({
       <div className="flex h-full">
         {/* Desktop Layout - Hidden when FrameSelector is open */}
         {!showFrameSelector && (
-        <div className="flex flex-col lg:flex-row flex-1 bg-background">
+        <div className="flex flex-col lg:flex-row flex-1 bg-gray-50">
           {/* Left Side - Image Area */}
           <div className="flex-1 flex items-center justify-center p-4 relative min-h-[50vh] lg:min-h-full">
             {/* Close Button */}
@@ -458,10 +447,10 @@ export function CreationsModal({
               
           {/* Right Sidebar - Commented out as Order Frame button on image is sufficient */}
           {/*
-          <div className="w-full sm:w-80 sm:min-w-80 sm:max-w-80 flex flex-col bg-secondary border-l border-border">
+          <div className="w-full sm:w-80 sm:min-w-80 sm:max-w-80 flex flex-col bg-gray-100 border-l border-gray-200">
             <div className="flex flex-col h-full px-4 py-6 overflow-y-auto">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-background p-0.5">
+                <div className="w-10 h-10 rounded-full bg-gray-50 p-0.5">
                   <img 
                     src="https://api.builder.io/api/v1/image/assets/TEMP/a620186a6b3fd1d48fb3473778ffea7db5ca5824?width=68" 
                     alt="User Profile" 
@@ -469,16 +458,16 @@ export function CreationsModal({
                   />
                 </div>
                 <div className="flex-1">
-                  <div className="text-foreground text-sm font-semibold">medhatem2</div>
-                  <div className="text-muted-foreground text-xs">Just now</div>
+                  <div className="text-gray-900 text-sm font-semibold">medhatem2</div>
+                  <div className="text-gray-600 text-xs">Just now</div>
                 </div>
               </div>
 
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                  <button className="flex h-9 px-2 items-center justify-center rounded-lg hover:bg-background/50 transition-colors">
+                  <button className="flex h-9 px-2 items-center justify-center rounded-lg hover:bg-gray-50/50 transition-colors">
                     <svg width="20" height="20" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-                      <path d="M10.193 16.785C10.4907 16.9405 10.8374 16.9405 11.1341 16.785C12.7041 15.965 17.6641 12.9961 17.6641 8.17055C17.6673 7.15158 17.2663 6.17294 16.5489 5.4493C15.8315 4.72566 14.8564 4.31613 13.8374 4.31055C13.2087 4.31847 12.5913 4.47918 12.0384 4.77882C11.4856 5.07846 11.0139 5.50805 10.6641 6.03055C10.3143 5.5082 9.84285 5.07871 9.29023 4.77907C8.73761 4.47944 8.12043 4.31865 7.49186 4.31055C6.47271 4.31584 5.4973 4.72524 4.77967 5.44891C4.06204 6.17258 3.66083 7.15139 3.66408 8.17055C3.66408 12.9972 8.62297 15.965 10.193 16.785Z" stroke="#D4D4D8" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10.193 16.785C10.4907 16.9405 10.8374 16.9405 11.1341 16.785C12.7041 15.965 17.6641 12.9961 17.6641 8.17055C17.6673 7.15158 17.2663 6.17294 16.5489 5.4493C15.8315 4.72566 14.8564 4.31613 13.8374 4.31055C13.2087 4.31847 12.5913 4.47918 12.0384 4.77882C11.4856 5.07846 11.0139 5.50805 10.6641 6.03055C10.3143 5.5082 9.84285 5.07871 9.29023 4.77907C8.73761 4.47944 8.12043 4.31865 7.49186 4.31055C6.47271 4.31584 5.4973 4.72524 4.77967 5.44891C4.06204 6.17258 3.66083 7.15139 3.66408 8.17055C3.66408 12.9972 8.62297 15.965 10.193 16.785Z" stroke="currentColor" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
                   
@@ -489,20 +478,20 @@ export function CreationsModal({
                     className="flex h-9 px-3 items-center justify-center rounded-lg bg-muted/18 hover:bg-muted/30 transition-colors gap-1.5"
                   >
                     <Share2 className="w-4 h-4" />
-                    <span className="text-muted-foreground text-sm font-semibold">Share</span>
+                    <span className="text-gray-600 text-sm font-semibold">Share</span>
                   </Button>
                 </div>
 
                 <div className="flex flex-col items-end">
-                  <div className="text-sm text-muted-foreground mb-1">Starting at</div>
+                  <div className="text-sm text-gray-600 mb-1">Starting at</div>
                   <Button
                     onClick={handleBuyAsFrame}
                     className="flex h-10 px-6 items-center justify-center rounded-lg bg-primary hover:bg-primary/90 transition-colors font-semibold text-base"
                   >
                     <Package className="w-5 h-5 mr-2" />
-                    <span className="text-white font-semibold">Order Framed Print</span>
+                    <span className="text-gray-900 font-semibold">Order Framed Print</span>
                   </Button>
-                  <div className="text-xs text-muted-foreground mt-1">Free shipping over $100</div>
+                  <div className="text-xs text-gray-600 mt-1">Free shipping over $100</div>
                 </div>
               </div>
             </div>
@@ -519,7 +508,7 @@ export function CreationsModal({
           });
           return showFrameSelector;
         })() && (
-            <div className="flex-1 bg-background overflow-y-auto">
+            <div className="flex-1 bg-gray-50 overflow-y-auto">
               <div className="max-w-4xl mx-auto p-6">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -527,8 +516,8 @@ export function CreationsModal({
                     <div className="flex items-center gap-2 mb-2">
                       <h2 className="text-2xl font-bold">Choose Your Frame</h2>
                       <div className="relative group">
-                        <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help" />
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                        <HelpCircle className="h-5 w-5 text-gray-600 cursor-help" />
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-gray-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
                           <div className="text-center">
                             <div className="font-semibold mb-1">How to choose your frame</div>
                             <div className="text-xs">

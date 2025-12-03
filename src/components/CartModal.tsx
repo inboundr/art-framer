@@ -275,12 +275,12 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-gray-50 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-3">
             <ShoppingCart className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold text-foreground">Shopping Cart</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Shopping Cart</h2>
             {cartData && (
               <Badge variant="secondary" className="ml-2">
                 {cartData.totals.itemCount} {cartData.totals.itemCount === 1 ? 'item' : 'items'}
@@ -307,9 +307,9 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
               </div>
             ) : !cartData || cartData.cartItems.length === 0 ? (
               <div className="text-center py-12">
-                <ShoppingCart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">Your cart is empty</h3>
-                <p className="text-muted-foreground mb-4">Add some framed art to get started!</p>
+                <ShoppingCart className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Your cart is empty</h3>
+                <p className="text-gray-600 mb-4">Add some framed art to get started!</p>
                 <Button onClick={onClose} variant="outline">
                   Continue Shopping
                 </Button>
@@ -335,21 +335,21 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <h4 className="font-semibold text-foreground truncate">
+                              <h4 className="font-semibold text-gray-900 truncate">
                                 {item.products.images.prompt}
                               </h4>
-                              <p className="text-sm text-muted-foreground mt-1">
+                              <p className="text-sm text-gray-600 mt-1">
                                 {getFrameSizeLabel(item.products.frame_size)} • {getFrameStyleLabel(item.products.frame_style)} • {getFrameMaterialLabel(item.products.frame_material)}
                               </p>
-                              <p className="text-sm text-muted-foreground mt-1">
+                              <p className="text-sm text-gray-600 mt-1">
                                 SKU: {item.products.sku}
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="font-semibold text-foreground">
+                              <p className="font-semibold text-gray-900">
                                 {formatPrice(item.products.price)}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-gray-600">
                                 {item.products.dimensions_cm.width}cm × {item.products.dimensions_cm.height}cm
                               </p>
                             </div>
@@ -442,7 +442,7 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
                     Proceed to Checkout
                   </Button>
 
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className="text-xs text-gray-600 text-center">
                     Secure checkout powered by Stripe
                   </p>
                 </CardContent>

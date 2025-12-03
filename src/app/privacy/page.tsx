@@ -62,17 +62,17 @@ export default function PrivacyPage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-background rounded-lg border">
+            <div className="text-center p-4 bg-white rounded-lg border">
               <Lock className="h-8 w-8 text-pink-primary mx-auto mb-2" />
               <h4 className="font-semibold mb-1">Secure by Design</h4>
               <p className="text-sm text-muted-foreground">End-to-end encryption and secure data handling</p>
             </div>
-            <div className="text-center p-4 bg-background rounded-lg border">
+            <div className="text-center p-4 bg-white rounded-lg border">
               <Eye className="h-8 w-8 text-pink-primary mx-auto mb-2" />
               <h4 className="font-semibold mb-1">Transparent Practices</h4>
               <p className="text-sm text-muted-foreground">Clear information about data collection and usage</p>
             </div>
-            <div className="text-center p-4 bg-background rounded-lg border">
+            <div className="text-center p-4 bg-white rounded-lg border">
               <User className="h-8 w-8 text-pink-primary mx-auto mb-2" />
               <h4 className="font-semibold mb-1">User Control</h4>
               <p className="text-sm text-muted-foreground">Full control over your data and privacy settings</p>

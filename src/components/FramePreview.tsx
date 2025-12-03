@@ -294,23 +294,23 @@ export function FramePreview({
             {showDetails && (
               <div className="space-y-3">
                 <div className="text-center">
-                  <h4 className="font-semibold text-sm text-foreground">
+                  <h4 className="font-semibold text-sm text-gray-900">
                     {getFrameSizeLabel(frameSize)} Frame
                   </h4>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-gray-600">
                     {getFrameStyleLabel(frameStyle)} {getFrameMaterialLabel(frameMaterial)}
                   </p>
                 </div>
 
                 {/* Size indicator */}
-                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-600">
                   <Ruler className="h-3 w-3" />
                   <span>{dimensions.width}mm × {dimensions.height}mm</span>
                 </div>
 
                 {/* Price */}
                 <div className="text-center">
-                  <div className="font-bold text-lg text-foreground">
+                  <div className="font-bold text-lg text-gray-900">
                     {formatPrice(price)}
                   </div>
                 </div>
@@ -338,7 +338,7 @@ export function FramePreview({
 
                 {/* Frame details badge */}
                 {frameLoading ? (
-                  <div className="text-center text-xs text-muted-foreground">
+                  <div className="text-center text-xs text-gray-600">
                     Loading frame details...
                   </div>
                 ) : frameDetails ? (
@@ -469,7 +469,7 @@ export function FramePreview({
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
                 <h4 className="font-semibold">Frame Details</h4>
-                <div className="space-y-1 text-muted-foreground">
+                <div className="space-y-1 text-gray-600">
                   <div>Size: {getFrameSizeLabel(frameSize)}</div>
                   <div>Style: {getFrameStyleLabel(frameStyle)}</div>
                   <div>Material: {getFrameMaterialLabel(frameMaterial)}</div>
@@ -478,7 +478,7 @@ export function FramePreview({
               </div>
               <div className="space-y-2">
                 <h4 className="font-semibold">Artwork</h4>
-                <div className="space-y-1 text-muted-foreground">
+                <div className="space-y-1 text-gray-600">
                   <div className="line-clamp-2">&ldquo;{imagePrompt}&rdquo;</div>
                 </div>
               </div>

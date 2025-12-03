@@ -119,7 +119,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground relative">
+    <div className="flex min-h-screen bg-gray-50 text-gray-900 relative">
       {/* Mobile Sidebar Overlay */}
       {isMobile && sidebarOpen && (
         <div 
@@ -145,16 +145,16 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       }`}>
         {/* Mobile Header */}
         {isMobile && (
-          <div className="fixed top-0 left-0 right-0 h-14 bg-background/95 backdrop-blur-sm border-b border-border z-30 flex items-center px-4">
+          <div className="fixed top-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-sm border-b border-gray-200 z-30 flex items-center px-4 shadow-sm">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="flex w-10 h-10 items-center justify-center rounded-lg hover:bg-secondary/50 transition-colors"
+              className="flex w-10 h-10 items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-            <h1 className="ml-3 text-lg font-semibold">Art Framer</h1>
+            <h1 className="ml-3 text-lg font-semibold text-gray-900">Art Framer</h1>
           </div>
         )}
         
@@ -165,14 +165,14 @@ export function PublicLayout({ children }: PublicLayoutProps) {
             children
           ) : (
             // Render default home page content - NO AUTH BLOCKING
-            <div className="flex flex-col min-h-screen bg-background">
+            <div className="flex flex-col min-h-screen bg-gray-50">
               {/* Notification Bar */}
               {showNotification && (
                 <NotificationBar onClose={() => setShowNotification(false)} />
               )}
               
               {/* Top Spacer */}
-              <div className="h-16 min-h-16 self-stretch bg-background" />
+              <div className="h-16 min-h-16 self-stretch bg-gray-50" />
               
               {/* Search/Navigation Bar */}
               <SearchBar onOpenGenerationPanel={handleOpenGenerationPanel} />

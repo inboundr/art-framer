@@ -312,7 +312,7 @@ export default function OrdersPage() {
 
   const OrderDetailsModal = ({ order }: { order: Order }) => (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Order #{order.order_number}</h2>
@@ -488,7 +488,7 @@ export default function OrdersPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-border rounded-md bg-background text-foreground"
+              className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>

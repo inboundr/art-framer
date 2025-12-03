@@ -124,13 +124,13 @@ export function StyleDropdown({
   return (
     <div 
       ref={dropdownRef}
-      className="absolute top-full mt-2 left-0 w-80 bg-dark-secondary border border-gray-border rounded-lg shadow-lg p-4 z-50"
+      className="absolute top-full mt-2 left-0 w-80 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50"
       onClick={(e) => e.stopPropagation()}
       style={{ position: 'absolute', zIndex: 1000 }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-gray-light text-sm font-medium">Style</h3>
+        <h3 className="text-gray-900 text-sm font-medium">Style</h3>
       </div>
 
       {/* Predefined Styles Grid */}
@@ -142,7 +142,7 @@ export function StyleDropdown({
             className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-colors ${
               selectedStyle === style.id
                 ? 'bg-gray-light text-dark border-gray-light'
-                : 'bg-dark-tertiary text-gray-light border-gray-border hover:bg-gray-border/20'
+                : 'bg-gray-100 text-gray-900 border-gray-300 hover:bg-gray-border/20'
             }`}
           >
             <div className="mb-2">
@@ -156,10 +156,10 @@ export function StyleDropdown({
       {/* Separator */}
       <div className="relative mb-4">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-border"></div>
+          <div className="w-full border-t border-gray-300"></div>
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-dark-secondary px-2 text-gray-text">or</span>
+          <span className="bg-white px-2 text-gray-600">or</span>
         </div>
       </div>
 
@@ -167,7 +167,7 @@ export function StyleDropdown({
       <div className="mb-4">
         <button
           onClick={handleReferenceSelect}
-          className="w-full flex items-center justify-center p-3 rounded-lg border border-gray-border bg-dark-tertiary text-gray-light hover:bg-gray-border/20 transition-colors"
+          className="w-full flex items-center justify-center p-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-900 hover:bg-gray-border/20 transition-colors"
         >
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" className="mr-2">
             <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -179,10 +179,10 @@ export function StyleDropdown({
       {/* Separator */}
       <div className="relative mb-4">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-border"></div>
+          <div className="w-full border-t border-gray-300"></div>
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-dark-secondary px-2 text-gray-text">or</span>
+          <span className="bg-white px-2 text-gray-600">or</span>
         </div>
       </div>
 
@@ -193,9 +193,9 @@ export function StyleDropdown({
           value={styleCode}
           onChange={handleStyleCodeChange}
           placeholder="Enter style code..."
-          className="w-full p-3 rounded-lg border border-gray-border bg-dark-tertiary text-gray-light placeholder:text-gray-text focus:outline-none focus:border-gray-light transition-colors"
+          className="w-full p-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-gray-light transition-colors"
         />
-        <div className="mt-2 text-xs text-gray-text">Style code</div>
+        <div className="mt-2 text-xs text-gray-600">Style code</div>
       </div>
     </div>
   );

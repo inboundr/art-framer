@@ -69,7 +69,7 @@ interface DynamicErrorFallbackProps {
 
 function DynamicErrorFallback({ error, onRetry }: DynamicErrorFallbackProps) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[200px] p-6 bg-card border border-border rounded-lg">
+    <div className="flex flex-col items-center justify-center min-h-[200px] p-6 bg-card border border-gray-200 rounded-lg">
       <div className="text-center space-y-4 max-w-md">
         {/* Error Icon */}
         <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center">
@@ -90,14 +90,14 @@ function DynamicErrorFallback({ error, onRetry }: DynamicErrorFallbackProps) {
 
         {/* Error Message */}
         <div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Dynamic Feature Unavailable
           </h3>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-gray-600 mb-4">
             The enhanced interface couldn&apos;t load. The basic version is still available.
           </p>
           {process.env.NODE_ENV === 'development' && error && (
-            <details className="text-xs text-muted-foreground bg-muted p-3 rounded mt-2">
+            <details className="text-xs text-gray-600 bg-muted p-3 rounded mt-2">
               <summary className="cursor-pointer font-medium">Error Details</summary>
               <pre className="mt-2 whitespace-pre-wrap">{error.message}</pre>
             </details>
@@ -108,13 +108,13 @@ function DynamicErrorFallback({ error, onRetry }: DynamicErrorFallbackProps) {
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={onRetry}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             Try Again
           </button>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors"
+            className="px-4 py-2 border border-gray-200 text-gray-900 rounded-lg hover:bg-muted transition-colors"
           >
             Refresh Page
           </button>

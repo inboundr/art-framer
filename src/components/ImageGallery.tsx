@@ -104,7 +104,7 @@ function ImageCard({ image, onLike, onUnlike, isLiked = false, isInteracting = f
         }}
       >
         {/* Image Container */}
-        <div className={`${getAspectRatioClass()} w-full overflow-hidden rounded-lg bg-dark-tertiary`}>
+        <div className={`${getAspectRatioClass()} w-full overflow-hidden rounded-lg bg-gray-100`}>
           {/* Gradient Background */}
           <div 
             className="w-full h-full bg-gradient-to-br from-pink-primary/20 via-purple-500/20 to-blue-500/20 relative"
@@ -127,7 +127,7 @@ function ImageCard({ image, onLike, onUnlike, isLiked = false, isInteracting = f
                     fillRule="evenodd" 
                     clipRule="evenodd" 
                     d="M0.164062 0.810547H9.13966V9.78615H0.164062V0.810547ZM9.13966 9.78615H18.1153V18.7617H9.13966V9.78615Z" 
-                    fill="#09090B"
+                    fill="currentColor"
                   />
                 </g>
                 <defs>
@@ -163,8 +163,8 @@ function ImageCard({ image, onLike, onUnlike, isLiked = false, isInteracting = f
 
         {/* Like Button - Overlay */}
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <button className="flex items-center gap-1 px-2 py-1.5 rounded-md bg-black/60 backdrop-blur-sm hover:bg-black/80 transition-colors">
-            <span className="text-white text-xs font-medium">{image.likes}</span>
+          <button className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm hover:bg-black/80 transition-colors">
+            <span className="text-gray-900 text-xs font-medium">{image.likes}</span>
             <svg 
               width="16" 
               height="16" 

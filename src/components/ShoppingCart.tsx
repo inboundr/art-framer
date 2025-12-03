@@ -148,9 +148,9 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
     <div className="space-y-4">
       {cartItems.length === 0 ? (
         <div className="text-center py-8">
-          <ShoppingCartIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">Your cart is empty</h3>
-          <p className="text-muted-foreground mb-4">Add some framed art to get started!</p>
+          <ShoppingCartIcon className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
+          <p className="text-gray-600 mb-4">Add some framed art to get started!</p>
           {showAsModal && (
             <Button onClick={() => setIsOpen(false)} variant="outline">
               Continue Shopping
@@ -185,16 +185,16 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                     <h4 className="font-medium text-base line-clamp-2 mb-2">
                       {getFrameSizeLabel(item.products.frame_size)} Frame
                     </h4>
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-sm text-gray-600 mb-2">
                       {getFrameStyleLabel(item.products.frame_style)} {getFrameMaterialLabel(item.products.frame_material)}
                     </p>
-                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                    <p className="text-sm text-gray-600 line-clamp-3 mb-4">
                           &ldquo;{item.products.images.prompt}&rdquo;
                     </p>
                     
                     {/* Quantity Controls */}
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="flex items-center border rounded-md">
+                      <div className="flex items-center border rounded-lg">
                         <Button
                           size="sm"
                           variant="ghost"
@@ -242,7 +242,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                       <div className="font-semibold text-lg">
                         {formatPrice(item.products.price * item.quantity)}
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-600">
                         {formatPrice(item.products.price)} each
                       </div>
                     </div>
@@ -260,12 +260,12 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Shipping</CardTitle>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     Shipping costs will be calculated during checkout when you provide your address
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Truck className="h-4 w-4" />
                     <span>Accurate shipping rates calculated at checkout</span>
                   </div>
@@ -295,7 +295,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
               <div className="flex justify-between text-sm">
                 <span className="flex items-center gap-1.5">
                   <span>Subtotal</span>
-                  <span className="text-muted-foreground">({totals.itemCount} {totals.itemCount === 1 ? 'item' : 'items'})</span>
+                  <span className="text-gray-600">({totals.itemCount} {totals.itemCount === 1 ? 'item' : 'items'})</span>
                 </span>
                 <span className="font-semibold">{formatPrice(totals.subtotal)}</span>
               </div>
@@ -310,14 +310,14 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                     *
                   </span>
                 </span>
-                <span className="text-muted-foreground italic">Calculated at checkout</span>
+                <span className="text-gray-600 italic">Calculated at checkout</span>
               </div>
               <Separator />
               <div className="flex justify-between font-semibold text-lg">
                 <span>Subtotal (excl. shipping)</span>
                 <span>{formatPrice(totals.subtotal + totals.taxAmount)}</span>
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-md p-2.5">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5">
                 <div className="flex items-start gap-2 text-xs text-amber-800">
                   <div className="flex-shrink-0 mt-0.5">
                     <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -335,7 +335,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
               </div>
 
               {/* Trust Badges */}
-              <div className="flex items-center justify-center gap-4 pt-2 text-xs text-muted-foreground">
+              <div className="flex items-center justify-center gap-4 pt-2 text-xs text-gray-600">
                 <div className="flex items-center gap-1">
                   <Shield className="h-3 w-3" />
                   <span>Secure</span>

@@ -19,10 +19,10 @@ function CategoryButton({ label, active = false, onClick }: CategoryButtonProps)
     <div className="flex p-0.5 flex-col items-start">
       <button
         onClick={onClick}
-        className={`flex min-w-[40px] md:min-w-[50px] px-2 md:px-3 py-1.5 md:py-2 justify-center items-center rounded-md text-xs md:text-sm font-semibold leading-4 md:leading-5 transition-colors ${
+        className={`flex min-w-[40px] md:min-w-[50px] px-2 md:px-3 py-1.5 md:py-2 justify-center items-center rounded-lg text-xs md:text-sm font-semibold leading-4 md:leading-5 transition-colors ${
           active
-            ? 'bg-white/10 text-white'
-            : 'text-gray-text hover:bg-white/5'
+            ? 'bg-black text-white'
+            : 'text-gray-600 hover:bg-gray-100'
         }`}
       >
         {label}
@@ -34,7 +34,7 @@ function CategoryButton({ label, active = false, onClick }: CategoryButtonProps)
 function Separator() {
   return (
     <div className="flex px-1 py-1.5 flex-col justify-center items-start self-stretch">
-      <div className="w-px flex-1 border-r border-gray-border" />
+      <div className="w-px flex-1 border-r border-gray-300" />
     </div>
   );
 }
@@ -299,22 +299,22 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
   // const rightCategories = ['People', 'Product', 'Nature', 'Poster', 'Logo', 'T-shirt'];
 
   return (
-    <div className="flex flex-col items-start self-stretch bg-dark">
+    <div className="flex flex-col items-start self-stretch bg-white">
       {/* Prompt Generation Interface */}
-      <div className="flex flex-col px-4 py-6 justify-center items-center self-stretch bg-dark">
+      <div className="flex flex-col px-4 py-6 justify-center items-center self-stretch bg-white border-b-2 border-gray-200">
         <div className="flex flex-col items-center gap-4 w-full max-w-4xl mx-auto">
           {/* Title */}
-          <h1 className="text-gray-light text-xl md:text-2xl font-semibold text-center">
+          <h1 className="text-gray-900 text-xl md:text-2xl font-semibold text-center">
             What will you create and order framed?
           </h1>
 
           {/* Input Field */}
-          <div className="flex items-start gap-2 flex-1 w-full px-4 py-4 rounded-lg bg-dark-secondary border border-gray-border focus-within:border-gray-light transition-colors">
+          <div className="flex items-start gap-2 flex-1 w-full px-4 py-4 rounded-lg bg-white border-2 border-gray-300 focus-within:border-black transition-colors">
             <textarea
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
               placeholder="Describe what you want to see and order it framed to your house"
-              className="flex-1 bg-transparent text-gray-light placeholder:text-gray-text text-sm md:text-base outline-none border-none resize-none min-h-[80px] leading-relaxed"
+              className="flex-1 bg-transparent text-gray-900 placeholder:text-gray-600 text-sm md:text-base outline-none border-none resize-none min-h-[80px] leading-relaxed"
               onKeyPress={(e) => {
                 if (e.key === 'Enter' && e.ctrlKey) {
                   handleGenerate();
@@ -324,7 +324,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
             {/* Camera Button */}
             <button
               onClick={handleCameraClick}
-              className="flex items-center justify-center w-8 h-8 rounded-md bg-dark-tertiary text-gray-light hover:bg-gray-border transition-colors flex-shrink-0"
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-900 hover:bg-gray-200 transition-colors flex-shrink-0"
               title="Attach image"
             >
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
@@ -349,10 +349,10 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
 
             {/* Aspect Ratio */}
             <div className="relative">
-              <button 
+              <button
                 ref={aspectRatioButtonRef}
                 onClick={handleAspectRatioClick}
-                className="flex items-center gap-1 px-3 py-2 rounded-md bg-dark-tertiary text-gray-light text-sm hover:bg-gray-border transition-colors"
+                className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-100 text-gray-900 text-sm hover:bg-gray-200 transition-colors"
               >
                 <span>{currentAspectRatio.label}</span>
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -373,10 +373,10 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
 
             {/* Model */}
             <div className="relative">
-              <button 
+              <button
                 ref={modelButtonRef}
                 onClick={handleModelClick}
-                className="flex items-center gap-1 px-3 py-2 rounded-md bg-dark-tertiary text-gray-light text-sm hover:bg-gray-border transition-colors"
+                className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-100 text-gray-900 text-sm hover:bg-gray-200 transition-colors"
               >
                 <span>{getModelButtonText()}</span>
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -401,10 +401,10 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
 
             {/* MP Toggle */}
             <div className="relative">
-              <button 
+              <button
                 ref={magicPromptButtonRef}
                 onClick={handleMagicPromptClick}
-                className="flex items-center gap-1 px-3 py-2 rounded-md bg-dark-tertiary text-gray-light text-sm hover:bg-gray-border transition-colors"
+                className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-100 text-gray-900 text-sm hover:bg-gray-200 transition-colors"
               >
                 <span>{getMagicPromptButtonText()}</span>
               </button>
@@ -421,7 +421,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
             </div>
 
             {/* Character with Attached Images */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-dark-tertiary text-gray-light text-sm">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 text-gray-900 text-sm">
               <span>Character</span>
               {attachedImages.length > 0 && (
                 <div className="flex items-center gap-1">
@@ -430,7 +430,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
                       <img
                         src={image.preview}
                         alt="Attached"
-                        className="w-6 h-6 rounded-full object-cover border border-gray-border"
+                        className="w-6 h-6 rounded-full object-cover border border-gray-300"
                       />
                       <button
                         onClick={() => handleRemoveImage(image.id)}
@@ -441,7 +441,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
                     </div>
                   ))}
                   {attachedImages.length > 3 && (
-                    <span className="text-xs text-gray-text">+{attachedImages.length - 3}</span>
+                    <span className="text-xs text-gray-600">+{attachedImages.length - 3}</span>
                   )}
                 </div>
               )}
@@ -449,10 +449,10 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
 
             {/* Style */}
             <div className="relative">
-              <button 
+              <button
                 ref={styleButtonRef}
                 onClick={handleStyleClick}
-                className="flex items-center gap-1 px-3 py-2 rounded-md bg-dark-tertiary text-gray-light text-sm hover:bg-gray-border transition-colors"
+                className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-100 text-gray-900 text-sm hover:bg-gray-200 transition-colors"
               >
                 <span>Style</span>
               </button>
@@ -470,10 +470,10 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
 
             {/* Color */}
             <div className="relative">
-              <button 
+              <button
                 ref={colorButtonRef}
                 onClick={handleColorClick}
-                className="flex items-center gap-1 px-3 py-2 rounded-md bg-dark-tertiary text-gray-light text-sm hover:bg-gray-border transition-colors"
+                className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-100 text-gray-900 text-sm hover:bg-gray-200 transition-colors"
               >
                 <span>{getColorButtonText()}</span>
               </button>
@@ -490,7 +490,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
             </div>
 
             {/* More Options */}
-            <button className="flex items-center gap-1 px-3 py-2 rounded-md bg-dark-tertiary text-gray-light text-sm hover:bg-gray-border transition-colors">
+            <button className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-100 text-gray-900 text-sm hover:bg-gray-200 transition-colors">
               <span>•••</span>
             </button>
 
@@ -498,7 +498,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
             <button 
               onClick={handleGenerate}
               disabled={!promptText.trim()}
-              className="flex items-center gap-2 px-6 py-2 rounded-md bg-pink-primary text-white font-medium text-sm hover:bg-pink-primary/90 transition-colors ml-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2 rounded-lg bg-black text-white font-medium text-sm hover:bg-gray-800 transition-colors ml-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>Generate</span>
             </button>
@@ -508,12 +508,12 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
 
       {/* Category Tabs - Hidden for now */}
       {/* 
-      <div className="flex max-w-full p-1 flex-col items-start self-stretch bg-dark overflow-x-auto">
+      <div className="flex max-w-full p-1 flex-col items-start self-stretch bg-gray-900 overflow-x-auto">
         <div className="flex max-w-full items-center self-stretch min-w-max">
-          <div className="flex h-8 md:h-10 items-center flex-1 bg-dark">
+          <div className="flex h-8 md:h-10 items-center flex-1 bg-gray-900">
             <div className="flex h-8 md:h-10 items-center">
               <div className="flex w-8 md:w-10 h-8 md:h-10 p-0.5 justify-center items-center relative">
-                <div className="flex h-7 md:h-9 min-w-7 md:min-w-9 p-1 justify-center items-center rounded-md">
+                <div className="flex h-7 md:h-9 min-w-7 md:min-w-9 p-1 justify-center items-center rounded-lg">
                   <svg 
                     width="22" 
                     height="22" 
@@ -524,7 +524,7 @@ export function SearchBar({ onGenerate, onOpenGenerationPanel }: SearchBarProps)
                   >
                     <path 
                       d="M18.3125 18.9604L14.5021 15.15M10.3375 16.7604C11.8691 16.7604 13.338 16.152 14.421 15.069C15.5041 13.986 16.1125 12.5171 16.1125 10.9854C16.1125 9.45382 15.5041 7.98493 14.421 6.90191C13.338 5.81888 11.8691 5.21045 10.3375 5.21045C8.80587 5.21045 7.33698 5.81888 6.25396 6.90191C5.17094 7.98493 4.5625 9.45382 4.5625 10.9854C4.5625 12.5171 5.17094 13.986 6.25396 15.069C7.33698 16.152 8.80587 16.7604 10.3375 16.7604Z" 
-                      stroke="#D4D4D8" 
+                      stroke="currentColor" 
                       strokeWidth="1.65" 
                       strokeLinecap="round" 
                       strokeLinejoin="round"
