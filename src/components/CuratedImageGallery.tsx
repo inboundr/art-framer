@@ -223,6 +223,8 @@ export function CuratedImageGallery({
   const [isHydrated, setIsHydrated] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
+  const [selectedImage, setSelectedImage] = useState<CuratedImage | null>(null);
+  const [showCreationsModal, setShowCreationsModal] = useState(false);
 
   // Dynamic animations hook
   const { createTransition } = useDynamicAnimationsSafe();
