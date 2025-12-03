@@ -7,9 +7,9 @@
 export const featureFlags = {
   /**
    * AI Studio - New AI-powered frame customization experience
-   * When enabled, accessible at /studio
+   * Always enabled, accessible at /studio
    */
-  aiStudio: process.env.NEXT_PUBLIC_AI_STUDIO_ENABLED === 'true',
+  aiStudio: true,
   
   /**
    * Image Generation - Ideogram integration

@@ -2,6 +2,20 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Protect AI Studio routes if feature flag is disabled
+  if (pathname.startsWith('/studio')) {
+    const isAIStudioEnabled = process.env.NEXT_PUBLIC_AI_STUDIO_ENABLED === 'true';
+    
+    if (!isAIStudioEnabled) {
+      // Redirect to homepage, preserving the full URL (including www subdomain)
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
