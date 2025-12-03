@@ -67,7 +67,8 @@ export function CreationsModal({
             
             // Small delay to ensure session persists
             setTimeout(() => {
-              router.push('/studio');
+              console.log('🚀 CreationsModal: Navigating to /studio (after login)');
+              window.location.href = '/studio';
             }, 100);
           } else {
             // Clear old pending image
@@ -111,8 +112,10 @@ export function CreationsModal({
 
     setImage(normalizedImageUrl, imageId || `gen-${Date.now()}`);
     
+    // Use window.location.href for more reliable redirect
     await new Promise(resolve => setTimeout(resolve, 100)); // Delay for session persistence
-    router.push('/studio');
+    console.log('🚀 CreationsModal: Navigating to /studio');
+    window.location.href = '/studio';
   };
 
   const handleDownload = () => {

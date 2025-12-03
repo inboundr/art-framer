@@ -241,7 +241,8 @@ export function CuratedImageGallery({
             
             // Small delay to ensure session persists
             setTimeout(() => {
-              router.push('/studio');
+              console.log('🚀 CuratedImageGallery: Navigating to /studio (after login)');
+              window.location.href = '/studio';
             }, 100);
           } else {
             // Clear old pending image
@@ -306,9 +307,13 @@ export function CuratedImageGallery({
     }
     setImage(publicUrl, image.id);
     
-    await new Promise(resolve => setTimeout(resolve, 100)); // Delay for session persistence
-    router.push('/studio');
+    // Call the callback first
     onBuyAsFrame?.(image);
+    
+    // Use window.location.href for more reliable redirect
+    await new Promise(resolve => setTimeout(resolve, 100)); // Delay for session persistence
+    console.log('🚀 CuratedImageGallery: Navigating to /studio');
+    window.location.href = '/studio';
   };
 
   const handleImageClick = (image: CuratedImage) => {
