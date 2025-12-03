@@ -6,6 +6,7 @@
 'use client';
 
 import { useStudioStore } from '@/store/studio';
+import { FRAME_SIZES } from '@/lib/utils/size-conversion';
 
 interface PreviewControlsProps {
   autoRotate: boolean;
@@ -44,16 +45,11 @@ export function PreviewControls({ autoRotate, onAutoRotateToggle, onResetView }:
               onChange={(e) => updateConfig({ size: e.target.value })}
               className="text-sm font-semibold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-black cursor-pointer"
             >
-              <option value="8x10">8x10"</option>
-              <option value="11x14">11x14"</option>
-              <option value="16x20">16x20"</option>
-              <option value="18x24">18x24"</option>
-              <option value="20x24">20x24"</option>
-              <option value="20x30">20x30"</option>
-              <option value="24x30">24x30"</option>
-              <option value="24x36">24x36"</option>
-              <option value="30x40">30x40"</option>
-              <option value="36x48">36x48"</option>
+              {FRAME_SIZES.map(size => (
+                <option key={size.inches} value={size.inches}>
+                  {size.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -68,16 +64,11 @@ export function PreviewControls({ autoRotate, onAutoRotateToggle, onResetView }:
             onChange={(e) => updateConfig({ size: e.target.value })}
             className="flex-1 text-xs font-semibold text-gray-900 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black cursor-pointer"
           >
-            <option value="8x10">8×10"</option>
-            <option value="11x14">11×14"</option>
-            <option value="16x20">16×20"</option>
-            <option value="18x24">18×24"</option>
-            <option value="20x24">20×24"</option>
-            <option value="20x30">20×30"</option>
-            <option value="24x30">24×30"</option>
-            <option value="24x36">24×36"</option>
-            <option value="30x40">30×40"</option>
-            <option value="36x48">36×48"</option>
+            {FRAME_SIZES.map(size => (
+              <option key={size.inches} value={size.inches}>
+                {size.label}
+              </option>
+            ))}
           </select>
 
 

@@ -8,6 +8,7 @@
 
 import { useEffect } from 'react';
 import { useStudioStore } from '@/store/studio';
+import { FRAME_SIZES, getSizeInCm } from '@/lib/utils/size-conversion';
 
 export function ConfigurationSummary() {
   const { 
@@ -58,7 +59,12 @@ export function ConfigurationSummary() {
         editable: true,
         options: availableOptions?.sizes && availableOptions.sizes.length > 0
           ? availableOptions.sizes
-          : ['8x10', '11x14', '16x20', '18x24', '20x24', '20x30', '24x30', '24x36', '30x40', '36x48'],
+          : FRAME_SIZES.map(s => s.inches),
+        displayNames: FRAME_SIZES.reduce((acc, size) => {
+          acc[size.inches] = size.label;
+          return acc;
+        }, {} as Record<string, string>),
+        description: getSizeInCm(config.size),
         showIf: true,
       },
     ];

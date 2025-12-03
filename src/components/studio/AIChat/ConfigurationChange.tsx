@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { type FrameConfiguration } from '@/store/studio';
+import { getSizeInCm } from '@/lib/utils/size-conversion';
 
 export interface ConfigurationChangeData {
   id: string;
@@ -49,7 +50,10 @@ export function ConfigurationChange({ change, onRevert }: ConfigurationChangePro
         .trim();
       
       // Format specific values
-      if (key === 'size') return `Size: ${value}`;
+      if (key === 'size') {
+        const cmSize = getSizeInCm(value as string);
+        return `Size: ${value}" ${cmSize ? `(${cmSize})` : ''}`;
+      }
       if (key === 'frameColor') return `Frame color: ${value}`;
       if (key === 'frameStyle') return `Frame style: ${value}`;
       if (key === 'mount') {

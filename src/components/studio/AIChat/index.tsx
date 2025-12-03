@@ -372,46 +372,46 @@ export function AIChat() {
                 if (item.type === 'message') {
                   const message = item.data;
                   return (
-                    <div key={message.id} className="space-y-3">
-                      <Message 
-                        message={{
-                          ...message,
-                          productType: message.productType || config.productType || 'framed-print',
-                          showLifestyleImages: message.showLifestyleImages,
-                        }}
+              <div key={message.id} className="space-y-3">
+                <Message 
+                  message={{
+                    ...message,
+                    productType: message.productType || config.productType || 'framed-print',
+                    showLifestyleImages: message.showLifestyleImages,
+                  }}
+                />
+                {/* Show suggestion cards for this message */}
+                {message.suggestions && message.suggestions.length > 0 && (
+                  <div className="ml-10 space-y-2">
+                    {message.suggestions.map((suggestion: AIChatSuggestion) => {
+                      // Convert AIChatSuggestion to Suggestion format
+                      const suggestionForCard: import('./SuggestionCard').Suggestion = {
+                        id: suggestion.id,
+                        type: suggestion.type,
+                        title: suggestion.title,
+                        description: suggestion.description,
+                        changes: suggestion.changes,
+                        currentValues: suggestion.currentValues,
+                        estimatedPrice: suggestion.estimatedPrice,
+                        confidence: suggestion.confidence,
+                        reason: suggestion.reason,
+                        frameType: config.frameStyle || 'classic',
+                        frameColor: suggestion.changes?.frameColor || config.frameColor,
+                      };
+                      
+                      return (
+                      <SuggestionCard
+                        key={suggestion.id}
+                          suggestion={suggestionForCard}
+                        onAccept={handleAcceptSuggestion}
+                        onReject={handleRejectSuggestion}
+                        isApplying={applyingSuggestionId === suggestion.id}
                       />
-                      {/* Show suggestion cards for this message */}
-                      {message.suggestions && message.suggestions.length > 0 && (
-                        <div className="ml-10 space-y-2">
-                          {message.suggestions.map((suggestion) => {
-                            // Convert AIChatSuggestion to Suggestion format
-                            const suggestionForCard: import('./SuggestionCard').Suggestion = {
-                              id: suggestion.id,
-                              type: suggestion.type,
-                              title: suggestion.title,
-                              description: suggestion.description,
-                              changes: suggestion.changes,
-                              currentValues: suggestion.currentValues,
-                              estimatedPrice: suggestion.estimatedPrice,
-                              confidence: suggestion.confidence,
-                              reason: suggestion.reason,
-                              frameType: config.frameStyle || 'classic',
-                              frameColor: suggestion.changes?.frameColor || config.frameColor,
-                            };
-                            
-                            return (
-                            <SuggestionCard
-                              key={suggestion.id}
-                                suggestion={suggestionForCard}
-                              onAccept={handleAcceptSuggestion}
-                              onReject={handleRejectSuggestion}
-                              isApplying={applyingSuggestionId === suggestion.id}
-                            />
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
                   );
                 } else {
                   // Configuration change

@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { FramePreview } from '@/components/FramePreview';
+import { formatSizeWithCm } from '@/lib/utils/size-conversion';
 import { createClient } from '@supabase/supabase-js';
 
 interface ShoppingCartProps {
@@ -72,13 +73,18 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
 
 
   const getFrameSizeLabel = (size: string) => {
-    const labels = {
-      small: 'Small',
-      medium: 'Medium',
-      large: 'Large',
-      extra_large: 'Extra Large',
+    // Use the utility function for size conversion
+    if (size.includes('x')) {
+      return formatSizeWithCm(size);
+    }
+    // Fallback for old labels (backward compatibility)
+    const labels: Record<string, string> = {
+      small: '8×10" (20×25 cm)',
+      medium: '11×14" (28×36 cm)',
+      large: '16×20" (41×51 cm)',
+      extra_large: '24×36" (61×91 cm)',
     };
-    return labels[size as keyof typeof labels] || size;
+    return labels[size] || size;
   };
 
   const getFrameStyleLabel = (style: string) => {

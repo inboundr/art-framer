@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
+import { formatSizeWithCm } from '@/lib/utils/size-conversion';
 
 interface CartItem {
   id: string;
@@ -241,13 +242,18 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
   };
 
   const getFrameSizeLabel = (size: string) => {
-    const labels = {
-      small: 'Small',
-      medium: 'Medium',
-      large: 'Large',
-      extra_large: 'Extra Large',
+    // Use the utility function for size conversion
+    if (size.includes('x')) {
+      return formatSizeWithCm(size);
+    }
+    // Fallback for old labels (backward compatibility)
+    const labels: Record<string, string> = {
+      small: '8×10" (20×25 cm)',
+      medium: '11×14" (28×36 cm)',
+      large: '16×20" (41×51 cm)',
+      extra_large: '24×36" (61×91 cm)',
     };
-    return labels[size as keyof typeof labels] || size;
+    return labels[size] || size;
   };
 
   const getFrameStyleLabel = (style: string) => {
@@ -339,7 +345,10 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
                                 {item.products.images.prompt}
                               </h4>
                               <p className="text-sm text-gray-600 mt-1">
-                                {getFrameSizeLabel(item.products.frame_size)} • {getFrameStyleLabel(item.products.frame_style)} • {getFrameMaterialLabel(item.products.frame_material)}
+                                {getFrameSizeLabel(item.products.frame_size)}
+                              </p>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {getFrameStyleLabel(item.products.frame_style)} • {getFrameMaterialLabel(item.products.frame_material)}
                               </p>
                               <p className="text-sm text-gray-600 mt-1">
                                 SKU: {item.products.sku}
@@ -350,7 +359,7 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
                                 {formatPrice(item.products.price)}
                               </p>
                               <p className="text-sm text-gray-600">
-                                {item.products.dimensions_cm.width}cm × {item.products.dimensions_cm.height}cm
+                                {(item.products.dimensions_cm.width / 2.54).toFixed(1)}×{(item.products.dimensions_cm.height / 2.54).toFixed(1)}" ({item.products.dimensions_cm.width}×{item.products.dimensions_cm.height} cm)
                               </p>
                             </div>
                           </div>
