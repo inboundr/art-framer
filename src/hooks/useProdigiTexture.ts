@@ -78,6 +78,9 @@ export function useProdigiTexture({
   // We always call useTexture (can't conditionally call hooks)
   // Pass empty array if no textures - drei should handle this gracefully
   // If it throws, ErrorBoundary will catch it
+  // Note: When assets aren't uploaded to Supabase yet, textures will fail to load
+  // The ErrorBoundary will catch this and show a fallback, but the material
+  // should still render with fallback colors if textures are disabled
   const loadedTexturesRaw = useTexture(textureKeys.length > 0 ? textureKeys : []);
   const loadedTextures = Array.isArray(loadedTexturesRaw) 
     ? loadedTexturesRaw 

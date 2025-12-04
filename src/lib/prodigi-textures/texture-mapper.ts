@@ -37,6 +37,21 @@ const COLOR_MAPPING: Record<string, string> = {
 };
 
 /**
+ * Maps mount color names to actual texture file names
+ * 
+ * After normalization, file names follow the pattern: {color}-mount.webp
+ * - Spaces are converted to hyphens automatically by the fallback
+ * - Special cases for common variations
+ */
+const MOUNT_COLOR_MAPPING: Record<string, string> = {
+  'white': 'snow-white', // Special case: "white" maps to "snow-white" (actual file name)
+  'snowwhite': 'snow-white', // Handle edge case: "snowwhite" (no space)
+  'offwhite': 'off-white', // Handle edge case: "offwhite" (no space)
+  // All other colors (snow white, off white, black, etc.) are handled by fallback:
+  // normalizedColor.replace(/\s+/g, '-') converts spaces to hyphens
+};
+
+/**
  * Normalizes a color name to a texture-safe name
  */
 export function normalizeColorName(color: string): string {
@@ -76,8 +91,10 @@ export function getTexturePath({
  * Gets mount texture path
  */
 export function getMountTexturePath(color: string): string {
-  const normalizedColor = normalizeColorName(color);
-  const localPath = `/prodigi-assets/mounts/${normalizedColor}-mount.webp`;
+  // Use mount-specific color mapping
+  const normalizedColor = color.toLowerCase().trim();
+  const mountColor = MOUNT_COLOR_MAPPING[normalizedColor] || normalizedColor.replace(/\s+/g, '-');
+  const localPath = `/prodigi-assets/mounts/${mountColor}-mount.webp`;
   return getSupabaseAssetUrlSync(localPath);
 }
 

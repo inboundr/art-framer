@@ -18,13 +18,14 @@ import * as path from 'path';
 const projectRoot = path.resolve(process.cwd());
 
 // Get environment variables
-  const supabaseUrl = 'https://irugsjzjqdxulliobuwt.supabase.co';
-  const supabaseServiceRoleKey = 'sb_secret_P57W8qzt7EoPQPkGqX8piA_FXINp1nu';
-  
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceRoleKey) {
   console.error('❌ Missing required environment variables:');
   console.error('   NEXT_PUBLIC_SUPABASE_URL');
   console.error('   SUPABASE_SERVICE_ROLE_KEY');
+  console.error('\n💡 Make sure these are set in your .env.local file');
   process.exit(1);
 }
 

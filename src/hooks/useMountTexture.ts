@@ -36,11 +36,12 @@ export function useMountTexture({
   // Load texture using drei's useTexture
   // useTexture works with Suspense - errors are caught by ErrorBoundary
   // We always call useTexture (can't conditionally call hooks)
-  // Use placeholder if no texture path
-  const texturePathToLoad = texturePath || '/placeholder.png';
-  const loadedTextureRaw = useTexture(texturePathToLoad);
-  const loadedTexture = texturePath && loadedTextureRaw && !texturePathToLoad.includes('placeholder')
-    ? loadedTextureRaw
+  // Pass empty array if no texture path to avoid loading placeholder.png
+  // This prevents the 404 error for /placeholder.png
+  const textureArray = texturePath ? [texturePath] : [];
+  const loadedTextureRaw = useTexture(textureArray);
+  const loadedTexture = texturePath && loadedTextureRaw
+    ? (Array.isArray(loadedTextureRaw) ? loadedTextureRaw[0] : loadedTextureRaw)
     : null;
 
   // Configure texture

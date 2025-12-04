@@ -57,7 +57,7 @@ export function getLifestyleImages(productType: ProductType, hasMount?: boolean)
       `${basePath}/prodigi-classic-frames-photo-assets/Classic black framed print flat.jpg`, // Has mount
       `${basePath}/prodigi-classic-frames-photo-assets/Classic framed print far corner.jpg`, // Has mount
       `${basePath}/prodigi-classic-frames-photo-assets/Classic black framed print near corner.jpg`, // Has mount
-      `${basePath}/prodigi-classic-frames-photo-assets/Classic black framed print corner no mount.jpg`, // No mount
+      `${basePath}/prodigi-classic-frames-photo-assets/black-mount.webp`, // No mount
       `${basePath}/prodigi-classic-frames-photo-assets/Classic white framed print flat no mount.jpg`, // No mount
     ],
     'framed-canvas': [
@@ -174,7 +174,7 @@ export function getCornerImages(frameType: string, color: string): string[] {
     classic: {
       black: [
         `${basePath}/prodigi-classic-frames-photo-assets/Classic black framed print near corner.jpg`,
-        `${basePath}/prodigi-classic-frames-photo-assets/Classic black framed print corner no mount.jpg`,
+        `${basePath}/prodigi-classic-frames-photo-assets/black-mount.webp`,
       ],
     },
     box: {
@@ -224,18 +224,22 @@ export function getCrossSectionImage(frameType: string): string | null {
  * Gets mount sample images
  */
 export function getMountSampleImage(color: string): string {
-  const basePath = '/prodigi-assets-extracted';
+  // Use normalized mount textures from prodigi-assets/mounts
+  const basePath = '/prodigi-assets/mounts';
   const normalizedColor = color.toLowerCase();
   
-  const mountMap: Record<string, string> = {
-    black: `${basePath}/prodigi-classic-frames-photo-assets/Black mount.jpg`,
-    'off-white': `${basePath}/prodigi-classic-frames-photo-assets/Off-white mount.jpg`,
-    'offwhite': `${basePath}/prodigi-classic-frames-photo-assets/Off-white mount.jpg`,
-    'snow white': `${basePath}/prodigi-classic-frames-photo-assets/Snow white mount.jpg`,
-    'snowwhite': `${basePath}/prodigi-classic-frames-photo-assets/Snow white mount.jpg`,
+  // Map to standard mount texture names
+  const mountColorMap: Record<string, string> = {
+    'black': 'black',
+    'white': 'snow-white',
+    'snow white': 'snow-white',
+    'snowwhite': 'snow-white',
+    'off-white': 'off-white',
+    'offwhite': 'off-white',
   };
   
-  const path = mountMap[normalizedColor] || mountMap['off-white'];
+  const mountColor = mountColorMap[normalizedColor] || 'off-white';
+  const path = `${basePath}/${mountColor}-mount.webp`;
   return getSupabaseAssetUrlSync(path);
 }
 
