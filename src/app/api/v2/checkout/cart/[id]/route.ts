@@ -43,7 +43,7 @@ const getProdigiClientV2 = () => {
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate
@@ -52,7 +52,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const cartItemId = params.id;
+    const { id: cartItemId } = await params;
 
     if (!cartItemId) {
       return NextResponse.json(

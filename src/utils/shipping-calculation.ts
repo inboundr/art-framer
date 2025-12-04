@@ -67,53 +67,6 @@ export const calculateShipping = async (address: ShippingAddress, retryCount = 0
     console.warn('⚠️ shipping-calculation.ts: v2 API requires cart items. Use v2 API directly from components.');
     return null;
 
-    console.log('📡 API Response received:', { 
-      status: response.status, 
-      statusText: response.statusText,
-      ok: response.ok 
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        console.warn('❌ Unauthorized: user must be logged in to calculate shipping');
-        return null;
-      }
-      // Handle retry logic for server errors with proper error handling
-      if (response.status >= 500 && retryCount < 2) {
-        console.log(`🔄 Server error, retrying... (attempt ${retryCount + 1}/2)`);
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        return calculateShipping(address, retryCount + 1);
-      }
-      
-      // Handle retry logic for network errors with proper error handling
-      if (response.status === 0 && retryCount < 2) {
-        console.log(`🔄 Network error, retrying... (attempt ${retryCount + 1}/2)`);
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        return calculateShipping(address, retryCount + 1);
-      }
-      
-      console.error('❌ API request failed:', response.status, response.statusText);
-      return null;
-    }
-
-    const data = await response.json();
-    console.log('✅ Shipping calculation successful:', data);
-
-    // Validate response data structure
-    if (!data || typeof data !== 'object') {
-      console.error('❌ Invalid response data structure');
-      return null;
-    }
-
-    return {
-      cost: typeof data.cost === 'number' ? data.cost : 0,
-      currency: typeof data.currency === 'string' ? data.currency : 'USD',
-      estimatedDays: typeof data.estimatedDays === 'number' ? data.estimatedDays : 5,
-      method: typeof data.method === 'string' ? data.method : 'Standard',
-      isEstimated: typeof data.isEstimated === 'boolean' ? data.isEstimated : false,
-      addressValidated: typeof data.addressValidated === 'boolean' ? data.addressValidated : false
-    };
-
   } catch (error) {
     console.error('❌ Error details:', {
       name: error instanceof Error ? error.name : 'Unknown',
