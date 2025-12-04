@@ -10,8 +10,7 @@ import { useStudioStore } from '@/store/studio';
 import { Scene3D } from './Scene3D';
 import { PreviewControls } from './PreviewControls';
 import { ViewModeSelector } from './ViewModeSelector';
-import { RoomScene, type RoomEnvironment } from './RoomScene';
-import { EnvironmentSelector } from './EnvironmentSelector';
+import { RoomScene } from './RoomScene';
 import { DynamicErrorBoundary } from '@/components/DynamicErrorBoundary';
 
 export type ViewMode = '3d' | 'room' | 'ar' | 'compare';
@@ -22,7 +21,6 @@ export function FramePreview() {
   const [showControls, setShowControls] = useState(true);
   const [autoRotate, setAutoRotate] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
-  const [roomEnvironment, setRoomEnvironment] = useState<RoomEnvironment>('living-room');
 
   if (!config.imageUrl) {
     return null;
@@ -79,14 +77,6 @@ export function FramePreview() {
       {/* Room View */}
       {viewMode === 'room' && (
         <div className="w-full h-full relative">
-          {/* Environment Selector */}
-          <div className="absolute top-4 left-4 z-20">
-            <EnvironmentSelector
-              environment={roomEnvironment}
-              onChange={setRoomEnvironment}
-            />
-          </div>
-          
           {/* Room Scene */}
           <Suspense
             fallback={
@@ -100,7 +90,7 @@ export function FramePreview() {
           >
             <RoomScene
               config={config}
-              environment={roomEnvironment}
+              environment="living-room"
               resetTrigger={resetTrigger}
             />
           </Suspense>
