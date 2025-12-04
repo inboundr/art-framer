@@ -41,11 +41,37 @@ export async function GET(request: NextRequest) {
       console.log(`💰 Fetching real-time pricing for SKU: ${sku}`);
       let price = 0;
       try {
+        // Build attributes for Prodigi API
+        // Canvas products require 'color' and 'wrap' attributes
+        const isCanvasProduct = sku.toLowerCase().startsWith('can-') || sku.toLowerCase().includes('canvas');
+        const attributes: Record<string, string> = {};
+        
+        if (isCanvasProduct) {
+          // Color attribute (lowercase for Prodigi)
+          if (validatedData.frameStyle) {
+            attributes.color = validatedData.frameStyle.toLowerCase();
+          } else {
+            // Default to black if not specified
+            attributes.color = 'black';
+          }
+          
+          // Wrap attribute (capitalized for Prodigi: White, MirrorWrap, ImageWrap, Black)
+          // Default to ImageWrap for canvas products
+          attributes.wrap = 'ImageWrap';
+        } else {
+          // For framed prints, use frame style as color
+          if (validatedData.frameStyle) {
+            attributes.color = validatedData.frameStyle.toLowerCase();
+          }
+        }
+        
+        console.log(`📦 Building quote with attributes:`, attributes);
+        
         const quotes = await prodigiClient.getFullQuote({
           items: [{
             sku: sku,
             quantity: 1,
-            attributes: {}
+            attributes: attributes
           }],
           destinationCountryCode: 'US' // Default to US for base pricing
         });
