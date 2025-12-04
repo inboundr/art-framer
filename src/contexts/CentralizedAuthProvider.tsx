@@ -188,8 +188,6 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
   };
 
   const signOut = async () => {
-    // IMMEDIATE logout: Clear state first, then tell Supabase (don't wait)
-    // This prevents hanging just like we fixed with getSession()
     console.log('CentralizedAuth: Signing out...');
     
     // Clear state immediately for instant UI response
@@ -197,12 +195,84 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
     setUser(null);
     setProfile(null);
     
-    // Try to sign out from Supabase in the background (fire and forget)
-    // Don't await - if it hangs, we've already logged out locally
-    supabase.auth.signOut().catch((error: any) => {
-      // Silently handle errors - we've already cleared state
-      console.error('CentralizedAuth: Background signOut failed:', error);
+    // Get Supabase project ref from URL to clear the correct localStorage key
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const projectRef = supabaseUrl.split('//')[1]?.split('.')[0] || '';
+    const supabaseAuthKey = projectRef ? `sb-${projectRef}-auth-token` : null;
+    
+    // Clear all localStorage items related to auth
+    // This prevents session from being restored on page refresh
+    const keysToRemove = [
+      'supabase.auth.token',
+      'sb-access-token',
+      'sb-refresh-token',
+      'pending-cart-image',
+      'art-framer-welcome-seen',
+      'pending-generation',
+    ];
+    
+    // Add Supabase's project-specific auth token key
+    if (supabaseAuthKey) {
+      keysToRemove.push(supabaseAuthKey);
+    }
+    
+    // Also clear any other Supabase-related keys
+    if (typeof window !== 'undefined') {
+      try {
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(key => {
+          if (key.includes('supabase') || key.includes('sb-') || key.includes('auth-token')) {
+            keysToRemove.push(key);
+          }
+        });
+      } catch (error) {
+        // Ignore errors
+      }
+    }
+    
+    // Remove all keys (deduplicate)
+    const uniqueKeys = [...new Set(keysToRemove)];
+    uniqueKeys.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      } catch (error) {
+        // Ignore errors (e.g., in private browsing mode)
+      }
     });
+    
+    console.log('🧹 CentralizedAuth: Cleared localStorage keys:', uniqueKeys);
+    
+    // Call server-side signout API to clear cookies
+    try {
+      await fetch('/api/auth/signout', { 
+        method: 'POST', 
+        credentials: 'include',
+        // Don't wait too long - timeout after 2 seconds
+        signal: AbortSignal.timeout(2000)
+      }).catch(() => {
+        // Ignore errors - we'll still try to sign out from Supabase
+      });
+    } catch (error) {
+      // Ignore timeout/network errors
+    }
+    
+    // Sign out from Supabase (this clears Supabase's internal storage)
+    // Use a timeout to prevent hanging
+    try {
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('SignOut timeout')), 3000)
+        )
+      ]);
+      console.log('✅ CentralizedAuth: Sign out successful');
+    } catch (error: any) {
+      // Even if signOut fails or times out, we've cleared local state
+      if (error.message !== 'SignOut timeout') {
+        console.error('CentralizedAuth: SignOut error:', error);
+      }
+    }
     
     // The onAuthStateChange listener will fire SIGNED_OUT event if Supabase succeeds
   };
