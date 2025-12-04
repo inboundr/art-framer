@@ -8,6 +8,7 @@ import { CentralizedAuthProvider } from "@/contexts/CentralizedAuthProvider";
 import { CartProvider } from "@/contexts/CartContext";
 import { GenerationProvider } from "@/contexts/GenerationContext";
 import { AuthDebugPanel } from "@/components/AuthDebugPanel";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 
 const manrope = Manrope({ subsets: ["latin"] });
 
@@ -43,6 +44,7 @@ export default function RootLayout({
         <meta name="expires" content="0" />
       </head>
       <body className={manrope.className} suppressHydrationWarning={true}>
+        <GoogleAnalytics />
         <CentralizedAuthProvider>
           <CartProvider>
             <GenerationProvider>
