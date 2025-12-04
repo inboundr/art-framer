@@ -53,9 +53,39 @@ const MOUNT_COLOR_MAPPING: Record<string, string> = {
 
 /**
  * Normalizes a color name to a texture-safe name
+ * Handles hex color codes by stripping the # and mapping to known colors
  */
 export function normalizeColorName(color: string): string {
-  const normalized = color.toLowerCase().trim();
+  let normalized = color.toLowerCase().trim();
+  
+  // Handle hex color codes (e.g., #1a1a1a)
+  if (normalized.startsWith('#')) {
+    const hexValue = normalized.slice(1); // Remove #
+    
+    // Map common hex codes to color names
+    const hexToColorMap: Record<string, string> = {
+      '1a1a1a': 'black',      // Dark black
+      '000000': 'black',       // Pure black
+      'ffffff': 'white',       // Pure white
+      'f5f5f5': 'white',      // Off-white
+      'c19a6b': 'natural',    // Natural wood
+      '5c4033': 'brown',       // Brown
+      '4a4a4a': 'dark-grey',  // Dark grey
+      'b8b8b8': 'light-grey',  // Light grey
+      'd4af37': 'gold',        // Gold
+      'c0c0c0': 'silver',      // Silver
+    };
+    
+    // If we have a mapping, use it; otherwise use the hex value without #
+    if (hexToColorMap[hexValue]) {
+      normalized = hexToColorMap[hexValue];
+    } else {
+      // Fallback: use hex value without #, but this shouldn't happen in normal flow
+      normalized = hexValue;
+    }
+  }
+  
+  // Check color mapping and apply space-to-hyphen conversion
   return COLOR_MAPPING[normalized] || normalized.replace(/\s+/g, '-');
 }
 

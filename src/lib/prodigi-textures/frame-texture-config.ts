@@ -258,7 +258,40 @@ export function getFrameTextureConfig(
   color: string
 ): FrameTextureConfig {
   const normalizedFrameType = frameType.toLowerCase();
-  const normalizedColor = color.toLowerCase().replace(/\s+/g, '-');
+  
+  // Use normalizeColorName to handle hex codes and normalize properly
+  // Import normalizeColorName from texture-mapper
+  let normalizedColor = color.toLowerCase().trim();
+  
+  // Handle hex color codes (e.g., #1a1a1a)
+  if (normalizedColor.startsWith('#')) {
+    const hexValue = normalizedColor.slice(1); // Remove #
+    
+    // Map common hex codes to color names
+    const hexToColorMap: Record<string, string> = {
+      '1a1a1a': 'black',      // Dark black
+      '000000': 'black',       // Pure black
+      'ffffff': 'white',       // Pure white
+      'f5f5f5': 'white',      // Off-white
+      'c19a6b': 'natural',    // Natural wood
+      '5c4033': 'brown',       // Brown
+      '4a4a4a': 'dark-grey',  // Dark grey
+      'b8b8b8': 'light-grey',  // Light grey
+      'd4af37': 'gold',        // Gold
+      'c0c0c0': 'silver',      // Silver
+    };
+    
+    // If we have a mapping, use it; otherwise use the hex value without #
+    if (hexToColorMap[hexValue]) {
+      normalizedColor = hexToColorMap[hexValue];
+    } else {
+      // Fallback: use hex value without #, but this shouldn't happen in normal flow
+      normalizedColor = hexValue;
+    }
+  }
+  
+  // Replace spaces with hyphens for consistency
+  normalizedColor = normalizedColor.replace(/\s+/g, '-');
   
   // Try to get from database
   const frameConfigs = FRAME_TEXTURE_DATABASE[normalizedFrameType];
