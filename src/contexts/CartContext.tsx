@@ -113,11 +113,45 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
+        
+        // V2 API returns { cart: { items, totals } } format
+        // Transform to match CartData interface: { cartItems, totals }
+        let cartData: CartData;
+        
+        if (data.cart) {
+          // V2 API format: { cart: { items, totals: { subtotal, shipping, tax, total, currency } } }
+          const items = data.cart.items || [];
+          const v2Totals = data.cart.totals || {};
+          
+          cartData = {
+            cartItems: items,
+            totals: {
+              subtotal: v2Totals.subtotal || 0,
+              taxAmount: v2Totals.tax || 0,
+              shippingAmount: v2Totals.shipping || 0,
+              total: v2Totals.total || 0,
+              itemCount: items.length,
+            },
+          };
+        } else {
+          // Fallback: assume old format if cart is not present
+          cartData = {
+            cartItems: data.cartItems || [],
+            totals: data.totals || {
+              subtotal: 0,
+              taxAmount: 0,
+              shippingAmount: 0,
+              total: 0,
+              itemCount: 0,
+            },
+          };
+        }
+        
         console.log('Cart: fetchCart success', { 
-          itemCount: data.cartItems?.length || 0,
-          total: data.totals?.total || 0
+          itemCount: cartData.cartItems?.length || 0,
+          total: cartData.totals?.total || 0
         });
-        setCartData(data);
+        setCartData(cartData);
       } else {
         console.warn('Cart: fetchCart failed', { status: response.status });
         setCartData(null);
@@ -155,7 +189,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         hasToken: !!session.access_token 
       });
 
-      const response = await fetch('/api/cart', {
+      // Use v2 checkout API for cart (same as fetchCart)
+      const response = await fetch('/api/v2/checkout/cart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -192,14 +227,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         productId, 
         quantity,
         response: data,
-        hasCartItem: !!data.cartItem,
-        message: data.message
+        hasItem: !!data.item,
       });
       
-      // Validate response contains cart item
-      if (!data.cartItem) {
-        console.error('Cart: addToCart - API returned success but no cartItem in response', data);
-      return false;
+      // Validate response contains cart item (v2 API returns { item } not { cartItem })
+      if (!data.item) {
+        console.error('Cart: addToCart - API returned success but no item in response', data);
+        return false;
       }
       
       // Refresh cart data and wait for it to complete
