@@ -84,8 +84,10 @@ export class PricingService {
     currency?: string
   ): Promise<PricingResult> {
     try {
-      // Get Prodigi quotes for all items
-      const quoteItems: QuoteItem[] = items.map((item) => {
+      // First, map items to quote items with base SKU extraction
+      const quoteItemsMap = new Map<string, QuoteItem>();
+      
+      items.forEach((item) => {
         // Extract base SKU (remove image ID suffix if present)
         // Prodigi API only accepts base SKUs, not SKUs with image ID suffixes
         const baseSku = this.extractBaseSku(item.sku);
@@ -102,7 +104,7 @@ export class PricingService {
         
         const attributes = this.buildAttributes(item.frameConfig, baseSku);
         
-        // Log what we're sending to Prodigi for debugging
+        // Log what we're processing for debugging
         console.log('[Pricing] Quote item:', {
           sku: baseSku,
           copies: item.quantity,
@@ -120,22 +122,39 @@ export class PricingService {
           }
         });
         
-        // Build the quote item
-        const quoteItem: QuoteItem = {
-          sku: baseSku,
-          copies: item.quantity,
-          assets: [{
-            printArea: 'default', // Use lowercase 'default' as per Prodigi API
-          }],
-        };
+        // Create a unique key for this SKU + attributes combination
+        // Items with the same base SKU and attributes should be combined
+        const attributesKey = JSON.stringify(cleanAttributes);
+        const uniqueKey = `${baseSku}:${attributesKey}`;
         
-        // Only include attributes if we have any (Prodigi may reject empty attributes object)
-        if (Object.keys(cleanAttributes).length > 0) {
-          quoteItem.attributes = cleanAttributes;
+        // Combine items with the same SKU and attributes
+        if (quoteItemsMap.has(uniqueKey)) {
+          const existing = quoteItemsMap.get(uniqueKey)!;
+          existing.copies += item.quantity;
+          console.log(`[Pricing] Combined item with existing: ${uniqueKey}, total copies: ${existing.copies}`);
+        } else {
+          // Build the quote item
+          const quoteItem: QuoteItem = {
+            sku: baseSku,
+            copies: item.quantity,
+            assets: [{
+              printArea: 'default', // Use lowercase 'default' as per Prodigi API
+            }],
+          };
+          
+          // Only include attributes if we have any (Prodigi may reject empty attributes object)
+          if (Object.keys(cleanAttributes).length > 0) {
+            quoteItem.attributes = cleanAttributes;
+          }
+          
+          quoteItemsMap.set(uniqueKey, quoteItem);
         }
-        
-        return quoteItem;
       });
+      
+      // Convert map to array
+      const quoteItems: QuoteItem[] = Array.from(quoteItemsMap.values());
+      
+      console.log(`[Pricing] Combined ${items.length} cart items into ${quoteItems.length} unique quote items`);
 
       // Get quotes for all shipping methods, then find the one we want
       // This is more reliable than requesting a specific method

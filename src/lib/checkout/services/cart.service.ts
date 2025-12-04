@@ -268,17 +268,26 @@ export class CartService {
    */
   async removeItem(userId: string, itemId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      console.log('[CartService] removeItem: Deleting cart item', { userId, itemId });
+      
+      const { data: deletedItems, error } = await this.supabase
         .from('cart_items')
         .delete()
         .eq('id', itemId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select(); // Select to see what was deleted
 
       if (error) {
+        console.error('[CartService] removeItem: Delete error', error);
         throw new CartError('Failed to remove item from cart', {
           error,
         });
       }
+
+      console.log('[CartService] removeItem: Deleted items', {
+        count: deletedItems?.length || 0,
+        deletedIds: deletedItems?.map((item: any) => item.id) || [],
+      });
     } catch (error) {
       if (error instanceof CartError) {
         throw error;
@@ -321,6 +330,17 @@ export class CartService {
         throw new CartError('Failed to fetch cart', { error });
       }
 
+      // Log what we got from the database
+      console.log('[CartService] getCart: Fetched items from database:', {
+        count: cartItems?.length || 0,
+        items: cartItems?.map((item: any) => ({
+          id: item.id,
+          productId: item.product_id,
+          quantity: item.quantity,
+          sku: item.products?.sku,
+        })) || [],
+      });
+
       if (!cartItems || cartItems.length === 0) {
         return {
           items: [],
@@ -339,6 +359,32 @@ export class CartService {
           updatedAt: new Date(),
         };
       }
+
+      // Check for duplicate products (same SKU, different product_id)
+      // This can happen if products were created multiple times with the same SKU
+      const itemsBySku = new Map<string, any[]>();
+      cartItems.forEach((item: any) => {
+        const sku = item.products?.sku || '';
+        if (sku) {
+          if (!itemsBySku.has(sku)) {
+            itemsBySku.set(sku, []);
+          }
+          itemsBySku.get(sku)!.push(item);
+        }
+      });
+
+      // Log duplicates for debugging
+      itemsBySku.forEach((items, sku) => {
+        if (items.length > 1) {
+          console.warn(`[CartService] getCart: Found ${items.length} cart items with same SKU "${sku}":`, 
+            items.map((item: any) => ({
+              id: item.id,
+              productId: item.product_id,
+              quantity: item.quantity,
+            }))
+          );
+        }
+      });
 
       // Format cart items
       const items: CartItem[] = cartItems.map((item: any) =>
