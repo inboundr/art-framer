@@ -90,37 +90,86 @@ export class PricingService {
         // Prodigi API only accepts base SKUs, not SKUs with image ID suffixes
         const baseSku = this.extractBaseSku(item.sku);
         
+        // Validate SKU is not empty
+        if (!baseSku || baseSku.trim().length === 0) {
+          throw new Error(`Invalid SKU: "${item.sku}" -> "${baseSku}"`);
+        }
+        
         // Debug logging to verify SKU extraction
         if (item.sku !== baseSku) {
           console.log(`🔧 Extracted base SKU: ${item.sku} -> ${baseSku}`);
         }
         
-        // For quotes, assets only need printArea (not url - that's only for orders)
-        return {
+        const attributes = this.buildAttributes(item.frameConfig, baseSku);
+        
+        // Log what we're sending to Prodigi for debugging
+        console.log('[Pricing] Quote item:', {
           sku: baseSku,
           copies: item.quantity,
-          attributes: this.buildAttributes(item.frameConfig),
+          attributes,
+          frameConfig: item.frameConfig,
+        });
+        
+        // For quotes, assets only need printArea (not url - that's only for orders)
+        // Prodigi expects lowercase 'default' for printArea
+        // Also filter out undefined values from attributes
+        const cleanAttributes: Record<string, string> = {};
+        Object.entries(attributes).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            cleanAttributes[key] = String(value).trim();
+          }
+        });
+        
+        // Build the quote item
+        const quoteItem: QuoteItem = {
+          sku: baseSku,
+          copies: item.quantity,
           assets: [{
-            printArea: 'Default',
+            printArea: 'default', // Use lowercase 'default' as per Prodigi API
           }],
         };
+        
+        // Only include attributes if we have any (Prodigi may reject empty attributes object)
+        if (Object.keys(cleanAttributes).length > 0) {
+          quoteItem.attributes = cleanAttributes;
+        }
+        
+        return quoteItem;
       });
 
       // Get quotes for all shipping methods, then find the one we want
       // This is more reliable than requesting a specific method
       let allQuotes;
       try {
+        console.log('[Pricing] Requesting quotes with:', {
+          destinationCountry,
+          quoteItemsCount: quoteItems.length,
+          quoteItems: JSON.stringify(quoteItems, null, 2),
+        });
         allQuotes = await this.quotesAPI.compareShippingMethods(
           destinationCountry,
           quoteItems
         );
+        console.log('[Pricing] Got quotes from compareShippingMethods:', allQuotes?.length || 0);
       } catch (error: any) {
-        // If compareShippingMethods fails, try getting quotes directly
-        allQuotes = await this.quotesAPI.create({
+        console.error('[Pricing] compareShippingMethods failed:', error);
+        console.log('[Pricing] Trying direct create with:', {
           destinationCountryCode: destinationCountry,
-          items: quoteItems,
-          shippingMethod: shippingMethod,
+          items: JSON.stringify(quoteItems, null, 2),
+          shippingMethod,
         });
+        // If compareShippingMethods fails, try getting quotes directly
+        try {
+          allQuotes = await this.quotesAPI.create({
+            destinationCountryCode: destinationCountry,
+            items: quoteItems,
+            shippingMethod: shippingMethod,
+          });
+          console.log('[Pricing] Got quotes from direct create:', allQuotes?.length || 0);
+        } catch (createError: any) {
+          console.error('[Pricing] Direct create also failed:', createError);
+          throw createError;
+        }
       }
 
       if (!allQuotes || allQuotes.length === 0) {
@@ -303,7 +352,7 @@ export class PricingService {
             sku: this.extractBaseSku(item.sku),
             copies: item.quantity,
             attributes: this.buildAttributes(item.frameConfig),
-            assets: [{ printArea: 'Default' }],
+            assets: [{ printArea: 'default' }],
           },
         ];
 
@@ -352,17 +401,43 @@ export class PricingService {
   /**
    * Build Prodigi attributes from frame config
    */
-  private buildAttributes(frameConfig: CartItem['frameConfig']): Record<string, string> {
+  private buildAttributes(frameConfig: CartItem['frameConfig'], sku?: string): Record<string, string> {
     const attributes: Record<string, string> = {};
+
+    // Handle undefined frameConfig
+    if (!frameConfig) {
+      console.warn('[Pricing] buildAttributes: frameConfig is undefined, returning empty attributes');
+      return attributes;
+    }
 
     // Frame color
     if (frameConfig.color) {
       attributes.color = frameConfig.color;
     }
 
-    // Canvas wrap (must be lowercase for Prodigi API)
-    if (frameConfig.wrap) {
-      attributes.wrap = frameConfig.wrap.toLowerCase();
+    // Canvas wrap (must be capitalized for Prodigi API: White, MirrorWrap, ImageWrap, Black)
+    // For canvas products (SKU starts with "can-"), wrap is required
+    const isCanvasProduct = sku?.toLowerCase().startsWith('can-') || sku?.toLowerCase().includes('canvas');
+    
+    if (frameConfig.wrap && frameConfig.wrap !== 'none') {
+      // Convert to Prodigi format (capitalize first letter, handle special cases)
+      const wrapValue = frameConfig.wrap.toLowerCase();
+      if (wrapValue === 'black') {
+        attributes.wrap = 'Black';
+      } else if (wrapValue === 'white') {
+        attributes.wrap = 'White';
+      } else if (wrapValue === 'mirror' || wrapValue === 'mirrorwrap') {
+        attributes.wrap = 'MirrorWrap';
+      } else if (wrapValue === 'image' || wrapValue === 'imagewrap') {
+        attributes.wrap = 'ImageWrap';
+      } else {
+        // Default to capitalized version
+        attributes.wrap = frameConfig.wrap.charAt(0).toUpperCase() + frameConfig.wrap.slice(1).toLowerCase();
+      }
+    } else if (isCanvasProduct) {
+      // Canvas products require wrap attribute - default to ImageWrap if not specified
+      console.log('[Pricing] Canvas product detected, adding default wrap attribute');
+      attributes.wrap = 'ImageWrap';
     }
 
     // Glaze (convert 'acrylic' to 'Acrylic / Perspex')
@@ -379,6 +454,7 @@ export class PricingService {
       }
     }
 
+    console.log('[Pricing] Built attributes:', attributes, 'for SKU:', sku);
     return attributes;
   }
 

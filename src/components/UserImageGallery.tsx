@@ -144,8 +144,8 @@ export function UserImageGallery({ onOpenAuthModal }: UserImageGalleryProps = {}
         return;
       }
       try {
-        console.log('🧪 TEST: Making direct fetch to /api/cart');
-        const response = await fetch('/api/cart', {
+        console.log('🧪 TEST: Making direct fetch to /api/v2/checkout/cart');
+        const response = await fetch('/api/v2/checkout/cart', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

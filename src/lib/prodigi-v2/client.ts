@@ -219,6 +219,11 @@ export class ProdigiClient {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
+      // Log the full request body for debugging Prodigi errors
+      if (body) {
+        console.error('[Prodigi] Request body being sent:', JSON.stringify(body, null, 2));
+      }
+      
       this.logger.debug(`${method} ${url}`, {
         body: body ? sanitizeForLogging(body) : undefined,
       });
@@ -269,11 +274,25 @@ export class ProdigiClient {
       errorData = rawText ? JSON.parse(rawText) : {};
       
       // DEBUG: Log the raw error response to understand its structure
-      console.log('[Prodigi] Raw error response:', {
+      console.error('[Prodigi] Raw error response:', {
         status: response.status,
+        statusText: response.statusText,
         rawText,
-        parsed: errorData
+        parsed: errorData,
+        url,
+        method,
       });
+      
+      // Try to extract validation errors from the response
+      if (errorData && typeof errorData === 'object') {
+        console.error('[Prodigi] Error data structure:', JSON.stringify(errorData, null, 2));
+        if (errorData.errors) {
+          console.error('[Prodigi] Validation errors:', errorData.errors);
+        }
+        if (errorData.message) {
+          console.error('[Prodigi] Error message:', errorData.message);
+        }
+      }
     } catch (parseError) {
       console.log('[Prodigi] Failed to parse error response:', {
         status: response.status,

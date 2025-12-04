@@ -100,7 +100,37 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate body
     const body = await request.json();
-    const validatedInput = validateCartItemInput(body);
+    console.log('Cart API: Received request body:', body);
+    
+    let validatedInput;
+    try {
+      validatedInput = validateCartItemInput(body);
+      console.log('Cart API: Validated input:', validatedInput);
+    } catch (validationError) {
+      console.error('Cart API: Validation error:', validationError);
+      console.error('Cart API: Validation error type:', validationError?.constructor?.name);
+      console.error('Cart API: Validation error details:', JSON.stringify(validationError, null, 2));
+      
+      if (validationError instanceof CartError) {
+        console.error('Cart API: CartError details:', JSON.stringify(validationError.details, null, 2));
+        return NextResponse.json(
+          { error: validationError.message, details: validationError.details },
+          { status: validationError.statusCode || 400 }
+        );
+      }
+      // If it's a ZodError, return 400 with details
+      if (validationError && typeof validationError === 'object' && 'issues' in validationError) {
+        console.error('Cart API: ZodError issues:', JSON.stringify((validationError as any).issues, null, 2));
+        return NextResponse.json(
+          { error: 'Invalid cart item input', details: (validationError as any).issues },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { error: 'Invalid request data', details: validationError instanceof Error ? validationError.message : String(validationError) },
+        { status: 400 }
+      );
+    }
 
     // Initialize services
     const supabase = createServiceClient();
@@ -126,11 +156,64 @@ export async function POST(request: NextRequest) {
     if (error instanceof CartError) {
       return NextResponse.json(
         { error: error.message, details: error.details },
+        { status: error.statusCode || 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: 'Failed to add item to cart', details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    // Authenticate
+    const { user, error: authError } = await authenticateRequest(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Parse and validate body
+    const body = await request.json();
+    const { cartItemId, quantity } = body;
+
+    if (!cartItemId || typeof quantity !== 'number' || quantity < 1 || quantity > 10) {
+      return NextResponse.json(
+        { error: 'Invalid request: cartItemId and quantity (1-10) required' },
+        { status: 400 }
+      );
+    }
+
+    // Initialize services
+    const supabase = createServiceClient();
+    const prodigiClientV1 = getProdigiClientV1();
+    const prodigiClientV2 = getProdigiClientV2();
+    
+    if (!prodigiClientV1 || !prodigiClientV2) {
+      return NextResponse.json(
+        { error: 'Prodigi client not configured' },
+        { status: 500 }
+      );
+    }
+
+    const pricingService = new PricingService(prodigiClientV2, currencyService);
+    const cartService = new CartService(supabase, prodigiClientV1, pricingService);
+
+    // Update item quantity
+    const item = await cartService.updateItem(user.id, cartItemId, quantity);
+
+    return NextResponse.json({ item }, { status: 200 });
+  } catch (error) {
+    console.error('Error updating cart item:', error);
+    if (error instanceof CartError) {
+      return NextResponse.json(
+        { error: error.message, details: error.details },
         { status: error.statusCode }
       );
     }
     return NextResponse.json(
-      { error: 'Failed to add item to cart' },
+      { error: 'Failed to update cart item' },
       { status: 500 }
     );
   }

@@ -28,8 +28,15 @@ export function validateCartItemInput(input: unknown) {
     return CartItemInputSchema.parse(input);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      // Log the validation error for debugging
+      console.error('Cart validator: Validation failed', {
+        input,
+        issues: error.issues,
+        formatted: error.format(),
+      });
       throw new CartError('Invalid cart item input', {
         issues: error.issues,
+        formatted: error.format(),
       });
     }
     throw error;

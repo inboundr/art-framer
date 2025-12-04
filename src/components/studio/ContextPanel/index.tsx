@@ -164,6 +164,11 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
       }
 
       const { product } = await productResponse.json();
+      
+      console.log('✅ ContextPanel: Product created', { 
+        productId: product.id, 
+        isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(product.id || '')
+      });
 
       // Store destination country and shipping method for cart
       // This will be used when fetching cart to get correct pricing
@@ -175,34 +180,53 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
       }
 
       // Then, add the product to cart
+      // Note: addToCart now waits for cart refresh to complete before returning
+      console.log('🛒 ContextPanel: Calling addToCart...');
       const success = await addToCart(product.id, 1);
+      console.log('🛒 ContextPanel: addToCart returned:', success);
       
       if (success) {
-        // Refresh cart to ensure it's up to date before redirect
-        await refreshCart();
+        console.log('✅ ContextPanel: Item added to cart successfully, redirecting...');
+        
+        // Show success toast
         toast({
           title: 'Added to Cart',
           description: 'Item has been added to your cart successfully.',
         });
-        // Use router.push for client-side navigation (preserves session)
-        // Small delay to ensure cart state is updated and user sees the toast
-        setTimeout(() => {
+        
+        // Reset loading state BEFORE redirect to ensure it's cleared
+        setIsAddingToCart(false);
+        
+        // Set a flag so the cart page knows to wait a moment for DB commit
+        // This ensures the cart fetch happens after the transaction is committed
+        localStorage.setItem('cart-just-updated', Date.now().toString());
+        
+        // Redirect to cart page immediately (fast UX)
+        // The cart page will detect the flag and wait briefly before fetching
+        console.log('🚀 ContextPanel: Redirecting to /cart...');
+        try {
           router.push('/cart');
-        }, 500);
+        } catch (error) {
+          console.error('❌ ContextPanel: router.push failed, using window.location.href:', error);
+          window.location.href = '/cart';
+        }
       } else {
+        console.error('❌ ContextPanel: addToCart returned false');
         throw new Error('Failed to add to cart');
       }
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      console.error('❌ ContextPanel: Error adding to cart:', error);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to add item to cart. Please try again.',
         variant: 'destructive',
       });
     } finally {
+      // Always reset loading state, even if redirect happens
+      console.log('🔄 ContextPanel: Resetting loading state');
       setIsAddingToCart(false);
     }
-  }, [user, session, config, addToCart, refreshCart, toast, onOpenAuthModal]);
+  }, [user, session, config, addToCart, toast, onOpenAuthModal, router]);
 
   // Listen for retry event after authentication
   useEffect(() => {

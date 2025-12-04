@@ -89,7 +89,13 @@ export function useCart(): UseCartReturn {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/cart', { credentials: 'include' });
+      // Use v2 checkout API
+      const response = await fetch('/api/v2/checkout/cart?country=US&shippingMethod=Standard', {
+        credentials: 'include',
+        headers: session?.access_token ? {
+          'Authorization': `Bearer ${session.access_token}`
+        } : {}
+      });
       if (!response.ok) {
         if (response.status === 401) {
           // User not authenticated - this is expected, don't show as error
@@ -255,13 +261,16 @@ export function useCart(): UseCartReturn {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/cart/${cartItemId}`, {
-        method: 'PUT',
+      // Use v2 checkout API
+      const response = await fetch('/api/v2/checkout/cart', {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
         },
         credentials: 'include',
         body: JSON.stringify({
+          cartItemId,
           quantity,
         }),
       });
@@ -297,9 +306,13 @@ export function useCart(): UseCartReturn {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/cart/${cartItemId}`, {
+      // Use v2 checkout API
+      const response = await fetch(`/api/v2/checkout/cart/${cartItemId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: session?.access_token ? {
+          'Authorization': `Bearer ${session.access_token}`
+        } : {}
       });
 
       if (!response.ok) {
@@ -338,9 +351,15 @@ export function useCart(): UseCartReturn {
       setLoading(true);
       setError(null);
 
-      // Remove all items one by one
+      // Remove all items one by one using v2 API
       const promises = cartItems.map(item => 
-        fetch(`/api/cart/${item.id}`, { method: 'DELETE', credentials: 'include' })
+        fetch(`/api/v2/checkout/cart/${item.id}`, { 
+          method: 'DELETE', 
+          credentials: 'include',
+          headers: session?.access_token ? {
+            'Authorization': `Bearer ${session.access_token}`
+          } : {}
+        })
       );
 
       const responses = await Promise.all(promises);

@@ -79,37 +79,57 @@ export class CartService {
       }
 
       // Get real-time pricing from Prodigi
-      const pricing = await this.pricingService.calculatePricing(
-        [
-          {
-            id: 'temp',
-            productId: product.id,
-            sku,
-            name: product.name || 'Framed Print',
-            imageUrl: product.images?.image_url || product.images?.thumbnail_url || '',
-            quantity: item.quantity,
-            price: product.price, // Will be updated with real-time price
-            originalPrice: product.price,
-            currency: 'USD',
-            frameConfig: {
-              size: product.frame_size || 'medium',
-              color: product.frame_style || 'black',
-              style: product.frame_style || 'black',
-              material: product.frame_material || 'wood',
-              mount: item.frameConfig?.mount,
-              glaze: item.frameConfig?.glaze,
-              wrap: item.frameConfig?.wrap,
+      // If pricing fails, we'll use the stored product price as fallback
+      let realTimePrice = product.price;
+      try {
+        console.log('[CartService] Getting pricing for product:', {
+          productId: product.id,
+          sku,
+          frameSize: product.frame_size,
+          frameStyle: product.frame_style,
+          frameMaterial: product.frame_material,
+        });
+        
+        const pricing = await this.pricingService.calculatePricing(
+          [
+            {
+              id: 'temp',
+              productId: product.id,
+              sku,
+              name: product.name || 'Framed Print',
+              imageUrl: product.images?.image_url || product.images?.thumbnail_url || '',
+              quantity: item.quantity,
+              price: product.price, // Will be updated with real-time price
+              originalPrice: product.price,
+              currency: 'USD',
+              frameConfig: {
+                size: product.frame_size || 'medium',
+                color: product.frame_style || 'black',
+                style: product.frame_style || 'black',
+                material: product.frame_material || 'wood',
+                mount: item.frameConfig?.mount,
+                glaze: item.frameConfig?.glaze,
+                wrap: item.frameConfig?.wrap,
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
             },
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ],
-        'US', // Default country, will be updated when address is provided
-        'Standard'
-      );
+          ],
+          'US', // Default country, will be updated when address is provided
+          'Standard'
+        );
 
-      // Update price with real-time quote
-      const realTimePrice = pricing.subtotal / item.quantity;
+        // Update price with real-time quote
+        realTimePrice = pricing.subtotal / item.quantity;
+        console.log('[CartService] Got real-time pricing:', realTimePrice);
+      } catch (pricingError) {
+        console.error('[CartService] Pricing failed, using stored price:', {
+          error: pricingError,
+          storedPrice: product.price,
+        });
+        // Continue with stored price - pricing will be calculated later at checkout
+        // This allows users to add items to cart even if Prodigi pricing temporarily fails
+      }
 
       // Check for existing cart item
       const { data: existingItem } = await this.supabase
@@ -218,17 +238,21 @@ export class CartService {
         });
       }
 
-      // Get real-time pricing
-      const pricing = await this.pricingService.calculatePricing(
-        [this.formatCartItem(cartItem, (cartItem.products as any).price)],
-        'US',
-        'Standard'
-      );
+      // Get real-time pricing (optional - fallback to stored price if it fails)
+      let price = (cartItem.products as any).price;
+      try {
+        const pricing = await this.pricingService.calculatePricing(
+          [this.formatCartItem(cartItem, price)],
+          'US',
+          'Standard'
+        );
+        price = pricing.subtotal / quantity;
+      } catch (pricingError) {
+        console.error('[CartService] Pricing failed in updateItem, using stored price:', pricingError);
+        // Continue with stored price
+      }
 
-      return this.formatCartItem(
-        cartItem,
-        pricing.subtotal / quantity
-      );
+      return this.formatCartItem(cartItem, price);
     } catch (error) {
       if (error instanceof CartError) {
         throw error;
@@ -306,7 +330,11 @@ export class CartService {
             tax: 0,
             total: 0,
             currency: 'USD',
+            originalCurrency: 'USD',
+            originalTotal: 0,
+            exchangeRate: 1,
           },
+          shippingMethod,
           destinationCountry,
           updatedAt: new Date(),
         };
@@ -317,16 +345,16 @@ export class CartService {
         this.formatCartItem(item, (item.products as any).price)
       );
 
-      // Get real-time pricing
-      const pricing = await this.pricingService.calculatePricing(
-        items,
-        destinationCountry,
-        shippingMethod
-      );
+      // Get real-time pricing (optional - fallback to stored prices if it fails)
+      let totals: Cart['totals'];
+      try {
+        const pricing = await this.pricingService.calculatePricing(
+          items,
+          destinationCountry,
+          shippingMethod
+        );
 
-      return {
-        items,
-        totals: {
+        totals = {
           subtotal: pricing.subtotal,
           shipping: pricing.shipping,
           tax: pricing.tax,
@@ -335,7 +363,26 @@ export class CartService {
           originalCurrency: pricing.originalCurrency,
           originalTotal: pricing.originalTotal,
           exchangeRate: pricing.exchangeRate,
-        },
+        };
+      } catch (pricingError) {
+        console.error('[CartService] Pricing failed in getCart, using stored prices:', pricingError);
+        // Fallback to stored prices
+        const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        totals = {
+          subtotal,
+          shipping: 0, // Will be calculated at checkout
+          tax: 0, // Will be calculated at checkout
+          total: subtotal,
+          currency: 'USD',
+          originalCurrency: 'USD',
+          originalTotal: subtotal,
+          exchangeRate: 1,
+        };
+      }
+
+      return {
+        items,
+        totals,
         shippingMethod,
         destinationCountry,
         updatedAt: new Date(),
