@@ -273,20 +273,51 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       }
 
       console.log('✅ Auth token obtained from context, token length:', authToken.length);
-      console.log('🌐 Making API call to /api/cart/shipping (using JWT auth)...');
-      const response = await fetch('/api/cart/shipping', {
+      console.log('🌐 Making API call to /api/v2/checkout/shipping (using JWT auth)...');
+      console.log('📦 Cart items for shipping:', cartItems.length, cartItems);
+      
+      // Prepare items for v2 shipping API
+      const shippingItems = cartItems.map((item: any) => {
+        const sku = item.products?.sku || item.sku || '';
+        // Extract base SKU (remove image ID suffix if present)
+        const baseSku = sku.includes('-') && /-[a-f0-9]{8}$/i.test(sku) 
+          ? sku.replace(/-[a-f0-9]{8}$/i, '') 
+          : sku;
+        
+        return {
+          sku: baseSku,
+          quantity: item.quantity || 1,
+          frameConfig: {
+            size: item.products?.frame_size || item.frameConfig?.size,
+            color: item.products?.frame_style || item.frameConfig?.color,
+            style: item.products?.frame_style || item.frameConfig?.style,
+            material: item.products?.frame_material || item.frameConfig?.material,
+          },
+        };
+      });
+
+      const requestBody = {
+        items: shippingItems,
+        address: {
+          address1: address.address1,
+          address2: address.address2 || '',
+          city: address.city,
+          state: address.state || '',
+          zip: address.zip || '',
+          country: address.country,
+        },
+      };
+      
+      console.log('📤 Shipping request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await fetch('/api/v2/checkout/shipping', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
         credentials: 'include',
-        body: JSON.stringify({
-          countryCode: address.country,
-          stateOrCounty: address.state,
-          postalCode: address.zip,
-          city: address.city,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       console.log('📡 API Response received:', { 
@@ -299,42 +330,46 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         const data = await response.json();
         console.log('📦 Shipping API response data:', JSON.stringify(data, null, 2));
         
-        // Extract shipping cost - handle both possible field names and ensure it's a number
-        const shippingCostRaw = data.shippingCost ?? data.cost ?? 0;
-        const shippingCost = typeof shippingCostRaw === 'string' 
-          ? parseFloat(shippingCostRaw) 
-          : typeof shippingCostRaw === 'number' 
-            ? shippingCostRaw 
-            : 0;
+        // V2 API returns { options: ShippingOption[], recommended: method, addressValidated: boolean }
+        // Extract the recommended option or first option
+        const options = data.options || [];
+        const recommendedMethod = data.recommended || 'Standard';
+        const selectedOption = options.find((opt: any) => opt.method === recommendedMethod) || options[0];
         
-        const estimatedDays = data.estimatedDays ?? data.estimated_days ?? 7;
-        const estimatedDaysRange = data.estimatedDaysRange;  // Extract range if available
-        const serviceName = data.serviceName ?? data.service ?? 'Standard Shipping';
-        const currency = data.currency || getDisplayCurrency();
+        if (!selectedOption) {
+          throw new Error('No shipping options available');
+        }
+        
+        const shippingCost = typeof selectedOption.cost === 'number' 
+          ? selectedOption.cost 
+          : parseFloat(selectedOption.cost || '0');
+        
+        const estimatedDays = selectedOption.estimatedDays || 7;
+        const serviceName = selectedOption.serviceName || selectedOption.method || 'Standard Shipping';
+        const currency = selectedOption.currency || getDisplayCurrency();
         
         console.log('💰 Extracted shipping values:', {
-          shippingCostRaw,
           shippingCost,
           estimatedDays,
-          estimatedDaysRange,
           serviceName,
           currency,
-          rawData: data
+          selectedOption,
+          allOptions: options
         });
         
         // Validate shipping cost is a valid number
         if (isNaN(shippingCost) || shippingCost < 0) {
-          console.error('❌ Invalid shipping cost received:', shippingCostRaw, 'Defaulting to 0');
+          console.error('❌ Invalid shipping cost received:', selectedOption.cost, 'Defaulting to 0');
         }
         
         // Use atomic state update to prevent race conditions
         setCalculatedShipping(prev => ({
           cost: shippingCost,
           estimatedDays: estimatedDays,
-          estimatedDaysRange: estimatedDaysRange,  // Include range
+          estimatedDaysRange: undefined,  // V2 API doesn't provide range yet
           serviceName: serviceName,
-          isEstimated: data.isEstimated || false,
-          provider: data.provider || 'unknown',
+          isEstimated: false,
+          provider: 'prodigi',
           addressValidated: data.addressValidated || false,
           currency: currency,
         }));
@@ -356,9 +391,28 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
           });
         } else if (response.status === 400) {
           const errorData = await response.json();
+          const errorMessage = errorData.error || 'Invalid shipping address';
+          const errorDetails = errorData.details;
+          
+          // Convert error details to string if it's an object
+          let description = errorMessage;
+          if (errorDetails) {
+            if (typeof errorDetails === 'string') {
+              description = errorDetails;
+            } else if (Array.isArray(errorDetails)) {
+              description = errorDetails.map((e: any) => 
+                typeof e === 'string' ? e : JSON.stringify(e)
+              ).join(', ');
+            } else if (typeof errorDetails === 'object') {
+              description = errorMessage + ': ' + JSON.stringify(errorDetails);
+            }
+          }
+          
+          console.error('Shipping API error:', { errorData, description });
+          
           toast({
-            title: "Error creating product",
-            description: errorData.details,
+            title: "Error calculating shipping",
+            description: description,
             variant: "destructive"
           });
         } else {
@@ -741,8 +795,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         console.log('✅ CheckoutFlow: Using session from context', { hasToken: !!session.access_token });
       }
 
-      console.log('🚀 CheckoutFlow: MAKING FETCH REQUEST NOW to /api/checkout/create-session', {
-        url: '/api/checkout/create-session',
+      console.log('🚀 CheckoutFlow: MAKING FETCH REQUEST NOW to /api/v2/checkout/session', {
+        url: '/api/v2/checkout/session',
         method: 'POST',
         hasToken: !!session.access_token,
         cartItemIds: cartItems.map(item => item.id),
@@ -772,8 +826,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         setProcessing(false);
       }, 30000); // 30 second timeout
 
-      // Create checkout session
-      const response = await fetch('/api/checkout/create-session', {
+      // Create checkout session using v2 API
+      const response = await fetch('/api/v2/checkout/session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -794,11 +848,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
             zip: shippingAddress.zip,
             country: shippingAddress.country,
             phone: shippingAddress.phone,
-            // Keep backward compatibility
-            countryCode: shippingAddress.country,
-            stateOrCounty: shippingAddress.state,
-            postalCode: shippingAddress.zip,
           },
+          shippingMethod: calculatedShipping?.serviceName || 'Standard',
         }),
         signal: controller.signal
       });

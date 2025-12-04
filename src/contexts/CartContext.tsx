@@ -113,6 +113,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Cart: fetchCart API response', { 
+          hasCart: !!data.cart,
+          itemsCount: data.cart?.items?.length || 0,
+          dataKeys: Object.keys(data)
+        });
         
         // V2 API returns { cart: { items, totals } } format
         // Transform to match CartData interface: { cartItems, totals }
@@ -123,16 +128,57 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const items = data.cart.items || [];
           const v2Totals = data.cart.totals || {};
           
+          // Transform v2 CartItem[] to old format with products.images
+          // V2 API already provides imageUrl, name, sku, etc. in the CartItem
+          // We just need to format it to match the old structure
+          console.log('Cart: fetchCart - Transforming', items.length, 'items from v2 format');
+          
+          const transformedItems: CartItem[] = items.map((item: any) => {
+            // V2 CartItem already has all the data we need
+            // Just format it to match the old structure expected by ShoppingCart component
+            return {
+              id: item.id,
+              user_id: user.id,
+              product_id: item.productId,
+              quantity: item.quantity,
+              created_at: item.createdAt instanceof Date ? item.createdAt.toISOString() : (typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString()),
+              updated_at: item.updatedAt instanceof Date ? item.updatedAt.toISOString() : (typeof item.updatedAt === 'string' ? item.updatedAt : new Date().toISOString()),
+              products: {
+                id: item.productId,
+                image_id: '', // Not needed for display
+                frame_size: item.frameConfig?.size || 'medium',
+                frame_style: item.frameConfig?.style || item.frameConfig?.color || 'black',
+                frame_material: item.frameConfig?.material || 'wood',
+                price: item.price || 0,
+                cost: (item.originalPrice || item.price || 0) * 0.4,
+                weight_grams: 0,
+                dimensions_cm: { width: 0, height: 0, depth: 0 },
+                status: 'active',
+                sku: item.sku || '',
+                images: {
+                  id: '',
+                  prompt: '',
+                  image_url: item.imageUrl || '',
+                  thumbnail_url: item.imageUrl || null,
+                  user_id: user.id,
+                  created_at: new Date().toISOString(),
+                },
+              },
+            };
+          });
+          
+          console.log('Cart: fetchCart - Transformation complete, created', transformedItems.length, 'items');
           cartData = {
-            cartItems: items,
+            cartItems: transformedItems,
             totals: {
               subtotal: v2Totals.subtotal || 0,
               taxAmount: v2Totals.tax || 0,
               shippingAmount: v2Totals.shipping || 0,
               total: v2Totals.total || 0,
-              itemCount: items.length,
+              itemCount: transformedItems.length,
             },
           };
+          console.log('Cart: fetchCart - cartData created with', cartData.cartItems.length, 'items');
         } else {
           // Fallback: assume old format if cart is not present
           cartData = {
@@ -152,8 +198,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
           total: cartData.totals?.total || 0
         });
         setCartData(cartData);
+        console.log('Cart: fetchCart - setCartData called, function completing');
       } else {
-        console.warn('Cart: fetchCart failed', { status: response.status });
+        const errorText = await response.text();
+        let errorData: any = null;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          // Not JSON
+        }
+        console.error('Cart: fetchCart failed', { 
+          status: response.status, 
+          statusText: response.statusText,
+          error: errorData || errorText
+        });
         setCartData(null);
       }
     } catch (error) {
@@ -206,19 +264,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = 'Failed to add to cart';
+        let errorDetails: any = null;
         
         try {
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.error || errorMessage;
+          errorDetails = errorData.details;
         } catch {
           errorMessage = `Failed to add to cart (${response.status})`;
         }
         
+        // Log full error details
         console.error('Cart: addToCart API error', { 
           status: response.status, 
           statusText: response.statusText,
-          error: errorMessage 
+          error: errorMessage,
+          requestBody: { productId, quantity },
         });
+        
+        // Log error details separately for better visibility
+        if (errorDetails) {
+          console.error('Cart: Error details:', errorDetails);
+          console.error('Cart: Error details (JSON):', JSON.stringify(errorDetails, null, 2));
+          if (errorDetails.issues) {
+            console.error('Cart: Validation issues:', errorDetails.issues);
+            console.error('Cart: Validation issues (JSON):', JSON.stringify(errorDetails.issues, null, 2));
+          }
+        } else {
+          console.error('Cart: Full error response:', errorText);
+        }
         return false;
       }
 
@@ -236,11 +310,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return false;
       }
       
-      // Refresh cart data and wait for it to complete
-      console.log('Cart: addToCart - Refreshing cart data...');
-      await fetchCart();
-      console.log('Cart: addToCart - Cart data refreshed successfully');
+      // Item successfully added - return immediately and refresh cart in background
+      // This allows the UI to respond quickly while cart updates in the background
+      console.log('Cart: addToCart - Item added successfully, refreshing cart in background...');
       
+      // Refresh cart in background (don't await) - this allows immediate return
+      // The cart will update when fetchCart completes
+      setTimeout(() => {
+        fetchCart().catch((error) => {
+          console.error('Cart: addToCart - Background cart refresh failed:', error);
+        });
+      }, 300);
+      
+      console.log('Cart: addToCart - Returning true (success)');
       return true;
     } catch (error) {
       console.error('Cart: addToCart exception:', error);
@@ -249,14 +331,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const updateQuantity = async (cartItemId: string, quantity: number): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !session?.access_token) return false;
 
     try {
-      const response = await fetch('/api/cart', {
+      // Use v2 checkout API
+      const response = await fetch('/api/v2/checkout/cart', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+          'Authorization': `Bearer ${session.access_token}`
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -277,15 +360,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromCart = async (cartItemId: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !session?.access_token) return false;
 
     try {
-      const response = await fetch(`/api/cart/${cartItemId}`, {
+      // Use v2 checkout API
+      const response = await fetch(`/api/v2/checkout/cart/${cartItemId}`, {
         method: 'DELETE',
         credentials: 'include',
-        headers: session?.access_token ? {
+        headers: {
           'Authorization': `Bearer ${session.access_token}`
-        } : {}
+        }
       });
 
       if (response.ok) {
@@ -300,17 +384,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const clearCart = async (): Promise<boolean> => {
-    if (!user || !cartData?.cartItems.length) return false;
+    if (!user || !cartData?.cartItems.length || !session?.access_token) return false;
 
     try {
       // Remove all items from cart by calling removeFromCart for each item
       const removePromises = cartData.cartItems.map(item => 
-        fetch(`/api/cart/${item.id}`, {
+        fetch(`/api/v2/checkout/cart/${item.id}`, {
           method: 'DELETE',
           credentials: 'include',
-          headers: session?.access_token ? {
+          headers: {
             'Authorization': `Bearer ${session.access_token}`
-          } : {}
+          }
         })
       );
 
@@ -334,6 +418,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user && session?.access_token) {
+      // Check if we just added an item (redirect from studio)
+      // If so, wait a moment for the DB transaction to commit
+      const justUpdated = localStorage.getItem('cart-just-updated');
+      if (justUpdated) {
+        const updateTime = parseInt(justUpdated, 10);
+        const timeSinceUpdate = Date.now() - updateTime;
+        
+        // If update was less than 2 seconds ago, wait a bit before fetching
+        if (timeSinceUpdate < 2000) {
+          const waitTime = Math.max(0, 500 - timeSinceUpdate); // Wait up to 500ms
+          console.log(`Cart: Just updated ${timeSinceUpdate}ms ago, waiting ${waitTime}ms for DB commit...`);
+          
+          const timeout = setTimeout(() => {
+            localStorage.removeItem('cart-just-updated');
+            console.log('Cart: User and session ready, fetching cart (after update delay)');
+            fetchCart();
+          }, waitTime);
+          
+          return () => clearTimeout(timeout);
+        } else {
+          // Update was more than 2 seconds ago, clear the flag and fetch immediately
+          localStorage.removeItem('cart-just-updated');
+        }
+      }
+      
       // Only fetch when both user and session token are available
       console.log('Cart: User and session ready, fetching cart');
       fetchCart();

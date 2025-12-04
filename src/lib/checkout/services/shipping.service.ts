@@ -81,9 +81,9 @@ export class ShippingService {
         return {
           sku: baseSku,
           copies: item.quantity,
-          attributes: this.buildAttributes(item.frameConfig),
+          attributes: this.buildAttributes(item.frameConfig, baseSku),
           assets: [{
-            printArea: 'Default',
+            printArea: 'default',
           }],
         };
       });
@@ -239,17 +239,43 @@ export class ShippingService {
   /**
    * Build Prodigi attributes from frame config
    */
-  private buildAttributes(frameConfig: CartItem['frameConfig']): Record<string, string> {
+  private buildAttributes(frameConfig: CartItem['frameConfig'], sku?: string): Record<string, string> {
     const attributes: Record<string, string> = {};
+
+    // Handle undefined frameConfig
+    if (!frameConfig) {
+      console.warn('[Shipping] buildAttributes: frameConfig is undefined, returning empty attributes');
+      return attributes;
+    }
 
     // Frame color (for framed prints)
     if (frameConfig.color) {
       attributes.color = frameConfig.color;
     }
 
-    // Canvas wrap (must be lowercase for Prodigi API)
-    if (frameConfig.wrap) {
-      attributes.wrap = frameConfig.wrap.toLowerCase();
+    // Canvas wrap (must be capitalized for Prodigi API: White, MirrorWrap, ImageWrap, Black)
+    // For canvas products (SKU starts with "can-"), wrap is required
+    const isCanvasProduct = sku?.toLowerCase().startsWith('can-') || sku?.toLowerCase().includes('canvas');
+    
+    if (frameConfig.wrap && frameConfig.wrap !== 'none') {
+      // Convert to Prodigi format (capitalize first letter, handle special cases)
+      const wrapValue = frameConfig.wrap.toLowerCase();
+      if (wrapValue === 'black') {
+        attributes.wrap = 'Black';
+      } else if (wrapValue === 'white') {
+        attributes.wrap = 'White';
+      } else if (wrapValue === 'mirror' || wrapValue === 'mirrorwrap') {
+        attributes.wrap = 'MirrorWrap';
+      } else if (wrapValue === 'image' || wrapValue === 'imagewrap') {
+        attributes.wrap = 'ImageWrap';
+      } else {
+        // Default to capitalized version
+        attributes.wrap = frameConfig.wrap.charAt(0).toUpperCase() + frameConfig.wrap.slice(1).toLowerCase();
+      }
+    } else if (isCanvasProduct) {
+      // Canvas products require wrap attribute - default to ImageWrap if not specified
+      console.log('[Shipping] Canvas product detected, adding default wrap attribute');
+      attributes.wrap = 'ImageWrap';
     }
 
     // Glaze (convert 'acrylic' to 'Acrylic / Perspex')
@@ -265,7 +291,15 @@ export class ShippingService {
       }
     }
 
-    return attributes;
+    // Filter out undefined, null, or empty string values
+    const filteredAttributes: Record<string, string> = {};
+    for (const [key, value] of Object.entries(attributes)) {
+      if (value !== undefined && value !== null && value !== '') {
+        filteredAttributes[key] = value;
+      }
+    }
+
+    return filteredAttributes;
   }
 }
 

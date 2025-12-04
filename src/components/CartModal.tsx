@@ -92,24 +92,60 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
   }, []);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
 
   const fetchCart = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setCartData(null);
+      return;
+    }
+
+    // Wait for session token before fetching (same pattern as CartContext)
+    if (!session?.access_token) {
+      console.log('CartModal: Waiting for session to be ready...');
+      return; // Don't fetch yet
+    }
     
     setLoading(true);
     try {
-      const response = await fetch('/api/cart', {
+      // Use v2 checkout API with JWT authentication
+      const response = await fetch('/api/v2/checkout/cart?country=US&shippingMethod=Standard', {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          toast({
+            title: 'Authentication Required',
+            description: 'Please sign in to view your cart.',
+            variant: 'destructive',
+          });
+          return;
+        }
         throw new Error('Failed to fetch cart');
       }
 
       const data = await response.json();
-      setCartData(data);
+      
+      // Transform v2 response to match CartModal's expected format
+      const cartData = data.cart 
+        ? {
+            cartItems: data.cart.items || [],
+            totals: {
+              subtotal: data.cart.totals?.subtotal || 0,
+              taxAmount: data.cart.totals?.tax || 0,
+              shippingAmount: data.cart.totals?.shipping || 0,
+              total: data.cart.totals?.total || 0,
+              itemCount: data.cart.items?.length || 0,
+            },
+          }
+        : data;
+      
+      setCartData(cartData);
     } catch (error) {
       console.error('Error fetching cart:', error);
       toast({
@@ -120,23 +156,53 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, session, toast]);
 
   useEffect(() => {
-    if (isOpen && user) {
+    // Only fetch when modal is open, user exists, AND session token is ready
+    if (isOpen && user && session?.access_token) {
       fetchCart();
+    } else if (isOpen && user && !session?.access_token) {
+      console.log('CartModal: User exists but session not ready, waiting...');
     }
-  }, [isOpen, user, fetchCart]);
+  }, [isOpen, user, session?.access_token, fetchCart]);
 
   const updateQuantity = async (cartItemId: string, newQuantity: number) => {
-    if (!user || newQuantity < 1 || newQuantity > 10) return;
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to update cart items.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!session?.access_token) {
+      toast({
+        title: 'Session Loading',
+        description: 'Please wait a moment and try again.',
+        variant: 'default',
+      });
+      return;
+    }
+
+    if (newQuantity < 1 || newQuantity > 10) {
+      toast({
+        title: 'Invalid Quantity',
+        description: 'Quantity must be between 1 and 10.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setUpdating(cartItemId);
     try {
-      const response = await fetch('/api/cart', {
+      // Use v2 checkout API
+      const response = await fetch('/api/v2/checkout/cart', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -146,6 +212,14 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          toast({
+            title: 'Authentication Required',
+            description: 'Please sign in to update cart items.',
+            variant: 'destructive',
+          });
+          return;
+        }
         throw new Error('Failed to update quantity');
       }
 
@@ -167,16 +241,44 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
   };
 
   const removeItem = async (cartItemId: string) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to remove cart items.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!session?.access_token) {
+      toast({
+        title: 'Session Loading',
+        description: 'Please wait a moment and try again.',
+        variant: 'default',
+      });
+      return;
+    }
 
     setUpdating(cartItemId);
     try {
-      const response = await fetch(`/api/cart/${cartItemId}`, {
+      // Use v2 checkout API
+      const response = await fetch(`/api/v2/checkout/cart/${cartItemId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          toast({
+            title: 'Authentication Required',
+            description: 'Please sign in to remove cart items.',
+            variant: 'destructive',
+          });
+          return;
+        }
         throw new Error('Failed to remove item');
       }
 
@@ -198,27 +300,61 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
   };
 
   const handleCheckout = async () => {
-    if (!user || !cartData || cartData.cartItems.length === 0) return;
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to checkout.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!session?.access_token) {
+      toast({
+        title: 'Session Loading',
+        description: 'Please wait a moment and try again.',
+        variant: 'default',
+      });
+      return;
+    }
+
+    if (!cartData || cartData.cartItems.length === 0) {
+      toast({
+        title: 'Empty Cart',
+        description: 'Please add items to your cart before checking out.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
-      // Get the session to access the token for authentication
-      const { data: { session } } = await supabase.auth.getSession();
-
-      const response = await fetch('/api/checkout/create-session', {
+      // Use v2 checkout session API with context session (consistent with other functions)
+      const response = await fetch('/api/v2/checkout/session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(session?.access_token && {
-            'Authorization': `Bearer ${session.access_token}`
-          })
+          'Authorization': `Bearer ${session.access_token}` // Use context session
         },
         credentials: 'include',
         body: JSON.stringify({
           cartItemIds: cartData.cartItems.map(item => item.id),
+          shippingAddress: {
+            address1: '', // CartModal doesn't collect address, will need to be provided
+            city: '',
+            country: 'US',
+          },
         }),
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          toast({
+            title: 'Authentication Required',
+            description: 'Please sign in to checkout.',
+            variant: 'destructive',
+          });
+          return;
+        }
         throw new Error('Failed to create checkout session');
       }
 

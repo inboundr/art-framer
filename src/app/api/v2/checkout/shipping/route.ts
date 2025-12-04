@@ -60,7 +60,9 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate body
     const body = await request.json();
+    console.log('📥 Shipping API received request:', JSON.stringify(body, null, 2));
     const validated = ShippingRequestSchema.parse(body);
+    console.log('✅ Shipping API request validated:', JSON.stringify(validated, null, 2));
     const address = validateShippingAddress(validated.address);
 
     // Initialize services
@@ -115,21 +117,31 @@ export async function POST(request: NextRequest) {
       addressValidated: true,
     });
   } catch (error) {
-    console.error('Error calculating shipping:', error);
+    console.error('❌ Error calculating shipping:', error);
     if (error instanceof z.ZodError) {
+      console.error('❌ Validation error details:', JSON.stringify(error.issues, null, 2));
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.issues },
+        { 
+          error: 'Invalid request data', 
+          details: error.issues.map(issue => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+            code: issue.code,
+          }))
+        },
         { status: 400 }
       );
     }
     if (error instanceof ShippingError) {
+      console.error('❌ Shipping error:', error.message, error.details);
       return NextResponse.json(
         { error: error.message, details: error.details },
         { status: error.statusCode }
       );
     }
+    console.error('❌ Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Failed to calculate shipping' },
+      { error: 'Failed to calculate shipping', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

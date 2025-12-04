@@ -56,6 +56,9 @@ export class QuotesAPI {
   async create(quoteRequest: CreateQuoteRequest): Promise<Quote[]> {
     this.validateQuoteRequest(quoteRequest);
 
+    // Log the request being sent to Prodigi for debugging
+    console.error('[QuotesAPI] Creating quote request:', JSON.stringify(quoteRequest, null, 2));
+
     const response = await this.client.request<CreateQuoteResponse>({
       method: 'POST',
       endpoint: '/quotes',
