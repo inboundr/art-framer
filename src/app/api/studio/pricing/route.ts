@@ -151,7 +151,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 4: Build attributes based on what the product actually supports
-    const attributes = buildProductAttributes(config, product.attributes);
+    // Use the unified attribute builder which handles all required attributes
+    const { buildProdigiAttributes } = await import('@/lib/checkout/utils/attribute-builder');
+    const attributes = buildProdigiAttributes(config, {
+      validAttributes: product.attributes,
+      sku,
+    });
     console.log('[Pricing] Product valid attributes:', Object.keys(product.attributes));
     console.log('[Pricing] Attributes being sent:', attributes);
 
@@ -383,6 +388,8 @@ export async function POST(request: NextRequest) {
  * @param config - User configuration
  * @param validAttributes - Product's supported attributes from Prodigi API (Record<attributeName, validValues[]>)
  * @returns Filtered attributes that the SKU actually accepts
+ * 
+ * @deprecated Use buildProdigiAttributes from @/lib/checkout/utils/attribute-builder instead
  */
 function buildProductAttributes(
   config: any,
@@ -511,6 +518,44 @@ function buildProductAttributes(
   addIfValid('edge', config.edge); // Canvas edge
   addIfValid('frame', config.frameStyle); // Frame style
 
+  // Check if finish is required but not set (metal products require finish)
+  // This handles cases where finish is required but not provided or invalid
+  if (!attributes['finish'] && isValidAttribute('finish') && validAttributes['finish'] && validAttributes['finish'].length > 0) {
+    // Product requires a finish but none was set (or invalid value was provided)
+    // Prefer "high gloss" or "satin" as defaults, fallback to first available
+    const preferredFinishes = ['high gloss', 'satin', 'mid-gloss', 'sheer glossy', 'sheer matte'];
+    const defaultFinish = preferredFinishes.find(f => 
+      validAttributes['finish'].some(v => v.toLowerCase() === f.toLowerCase())
+    ) || validAttributes['finish'][0];
+    
+    // Use exact case from Prodigi
+    const matchingFinish = validAttributes['finish'].find(
+      opt => opt.toLowerCase() === defaultFinish.toLowerCase()
+    ) || validAttributes['finish'][0];
+    
+    console.log(`[Attributes] Product has finish attribute but finish is not set. Using default: ${matchingFinish}`);
+    attributes['finish'] = matchingFinish;
+  }
+
+  // Check if wrap is required but not set (canvas and framed-canvas products require wrap)
+  // This handles cases where wrap is required but not provided or invalid
+  if (!attributes['wrap'] && isValidAttribute('wrap') && validAttributes['wrap'] && validAttributes['wrap'].length > 0) {
+    // Product requires a wrap but none was set (or invalid value was provided)
+    // Prefer "ImageWrap" or "Black" as defaults, fallback to first available
+    const preferredWraps = ['ImageWrap', 'Black', 'White', 'MirrorWrap'];
+    const defaultWrap = preferredWraps.find(w => 
+      validAttributes['wrap'].some(v => v.toLowerCase() === w.toLowerCase())
+    ) || validAttributes['wrap'][0];
+    
+    // Use exact case from Prodigi
+    const matchingWrap = validAttributes['wrap'].find(
+      opt => opt.toLowerCase() === defaultWrap.toLowerCase()
+    ) || validAttributes['wrap'][0];
+    
+    console.log(`[Attributes] Product has wrap attribute but wrap is not set. Using default: ${matchingWrap}`);
+    attributes['wrap'] = matchingWrap;
+  }
+
   // Check if color is required but not set (either config.frameColor was invalid or not provided)
   // This handles cases where user selects an invalid color (e.g., "Gold" when only "black", "white", etc. are valid)
   if (!attributes['color'] && isValidAttribute('color') && validAttributes['color'] && validAttributes['color'].length > 0) {
@@ -518,6 +563,20 @@ function buildProductAttributes(
     const defaultColor = validAttributes['color'][0];
     console.log(`[Attributes] Product has color attribute but color is not set. Using default: ${defaultColor}`);
     attributes['color'] = defaultColor;
+  }
+
+  // Check if paperType is required but not set
+  if (!attributes['paperType'] && isValidAttribute('paperType') && validAttributes['paperType'] && validAttributes['paperType'].length > 0) {
+    const defaultPaperType = validAttributes['paperType'][0];
+    console.log(`[Attributes] Product has paperType attribute but paperType is not set. Using default: ${defaultPaperType}`);
+    attributes['paperType'] = defaultPaperType;
+  }
+
+  // Check if edge is required but not set (canvas products sometimes require edge)
+  if (!attributes['edge'] && isValidAttribute('edge') && validAttributes['edge'] && validAttributes['edge'].length > 0) {
+    const defaultEdge = validAttributes['edge'][0];
+    console.log(`[Attributes] Product has edge attribute but edge is not set. Using default: ${defaultEdge}`);
+    attributes['edge'] = defaultEdge;
   }
 
   // IMPORTANT: Prodigi's API has inconsistent casing for wrap values

@@ -5,6 +5,7 @@
  */
 
 import { ProdigiClient } from '@/lib/prodigi';
+import { buildProdigiAttributesHeuristic } from '../utils/attribute-builder';
 import type { Order, OrderItem } from '../types/order.types';
 import type { ShippingAddress } from '../types/order.types';
 
@@ -93,7 +94,7 @@ export class ProdigiAdapter {
           const baseSku = this.prodigiClient.extractBaseProdigiSku(item.sku);
 
           // Build attributes
-          const attributes = this.buildAttributes(item.frameConfig);
+          const attributes = this.buildAttributes(item.frameConfig, baseSku);
 
           return {
             merchantReference: `item-${item.id}`,
@@ -187,35 +188,28 @@ export class ProdigiAdapter {
 
   /**
    * Build Prodigi attributes from frame config
+   * Uses heuristic approach since we don't have product API access here
    */
-  private buildAttributes(frameConfig: OrderItem['frameConfig']): Record<string, string> {
-    const attributes: Record<string, string> = {};
-
-    // Frame color
-    if (frameConfig.color) {
-      attributes.color = frameConfig.color;
+  private buildAttributes(frameConfig: OrderItem['frameConfig'], sku?: string): Record<string, string> {
+    if (!frameConfig) {
+      return {};
     }
 
-    // Canvas wrap (must be lowercase for Prodigi API)
-    if (frameConfig.wrap) {
-      attributes.wrap = frameConfig.wrap.toLowerCase();
-    }
-
-    // Glaze (convert 'acrylic' to 'Acrylic / Perspex')
-    if (frameConfig.glaze && frameConfig.glaze !== 'none') {
-      attributes.glaze = frameConfig.glaze === 'acrylic' ? 'Acrylic / Perspex' : frameConfig.glaze;
-    }
-
-    // Mount and mountColor (mountColor is required when mount is set)
-    if (frameConfig.mount && frameConfig.mount !== 'none') {
-      attributes.mount = frameConfig.mount;
-      // If mountColor is provided, use it; otherwise Prodigi will use default
-      if (frameConfig.mountColor) {
-        attributes.mountColor = frameConfig.mountColor;
-      }
-    }
-
-    return attributes;
+    // Use unified attribute builder with heuristic approach
+    return buildProdigiAttributesHeuristic(
+      {
+        frameColor: frameConfig.color,
+        wrap: frameConfig.wrap,
+        glaze: frameConfig.glaze,
+        mount: frameConfig.mount,
+        mountColor: frameConfig.mountColor,
+        paperType: frameConfig.paperType,
+        finish: frameConfig.finish,
+        edge: frameConfig.edge,
+        frameStyle: frameConfig.style,
+      },
+      sku
+    );
   }
 }
 

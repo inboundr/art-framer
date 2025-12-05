@@ -240,7 +240,7 @@ class FacetService {
         finishes: ['Gloss', 'Matte'],
         edges: ['19mm', '38mm'],
         wraps: ['Black', 'White', 'ImageWrap', 'MirrorWrap'],
-        sizes: [],
+        sizes: [], // Sizes will be fetched separately via catalog service for accuracy
       };
     }
 
@@ -264,7 +264,7 @@ class FacetService {
         finishes: [],
         edges: [],
         wraps: [],
-        sizes: [],
+        sizes: [], // Sizes will be fetched separately via catalog service for accuracy
       };
     }
 
@@ -288,7 +288,7 @@ class FacetService {
         finishes: ['Gloss', 'High Gloss'],
         edges: [],
         wraps: [],
-        sizes: [],
+        sizes: [], // Sizes will be fetched separately via catalog service for accuracy
       };
     }
 
@@ -312,7 +312,7 @@ class FacetService {
         finishes: ['Gloss', 'Matte'],
         edges: [],
         wraps: [],
-        sizes: [],
+        sizes: [], // Sizes will be fetched separately via catalog service for accuracy
       };
     }
 

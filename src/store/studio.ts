@@ -412,22 +412,45 @@ export const useStudioStore = create<StudioStore>()(
         setFacetsLoading(true);
         
         try {
-          const response = await fetch('/api/studio/facets', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              productType: typeToUse,
-              country: 'US',
+          // Fetch facets and sizes in parallel
+          const [facetsResponse, sizesResponse] = await Promise.allSettled([
+            fetch('/api/studio/facets', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                productType: typeToUse,
+                country: 'US',
+              }),
             }),
-          });
+            fetch(`/api/studio/sizes?productType=${typeToUse}&country=US`, {
+              method: 'GET',
+            }),
+          ]);
           
-          if (response.ok) {
-            const data = await response.json();
-            updateAvailableOptions(data.availableOptions);
-            console.log('[Store] Updated available options:', data.availableOptions);
-          } else {
-            console.error('[Store] Failed to fetch available options:', response.status);
+          let availableOptions: any = {};
+          
+          // Process facets response
+          if (facetsResponse.status === 'fulfilled' && facetsResponse.value.ok) {
+            const facetsData = await facetsResponse.value.json();
+            availableOptions = facetsData.availableOptions || {};
           }
+          
+          // Process sizes response (more reliable than facets)
+          if (sizesResponse.status === 'fulfilled' && sizesResponse.value.ok) {
+            const sizesData = await sizesResponse.value.json();
+            if (sizesData.sizes && sizesData.sizes.length > 0) {
+              availableOptions.sizes = sizesData.sizes;
+              console.log(`[Store] Fetched ${sizesData.sizes.length} sizes for ${typeToUse} from catalog service`);
+            }
+          }
+          
+          // If no sizes from catalog, keep sizes from facets (if any)
+          if (!availableOptions.sizes || availableOptions.sizes.length === 0) {
+            console.log(`[Store] No sizes found for ${typeToUse}, using fallback`);
+          }
+          
+          updateAvailableOptions(availableOptions);
+          console.log('[Store] Updated available options:', availableOptions);
         } catch (error) {
           console.error('[Store] Error fetching available options:', error);
         } finally {

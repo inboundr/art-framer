@@ -24,8 +24,37 @@ export function ConfigurationSummary() {
     updateAvailableOptionsAsync(config.productType);
   }, [config.productType, updateAvailableOptionsAsync]);
 
+  // Helper function to get normalized and sorted sizes list
+  const getNormalizedSizes = (): string[] => {
+    let baseOptions: string[] = [];
+    
+    if (availableOptions?.sizes && availableOptions.sizes.length > 0) {
+      // Normalize facet sizes to "WxH" format (facets might have different formats)
+      baseOptions = availableOptions.sizes.map(size => {
+        // Normalize formats like "8x10", "8×10", "8 x 10" to "8x10"
+        return size.replace(/[×\s]/g, 'x').toLowerCase();
+      });
+    } else {
+      // Fallback to static FRAME_SIZES
+      baseOptions = FRAME_SIZES.map(s => s.inches);
+    }
+    
+    // Ensure current size is included (in case it comes from a SKU that's not in the list)
+    if (config.size && !baseOptions.includes(config.size)) {
+      baseOptions = [...baseOptions, config.size];
+    }
+    
+    // Sort by area (width * height)
+    return baseOptions.sort((a, b) => {
+      const [aw, ah] = a.split('x').map(Number);
+      const [bw, bh] = b.split('x').map(Number);
+      return (aw * ah) - (bw * bh);
+    });
+  };
+
   // Build dynamic options based on available facets
   const getOptions = () => {
+    const normalizedSizes = getNormalizedSizes();
     const opts: Array<{
       label: string;
       value: any;
@@ -57,31 +86,18 @@ export function ConfigurationSummary() {
         value: config.size,
         key: 'size',
         editable: true,
-        options: (() => {
-          // Start with available options from Prodigi if available
-          const baseOptions = availableOptions?.sizes && availableOptions.sizes.length > 0
-            ? availableOptions.sizes
-            : FRAME_SIZES.map(s => s.inches);
-          
-          // Ensure current size is included (in case it comes from a SKU that's not in the list)
-          if (config.size && !baseOptions.includes(config.size)) {
-            return [...baseOptions, config.size];
-          }
-          
-          return baseOptions;
-        })(),
+        options: normalizedSizes,
         displayNames: (() => {
-          // Build display names from FRAME_SIZES
-          const displayNames = FRAME_SIZES.reduce((acc, size) => {
-            acc[size.inches] = size.label;
-            return acc;
-          }, {} as Record<string, string>);
+          // Build display names for ALL sizes in the options list
+          // This ensures every size has a proper label with CM conversion
+          const displayNames: Record<string, string> = {};
           
-          // Add current size if it's not in the list (dynamic entry)
-          if (config.size && !displayNames[config.size]) {
-            const sizeEntry = getSizeEntry(config.size);
-            displayNames[config.size] = sizeEntry.label;
-          }
+          // Generate display names for all sizes using getSizeEntry
+          // This will create dynamic entries with CM conversions for any size
+          normalizedSizes.forEach(size => {
+            const sizeEntry = getSizeEntry(size);
+            displayNames[size] = sizeEntry.label;
+          });
           
           return displayNames;
         })(),

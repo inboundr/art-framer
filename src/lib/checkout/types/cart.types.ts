@@ -23,6 +23,9 @@ export interface CartItem {
     mountColor?: string;
     glaze?: string;
     wrap?: string;
+    paperType?: string;
+    finish?: string;
+    edge?: string;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -37,8 +40,12 @@ export interface CartItemInput {
     style?: string;
     material?: string;
     mount?: string;
+    mountColor?: string;
     glaze?: string;
     wrap?: string;
+    paperType?: string;
+    finish?: string;
+    edge?: string;
   };
 }
 

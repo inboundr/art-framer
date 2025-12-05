@@ -77,6 +77,9 @@ export interface OrderItem {
     mountColor?: string;
     glaze?: string;
     wrap?: string;
+    paperType?: string;
+    finish?: string;
+    edge?: string;
   };
   createdAt: Date;
 }

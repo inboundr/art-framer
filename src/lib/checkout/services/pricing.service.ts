@@ -12,6 +12,7 @@ import { ProdigiClient } from '@/lib/prodigi-v2/client';
 import { QuotesAPI } from '@/lib/prodigi-v2/quotes';
 import { CurrencyService } from '@/lib/currency';
 import { PricingError } from '../types/errors';
+import { buildProdigiAttributesHeuristic } from '../utils/attribute-builder';
 import type {
   CartItem,
   CartTotals,
@@ -419,62 +420,30 @@ export class PricingService {
 
   /**
    * Build Prodigi attributes from frame config
+   * Uses heuristic approach since we don't have product API access here
    */
   private buildAttributes(frameConfig: CartItem['frameConfig'], sku?: string): Record<string, string> {
-    const attributes: Record<string, string> = {};
-
     // Handle undefined frameConfig
     if (!frameConfig) {
       console.warn('[Pricing] buildAttributes: frameConfig is undefined, returning empty attributes');
-      return attributes;
+      return {};
     }
 
-    // Frame color
-    if (frameConfig.color) {
-      attributes.color = frameConfig.color;
-    }
-
-    // Canvas wrap (must be capitalized for Prodigi API: White, MirrorWrap, ImageWrap, Black)
-    // For canvas products (SKU starts with "can-"), wrap is required
-    const isCanvasProduct = sku?.toLowerCase().startsWith('can-') || sku?.toLowerCase().includes('canvas');
-    
-    if (frameConfig.wrap && frameConfig.wrap !== 'none') {
-      // Convert to Prodigi format (capitalize first letter, handle special cases)
-      const wrapValue = frameConfig.wrap.toLowerCase();
-      if (wrapValue === 'black') {
-        attributes.wrap = 'Black';
-      } else if (wrapValue === 'white') {
-        attributes.wrap = 'White';
-      } else if (wrapValue === 'mirror' || wrapValue === 'mirrorwrap') {
-        attributes.wrap = 'MirrorWrap';
-      } else if (wrapValue === 'image' || wrapValue === 'imagewrap') {
-        attributes.wrap = 'ImageWrap';
-      } else {
-        // Default to capitalized version
-        attributes.wrap = frameConfig.wrap.charAt(0).toUpperCase() + frameConfig.wrap.slice(1).toLowerCase();
-      }
-    } else if (isCanvasProduct) {
-      // Canvas products require wrap attribute - default to ImageWrap if not specified
-      console.log('[Pricing] Canvas product detected, adding default wrap attribute');
-      attributes.wrap = 'ImageWrap';
-    }
-
-    // Glaze (convert 'acrylic' to 'Acrylic / Perspex')
-    if (frameConfig.glaze && frameConfig.glaze !== 'none') {
-      attributes.glaze = frameConfig.glaze === 'acrylic' ? 'Acrylic / Perspex' : frameConfig.glaze;
-    }
-
-    // Mount and mountColor (mountColor is required when mount is set)
-    if (frameConfig.mount && frameConfig.mount !== 'none') {
-      attributes.mount = frameConfig.mount;
-      // If mountColor is provided, use it; otherwise Prodigi will use default
-      if (frameConfig.mountColor) {
-        attributes.mountColor = frameConfig.mountColor;
-      }
-    }
-
-    console.log('[Pricing] Built attributes:', attributes, 'for SKU:', sku);
-    return attributes;
+    // Use unified attribute builder with heuristic approach
+    return buildProdigiAttributesHeuristic(
+      {
+        frameColor: frameConfig.color,
+        wrap: frameConfig.wrap,
+        glaze: frameConfig.glaze,
+        mount: frameConfig.mount,
+        mountColor: frameConfig.mountColor,
+        paperType: frameConfig.paperType,
+        finish: frameConfig.finish,
+        edge: frameConfig.edge,
+        frameStyle: frameConfig.style,
+      },
+      sku
+    );
   }
 
   /**
