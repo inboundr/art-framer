@@ -213,6 +213,7 @@ async function testPricingForProduct(
     
     // Get quotes sequentially to avoid rate limits
     const quotes: any[] = [];
+    let firstError: any = null;
     for (const method of shippingMethods) {
       try {
         const quote = await prodigiSDK.quotes.create({
@@ -227,11 +228,15 @@ async function testPricingForProduct(
             },
           ],
         });
-        if (quote && !quote.error) {
-          quotes.push(...(Array.isArray(quote) ? quote : [quote]));
+        if (quote && Array.isArray(quote) && quote.length > 0) {
+          quotes.push(...quote);
         }
         await delay(DELAY_BETWEEN_REQUESTS); // Delay between each shipping method
       } catch (error: any) {
+        // Track first error for reporting
+        if (!firstError) {
+          firstError = error;
+        }
         // Check if rate limited
         if (error.message?.includes('429') || error.message?.includes('rate limit') || error.message?.includes('quota exceeded')) {
           console.log(`\n  ⚠️  Rate limit hit, waiting ${RATE_LIMIT_DELAY/1000}s...`);
@@ -250,8 +255,8 @@ async function testPricingForProduct(
                 },
               ],
             });
-            if (quote && !quote.error) {
-              quotes.push(...(Array.isArray(quote) ? quote : [quote]));
+            if (quote && Array.isArray(quote) && quote.length > 0) {
+              quotes.push(...quote);
             }
           } catch (retryError: any) {
             // Skip this method if retry also fails
@@ -269,7 +274,7 @@ async function testPricingForProduct(
         config,
         destination,
         success: false,
-        error: firstError?.error || 'No shipping quotes available',
+        error: firstError?.message || 'No shipping quotes available',
         errorCode: 'NO_QUOTES',
         duration: Date.now() - startTime,
         timestamp: new Date().toISOString(),
@@ -545,7 +550,7 @@ async function runComprehensiveTest(): Promise<void> {
             sample.sku,
             sample.size,
             destination,
-            testConfig.color
+            'color' in testConfig ? testConfig.color : undefined
           );
 
           results.push(result);

@@ -309,7 +309,7 @@ async function runComprehensiveTest(): Promise<void> {
             productType,
             size,
             destination,
-            testConfig.color
+            'color' in testConfig ? testConfig.color : undefined
           );
 
           results.push(result);

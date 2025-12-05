@@ -43,3 +43,5 @@ next-env.d.ts
 # Large 3D model files (too large for GitHub)
 *.glb
 /public/samples/rooms/**/*.glb
+# Sentry Config File
+.env.sentry-build-plugin

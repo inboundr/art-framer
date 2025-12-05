@@ -97,7 +97,8 @@ async function discoverColorsForProductType(
             variations.forEach(v => colors.add(v));
           });
         } else if (typeof product.attributes.color === 'string') {
-          const normalized = product.attributes.color.toLowerCase().trim();
+          const colorValue = product.attributes.color as string;
+          const normalized = colorValue.toLowerCase().trim();
           colors.add(normalized);
           colors.add(normalized.replace(/\s+/g, '-'));
           colors.add(normalized.replace(/-/g, ' '));
