@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useProdigiFrameCatalog, useFrameCatalogStats } from '@/hooks/useProdigiFrameCatalog';
+import { FRAME_SIZES } from '@/lib/utils/size-conversion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,9 @@ export function FrameCatalogDemo() {
     getAvailableSizes,
     isAvailable
   } = useProdigiFrameCatalog();
+
+  // Get all sizes from FRAME_SIZES (matching studio dropdown)
+  const allSizes = useMemo(() => FRAME_SIZES.map(s => s.inches), []);
 
   if (loading) {
     return (
@@ -139,19 +143,22 @@ export function FrameCatalogDemo() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-2 font-medium">Color</th>
-                  {['small', 'medium', 'large', 'extra_large'].map(size => (
-                    <th key={size} className="p-2 text-center font-medium capitalize">
-                      {size.replace('_', ' ')}
-                    </th>
-                  ))}
+                  <th className="text-left p-2 font-medium sticky left-0 bg-white z-10">Color</th>
+                  {allSizes.map(size => {
+                    const sizeEntry = FRAME_SIZES.find(s => s.inches === size);
+                    return (
+                      <th key={size} className="p-2 text-center font-medium min-w-[80px]">
+                        {sizeEntry ? sizeEntry.label : size.replace('x', '×')}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
                 {colors.map(color => (
                   <tr key={color} className="border-b hover:bg-gray-50">
-                    <td className="p-2 font-medium capitalize">{color}</td>
-                    {['small', 'medium', 'large', 'extra_large'].map(size => (
+                    <td className="p-2 font-medium capitalize sticky left-0 bg-white z-10">{color}</td>
+                    {allSizes.map(size => (
                       <td key={size} className="p-2 text-center">
                         {isAvailable(color, size) ? (
                           <CheckCircle className="w-5 h-5 text-green-500 mx-auto" />

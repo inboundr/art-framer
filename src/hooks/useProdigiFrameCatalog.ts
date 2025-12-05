@@ -111,8 +111,24 @@ export function useProdigiFrameCatalog(): UseProdigiFrameCatalogReturn {
     if (!colorCombinations) return [];
     
     return Object.keys(colorCombinations).sort((a, b) => {
-      const order = ['small', 'medium', 'large', 'extra_large'];
-      return order.indexOf(a) - order.indexOf(b);
+      // V2 sizing: Sort by actual size (e.g., "8x10", "16x20")
+      // Parse sizes and sort by area (width * height)
+      if (/^\d+x\d+$/.test(a) && /^\d+x\d+$/.test(b)) {
+        const [aWidth, aHeight] = a.split('x').map(Number);
+        const [bWidth, bHeight] = b.split('x').map(Number);
+        const aArea = aWidth * aHeight;
+        const bArea = bWidth * bHeight;
+        return aArea - bArea;
+      }
+      
+      // Legacy compatibility: Sort by enum order
+      const legacyOrder = ['small', 'medium', 'large', 'extra_large'];
+      const aIndex = legacyOrder.indexOf(a);
+      const bIndex = legacyOrder.indexOf(b);
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      return a.localeCompare(b);
     });
   }, [combinations]);
 

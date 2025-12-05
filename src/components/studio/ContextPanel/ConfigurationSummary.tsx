@@ -8,7 +8,7 @@
 
 import { useEffect } from 'react';
 import { useStudioStore } from '@/store/studio';
-import { FRAME_SIZES, getSizeInCm } from '@/lib/utils/size-conversion';
+import { FRAME_SIZES, getSizeInCm, getSizeEntry } from '@/lib/utils/size-conversion';
 
 export function ConfigurationSummary() {
   const { 
@@ -57,13 +57,34 @@ export function ConfigurationSummary() {
         value: config.size,
         key: 'size',
         editable: true,
-        options: availableOptions?.sizes && availableOptions.sizes.length > 0
-          ? availableOptions.sizes
-          : FRAME_SIZES.map(s => s.inches),
-        displayNames: FRAME_SIZES.reduce((acc, size) => {
-          acc[size.inches] = size.label;
-          return acc;
-        }, {} as Record<string, string>),
+        options: (() => {
+          // Start with available options from Prodigi if available
+          const baseOptions = availableOptions?.sizes && availableOptions.sizes.length > 0
+            ? availableOptions.sizes
+            : FRAME_SIZES.map(s => s.inches);
+          
+          // Ensure current size is included (in case it comes from a SKU that's not in the list)
+          if (config.size && !baseOptions.includes(config.size)) {
+            return [...baseOptions, config.size];
+          }
+          
+          return baseOptions;
+        })(),
+        displayNames: (() => {
+          // Build display names from FRAME_SIZES
+          const displayNames = FRAME_SIZES.reduce((acc, size) => {
+            acc[size.inches] = size.label;
+            return acc;
+          }, {} as Record<string, string>);
+          
+          // Add current size if it's not in the list (dynamic entry)
+          if (config.size && !displayNames[config.size]) {
+            const sizeEntry = getSizeEntry(config.size);
+            displayNames[config.size] = sizeEntry.label;
+          }
+          
+          return displayNames;
+        })(),
         description: getSizeInCm(config.size),
         showIf: true,
       },

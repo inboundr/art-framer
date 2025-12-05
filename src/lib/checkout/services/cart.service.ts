@@ -15,6 +15,7 @@ import type {
 } from '../types/cart.types';
 import { PricingService } from './pricing.service';
 import type { ShippingMethod } from '../types/order.types';
+import { extractSizeFromSku } from '@/lib/utils/size-conversion';
 
 export class CartService {
   constructor(
@@ -66,7 +67,7 @@ export class CartService {
       if (this.prodigiClient) {
         try {
           const freshSku = await this.prodigiClient.generateFrameSku(
-            product.frame_size || 'medium',
+            product.frame_size || '16x20', // V2 sizing: default to "16x20" instead of 'medium'
             product.frame_style || 'black',
             product.frame_material || 'wood',
             product.image_id
@@ -103,7 +104,7 @@ export class CartService {
               originalPrice: product.price,
               currency: 'USD',
               frameConfig: {
-                size: product.frame_size || 'medium',
+                size: product.frame_size || '16x20', // V2 sizing: default to "16x20" instead of 'medium'
                 color: product.frame_style || 'black',
                 style: product.frame_style || 'black',
                 material: product.frame_material || 'wood',
@@ -491,6 +492,16 @@ export class CartService {
    */
   private formatCartItem(dbItem: any, price: number): CartItem {
     const product = dbItem.products as any;
+    
+    // Extract actual size from SKU if available, otherwise use stored frame_size
+    let size = product.frame_size || '16x20'; // V2 sizing: default to "16x20" instead of 'medium'
+    if (product.sku) {
+      const extractedSize = extractSizeFromSku(product.sku);
+      if (extractedSize) {
+        size = extractedSize;
+      }
+    }
+    
     return {
       id: dbItem.id,
       productId: dbItem.product_id,
@@ -502,7 +513,7 @@ export class CartService {
       originalPrice: product.price || price,
       currency: 'USD',
       frameConfig: {
-        size: product.frame_size || 'medium',
+        size,
         color: product.frame_style || 'black',
         style: product.frame_style || 'black',
         material: product.frame_material || 'wood',

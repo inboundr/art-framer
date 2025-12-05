@@ -3,9 +3,10 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { authenticateRequest } from "@/lib/auth/jwtAuth";
 import { z } from "zod";
 
+// V2 sizing system: accepts actual sizes like "8x10", "12x30", "16x20", etc.
 const CreateProductSchema = z.object({
   imageId: z.string().uuid(),
-  frameSize: z.enum(['small', 'medium', 'large', 'extra_large']),
+  frameSize: z.string().regex(/^\d+x\d+$/, 'Frame size must be in format "WIDTHxHEIGHT" (e.g., "8x10", "16x20")'),
   frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey']),
   frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo', 'canvas', 'acrylic']).optional().default('wood'),
   price: z.number().positive(),
@@ -14,7 +15,7 @@ const CreateProductSchema = z.object({
 
 const GetProductsSchema = z.object({
   imageId: z.string().uuid().optional(),
-  frameSize: z.enum(['small', 'medium', 'large', 'extra_large']).optional(),
+  frameSize: z.string().regex(/^\d+x\d+$/, 'Frame size must be in format "WIDTHxHEIGHT"').optional(),
   frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey']).optional(),
   frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo', 'canvas', 'acrylic']).optional(),
   status: z.enum(['active', 'inactive', 'discontinued']).optional().default('active'),
@@ -324,13 +325,23 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// V2 sizing: Calculate dimensions from actual size string (e.g., "8x10" -> 8 inches x 10 inches)
 function getFrameDimensions(frameSize: string) {
-  const dimensions = {
-    small: { width: 20, height: 25, depth: 2 },
-    medium: { width: 30, height: 40, depth: 2 },
-    large: { width: 40, height: 50, depth: 3 },
-    extra_large: { width: 50, height: 70, depth: 3 }
-  };
+  // Parse size string (e.g., "8x10" -> width: 8, height: 10)
+  const [widthStr, heightStr] = frameSize.split('x');
+  const width = parseInt(widthStr || '16', 10);
+  const height = parseInt(heightStr || '20', 10);
   
-  return dimensions[frameSize as keyof typeof dimensions] || dimensions.medium;
+  // Convert inches to cm (1 inch = 2.54 cm)
+  // Add some padding for frame (add 2-3cm for frame border)
+  const framePadding = 2;
+  const widthCm = Math.round((width * 2.54) + framePadding);
+  const heightCm = Math.round((height * 2.54) + framePadding);
+  const depthCm = width > 20 || height > 20 ? 3 : 2; // Deeper frames for larger sizes
+  
+  return {
+    width: widthCm,
+    height: heightCm,
+    depth: depthCm
+  };
 }

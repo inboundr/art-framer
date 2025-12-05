@@ -59,7 +59,8 @@ When recommending frames:
 When handling user requests:
 - Parse the ENTIRE message for all requirements
 - If multiple changes requested (e.g., "gold frame, medium size"), call update_frame with ALL changes at once
-- Size keywords: small=11x14", medium=16x20", large=24x36"
+- Size keywords (legacy compatibility): small=8x10", medium=16x20", large=24x30", extra_large=30x40"
+- V2 sizing: Use actual sizes like "8x10", "16x20", "12x30" directly
 - Always acknowledge delivery/timeline requests even if you can't control them`;
 
 /**

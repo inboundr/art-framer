@@ -5,21 +5,31 @@ import { z } from 'zod';
 
 const CreateCuratedProductSchema = z.object({
   curatedImageId: z.string().uuid(),
-  frameSize: z.enum(['small', 'medium', 'large', 'extra_large']),
+  frameSize: z.string().regex(/^\d+x\d+$/, 'Frame size must be in format "WIDTHxHEIGHT" (e.g., "8x10", "16x20")'),
   frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey']),
   frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo', 'canvas', 'acrylic']),
   price: z.number().positive(),
 });
 
-// Frame dimensions mapping
+// V2 sizing: Calculate dimensions from actual size string (e.g., "8x10" -> 8 inches x 10 inches)
 const getFrameDimensions = (size: string) => {
-  const dimensions = {
-    small: { width: 200, height: 200, depth: 20 },
-    medium: { width: 300, height: 300, depth: 25 },
-    large: { width: 400, height: 400, depth: 30 },
-    extra_large: { width: 500, height: 500, depth: 35 },
+  // Parse size string (e.g., "8x10" -> width: 8, height: 10)
+  const [widthStr, heightStr] = size.split('x');
+  const width = parseInt(widthStr || '16', 10);
+  const height = parseInt(heightStr || '20', 10);
+  
+  // Convert inches to mm (1 inch = 25.4 mm)
+  // Add some padding for frame (add 20-30mm for frame border)
+  const framePadding = 20;
+  const widthMm = Math.round((width * 25.4) + framePadding);
+  const heightMm = Math.round((height * 25.4) + framePadding);
+  const depthMm = width > 20 || height > 20 ? 35 : 25; // Deeper frames for larger sizes
+  
+  return {
+    width: widthMm,
+    height: heightMm,
+    depth: depthMm
   };
-  return dimensions[size as keyof typeof dimensions] || dimensions.medium;
 };
 
 export async function POST(request: NextRequest) {

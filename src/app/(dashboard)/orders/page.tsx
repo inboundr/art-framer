@@ -262,7 +262,7 @@ export default function OrdersPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-sm">
-                    {item.products.frame_size} Frame
+                    {item.products.frame_size.replace('x', '×')} Frame
                   </h4>
                   <p className="text-xs text-muted-foreground line-clamp-1">
                     &ldquo;{item.products.images.prompt}&rdquo;
@@ -344,7 +344,7 @@ export default function OrdersPage() {
                       </div>
                       <div className="flex-1">
                         <h4 className="font-medium">
-                          {item.products.frame_size} Frame
+                          {item.products.frame_size.replace('x', '×')} Frame
                         </h4>
                         <p className="text-sm text-muted-foreground mb-2">
                           &ldquo;{item.products.images.prompt}&rdquo;

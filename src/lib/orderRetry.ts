@@ -284,7 +284,7 @@ export class OrderRetryManager {
           productSku: baseSku,
           quantity: item.quantity,
           imageUrl: publicImageUrl, // Use public URL instead of raw path
-          frameSize: item.products?.frame_size || 'medium',
+          frameSize: item.products?.frame_size || '16x20', // V2 sizing: default to "16x20" instead of 'medium'
           frameStyle: item.products?.frame_style || 'black',
           frameMaterial: item.products?.frame_material || 'wood',
         };

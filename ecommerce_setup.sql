@@ -14,11 +14,8 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
-DO $$ BEGIN
-    CREATE TYPE frame_size AS ENUM ('small', 'medium', 'large', 'extra_large');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+-- Note: frame_size enum removed - now using VARCHAR for v2 sizing system (actual sizes like "8x10", "16x20")
+-- Migration 20250131000002_migrate_to_v2_sizing_system.sql handles the conversion
 
 DO $$ BEGIN
     CREATE TYPE frame_style AS ENUM ('black', 'white', 'natural', 'gold', 'silver');
@@ -45,18 +42,19 @@ EXCEPTION
 END $$;
 
 -- Products table (framed images)
+-- V2 sizing system: frame_size is VARCHAR (e.g., "8x10", "16x20", "12x30")
 CREATE TABLE IF NOT EXISTS public.products (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   image_id UUID REFERENCES public.images(id) ON DELETE CASCADE NOT NULL,
-  frame_size frame_size NOT NULL,
+  frame_size VARCHAR(50) NOT NULL, -- V2 sizing: actual sizes like "8x10", "16x20", etc.
   frame_style frame_style NOT NULL,
   frame_material frame_material NOT NULL DEFAULT 'wood',
   price DECIMAL(10,2) NOT NULL,
   cost DECIMAL(10,2) NOT NULL,
-  weight_grams INTEGER NOT NULL DEFAULT 500,
   dimensions_cm JSONB NOT NULL,
   status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'discontinued')),
   sku VARCHAR(100) UNIQUE,
+  name VARCHAR(255) DEFAULT 'Framed Print',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -129,31 +127,7 @@ CREATE TABLE IF NOT EXISTS public.cart_items (
   UNIQUE(user_id, product_id)
 );
 
--- Product reviews table
-CREATE TABLE IF NOT EXISTS public.product_reviews (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL,
-  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  title VARCHAR(255),
-  comment TEXT,
-  images TEXT[],
-  is_verified_purchase BOOLEAN DEFAULT false,
-  is_approved BOOLEAN DEFAULT false,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, product_id, order_id)
-);
-
--- Wishlist table
-CREATE TABLE IF NOT EXISTS public.wishlist_items (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, product_id)
-);
+-- Note: product_reviews and wishlist_items tables removed as they are not used in the application
 
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_products_image_id ON public.products(image_id);
@@ -170,9 +144,6 @@ CREATE INDEX IF NOT EXISTS idx_dropship_orders_order_id ON public.dropship_order
 CREATE INDEX IF NOT EXISTS idx_dropship_orders_provider ON public.dropship_orders(provider);
 CREATE INDEX IF NOT EXISTS idx_dropship_orders_status ON public.dropship_orders(status);
 CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON public.cart_items(user_id);
-CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON public.product_reviews(product_id);
-CREATE INDEX IF NOT EXISTS idx_product_reviews_user_id ON public.product_reviews(user_id);
-CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_id ON public.wishlist_items(user_id);
 
 -- Enable RLS
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
@@ -180,8 +151,6 @@ ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dropship_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.product_reviews ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.wishlist_items ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS Policies (drop existing first to avoid conflicts)
 DROP POLICY IF EXISTS "Products are viewable by everyone" ON public.products;
@@ -192,11 +161,6 @@ DROP POLICY IF EXISTS "Users can update own orders" ON public.orders;
 DROP POLICY IF EXISTS "Users can view order items for own orders" ON public.order_items;
 DROP POLICY IF EXISTS "Users can view dropship orders for own orders" ON public.dropship_orders;
 DROP POLICY IF EXISTS "Users can manage own cart items" ON public.cart_items;
-DROP POLICY IF EXISTS "Product reviews are viewable by everyone" ON public.product_reviews;
-DROP POLICY IF EXISTS "Users can view own reviews" ON public.product_reviews;
-DROP POLICY IF EXISTS "Users can create reviews for own orders" ON public.product_reviews;
-DROP POLICY IF EXISTS "Users can update own reviews" ON public.product_reviews;
-DROP POLICY IF EXISTS "Users can manage own wishlist" ON public.wishlist_items;
 
 -- Products policies
 CREATE POLICY "Products are viewable by everyone" ON public.products
@@ -237,31 +201,6 @@ CREATE POLICY "Users can view dropship orders for own orders" ON public.dropship
 
 -- Cart items policies
 CREATE POLICY "Users can manage own cart items" ON public.cart_items
-  FOR ALL USING (auth.uid() = user_id);
-
--- Product reviews policies
-CREATE POLICY "Product reviews are viewable by everyone" ON public.product_reviews
-  FOR SELECT USING (is_approved = true);
-
-CREATE POLICY "Users can view own reviews" ON public.product_reviews
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can create reviews for own orders" ON public.product_reviews
-  FOR INSERT WITH CHECK (
-    auth.uid() = user_id AND
-    EXISTS (
-      SELECT 1 FROM public.orders 
-      WHERE orders.id = product_reviews.order_id 
-      AND orders.user_id = auth.uid()
-      AND orders.status = 'delivered'
-    )
-  );
-
-CREATE POLICY "Users can update own reviews" ON public.product_reviews
-  FOR UPDATE USING (auth.uid() = user_id);
-
--- Wishlist policies
-CREATE POLICY "Users can manage own wishlist" ON public.wishlist_items
   FOR ALL USING (auth.uid() = user_id);
 
 -- Create functions
@@ -361,16 +300,6 @@ CREATE TRIGGER handle_dropship_orders_updated_at
 DROP TRIGGER IF EXISTS handle_cart_items_updated_at ON public.cart_items;
 CREATE TRIGGER handle_cart_items_updated_at
   BEFORE UPDATE ON public.cart_items
-  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS handle_product_reviews_updated_at ON public.product_reviews;
-CREATE TRIGGER handle_product_reviews_updated_at
-  BEFORE UPDATE ON public.product_reviews
-  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS handle_wishlist_items_updated_at ON public.wishlist_items;
-CREATE TRIGGER handle_wishlist_items_updated_at
-  BEFORE UPDATE ON public.wishlist_items
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- Success message

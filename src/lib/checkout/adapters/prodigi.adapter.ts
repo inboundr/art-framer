@@ -130,7 +130,7 @@ export class ProdigiAdapter {
           productSku: item.sku,
           quantity: item.copies,
           imageUrl: item.assets[0].url,
-          frameSize: 'medium', // Extract from SKU if needed
+          frameSize: '16x20', // V2 sizing: Extract from SKU if needed, default to "16x20"
           frameStyle: 'black', // Extract from SKU if needed
           frameMaterial: 'wood', // Extract from SKU if needed
         })),

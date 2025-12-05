@@ -3,8 +3,8 @@ import { currencyService } from './currency';
 
 export interface FrameCatalogOption {
   sku: string;
-  size: 'small' | 'medium' | 'large' | 'extra_large';
-  sizeLabel: string; // e.g., "30x40cm"
+  size: string; // V2 sizing: actual sizes like "8x10", "16x20", etc. (legacy: 'small' | 'medium' | 'large' | 'extra_large' for internal categorization)
+  sizeLabel: string; // e.g., "30x40cm" or "8x10"
   style: string; // Frame color: black, white, natural, etc.
   material: string;
   price: number;
@@ -293,12 +293,22 @@ export class ProdigiFrameCatalog {
       const glaze = product.glaze?.[0] || product.attributes?.glaze?.[0];
       const mount = product.mount?.[0] || product.attributes?.mount?.[0];
 
-      // Map size to our categories
-      const mappedSize = this.mapSizeToCategory(
+      // Map size to our categories (for internal organization)
+      // Then convert to v2 sizing format
+      const categorySize = this.mapSizeToCategory(
         product.fullProductHorizontalDimensions,
         product.fullProductVerticalDimensions,
         product.sizeUnits
       );
+      
+      // Convert category to v2 sizing format
+      const categoryToV2Size: Record<string, string> = {
+        'small': '8x10',
+        'medium': '16x20',
+        'large': '24x30',
+        'extra_large': '30x40',
+      };
+      const mappedSize = categoryToV2Size[categorySize] || '16x20';
 
       // Calculate price (convert from base currency to USD) - now async with live rates
       const priceInUSD = await this.convertPrice(

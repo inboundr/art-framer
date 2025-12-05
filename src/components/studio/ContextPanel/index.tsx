@@ -149,9 +149,7 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
         credentials: 'include',
         body: JSON.stringify({
           imageId: imageId,
-          frameSize: config.size === '8x10' ? 'small' : 
-                    config.size === '11x14' ? 'medium' :
-                    config.size === '16x20' ? 'large' : 'extra_large',
+          frameSize: config.size, // V2 sizing: Use actual size directly (e.g., "8x10", "16x20")
           frameStyle: normalizedFrameStyle, // Use frameColor, normalized to valid database enum values
           frameMaterial: 'wood', // Default, can be enhanced later
           price: config.price,

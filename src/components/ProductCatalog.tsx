@@ -12,7 +12,7 @@ import { useCartNotification } from './CartNotificationToast';
 
 interface Product {
   id: string;
-  frame_size: 'small' | 'medium' | 'large' | 'extra_large';
+  frame_size: string; // V2 sizing: actual sizes like "8x10", "16x20", "12x30", etc.
   frame_style: 'black' | 'white' | 'natural' | 'gold' | 'silver';
   frame_material: 'wood' | 'metal' | 'plastic' | 'bamboo';
   price: number;
@@ -22,9 +22,9 @@ interface Product {
     height: number;
     depth: number;
   };
-  weight_grams: number;
   status: 'active' | 'inactive' | 'discontinued';
   sku: string;
+  name?: string;
   created_at: string;
   images: {
     id: string;
@@ -207,13 +207,27 @@ export function ProductCatalog({
   };
 
   const getFrameSizeLabel = (size: string) => {
-    const labels = {
+    // V2 sizing: Display actual size (e.g., "8x10", "16x20")
+    // Legacy compatibility: Still handle old enum values during migration
+    const legacyLabels: Record<string, string> = {
       small: 'Small',
       medium: 'Medium',
       large: 'Large',
       extra_large: 'Extra Large',
     };
-    return labels[size as keyof typeof labels] || size;
+    
+    // If it's a legacy enum value, use the label
+    if (legacyLabels[size]) {
+      return legacyLabels[size];
+    }
+    
+    // V2 sizing: Format as "WIDTH×HEIGHT" (e.g., "8×10", "16×20")
+    if (/^\d+x\d+$/.test(size)) {
+      return size.replace('x', '×');
+    }
+    
+    // Fallback: return as-is
+    return size;
   };
 
   const getFrameStyleLabel = (style: string) => {

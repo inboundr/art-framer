@@ -732,15 +732,44 @@ export class ProdigiClient {
    * Select the best known working SKU based on frame size
    */
   private selectBestKnownSku(frameSize: string, knownSkus: string[]): string | null {
-    // Map frame sizes to the best matching known SKUs
-    const sizeMapping: Record<string, string[]> = {
-      'small': ['GLOBAL-FAP-8X10', 'GLOBAL-CAN-10x10'],      // 8x10, 10x10
-      'medium': ['GLOBAL-FAP-11X14', 'GLOBAL-CFPM-16X20'],   // 11x14, 16x20
-      'large': ['GLOBAL-FAP-16X24', 'GLOBAL-CFPM-16X20'],    // 16x24, 16x20
-      'extra_large': ['GLOBAL-FRA-CAN-30X40']                // 30x40
-    };
-
-    const candidates = sizeMapping[frameSize] || [];
+    // V2 sizing: Map actual sizes (e.g., "8x10", "16x20") to known SKUs
+    // Legacy compatibility: Still handles old enum values during migration
+    
+    let candidates: string[] = [];
+    
+    // If in v2 format (e.g., "8x10"), map directly
+    if (/^\d+x\d+$/.test(frameSize)) {
+      const normalizedSize = frameSize.toUpperCase().replace('x', 'X');
+      // Try to find SKUs that contain this size
+      candidates = knownSkus.filter(sku => 
+        sku.includes(normalizedSize) || 
+        sku.includes(frameSize.replace('x', 'X'))
+      );
+      
+      // If no direct match, use size-based mapping
+      const sizeBasedMapping: Record<string, string[]> = {
+        '8x10': ['GLOBAL-FAP-8X10', 'GLOBAL-CAN-10x10'],
+        '11x14': ['GLOBAL-FAP-11X14'],
+        '12x16': ['GLOBAL-CAN-12X16'],
+        '16x20': ['GLOBAL-FAP-16X20', 'GLOBAL-CFPM-16X20'],
+        '20x24': ['GLOBAL-FAP-20X24'],
+        '24x30': ['GLOBAL-FAP-24X30'],
+        '30x40': ['GLOBAL-FRA-CAN-30X40', 'GLOBAL-FAP-30X40'],
+      };
+      
+      if (candidates.length === 0) {
+        candidates = sizeBasedMapping[frameSize] || [];
+      }
+    } else {
+      // Legacy compatibility: Map old enum values
+      const legacySizeMap: Record<string, string[]> = {
+        'small': ['GLOBAL-FAP-8X10', 'GLOBAL-CAN-10x10'],
+        'medium': ['GLOBAL-FAP-11X14', 'GLOBAL-CFPM-16X20'],
+        'large': ['GLOBAL-FAP-16X24', 'GLOBAL-CFPM-16X20'],
+        'extra_large': ['GLOBAL-FRA-CAN-30X40']
+      };
+      candidates = legacySizeMap[frameSize] || [];
+    }
     
     // Find the first candidate that exists in our known SKUs
     for (const candidate of candidates) {
@@ -979,12 +1008,22 @@ export class ProdigiClient {
   private getFallbackSku(frameSize: string, frameStyle: string, frameMaterial: string, imageId?: string): string {
     // Generate unique SKUs for each frame combination to avoid duplicate key errors
     // Format: PRODIGI-{SIZE}-{STYLE}-{MATERIAL}-{IMAGE_ID}
-    const sizeMap: Record<string, string> = {
-      'small': '8X10',
-      'medium': '11X14', 
-      'large': '16X24',
-      'extra_large': '20X30'
-    };
+    
+    let size: string;
+    
+    // V2 sizing: Use actual size directly (e.g., "8x10" -> "8X10")
+    if (/^\d+x\d+$/.test(frameSize)) {
+      size = frameSize.toUpperCase().replace('x', 'X');
+    } else {
+      // Legacy compatibility: Map old enum values
+      const legacySizeMap: Record<string, string> = {
+        'small': '8X10',
+        'medium': '11X14', 
+        'large': '16X24',
+        'extra_large': '20X30'
+      };
+      size = legacySizeMap[frameSize] || '16X20'; // Default to 16x20 for v2
+    }
     
     const styleMap: Record<string, string> = {
       'black': 'B',
@@ -1001,7 +1040,6 @@ export class ProdigiClient {
       'bamboo': 'B'
     };
     
-    const size = sizeMap[frameSize] || '11X14';
     const style = styleMap[frameStyle] || 'B';
     const material = materialMap[frameMaterial] || 'W';
     
@@ -1123,7 +1161,22 @@ export class ProdigiClient {
       // Calculate diagonal
       const diagonal = Math.sqrt(widthCm * widthCm + heightCm * heightCm);
       
-      // Match against size categories
+      // V2 sizing: Match actual sizes (e.g., "8x10", "16x20")
+      // Parse frameSize if it's in v2 format
+      if (/^\d+x\d+$/.test(frameSize)) {
+        const [widthStr, heightStr] = frameSize.split('x');
+        const widthInches = parseInt(widthStr || '16', 10);
+        const heightInches = parseInt(heightStr || '20', 10);
+        const widthCm = widthInches * 2.54;
+        const heightCm = heightInches * 2.54;
+        const targetDiagonal = Math.sqrt(widthCm * widthCm + heightCm * heightCm);
+        
+        // Match with tolerance (±5cm diagonal)
+        const diagonalDiff = Math.abs(diagonal - targetDiagonal);
+        return diagonalDiff <= 5;
+      }
+      
+      // Legacy compatibility: Match against size categories
       if (frameSize === 'small' && diagonal < 45) return true;
       if (frameSize === 'medium' && diagonal >= 45 && diagonal < 70) return true;
       if (frameSize === 'large' && diagonal >= 70 && diagonal < 100) return true;
@@ -1253,15 +1306,24 @@ export class ProdigiClient {
 
   /**
    * Map our frame size to Prodigi size attribute
+   * V2 sizing: Accepts actual sizes like "8x10", "16x20", etc. directly
+   * Legacy compatibility: Still handles old enum values during migration
    */
   private mapFrameSizeToProdigiSize(frameSize: string): string {
-    const sizeMap: Record<string, string> = {
-      'small': '10x10',
+    // If already in v2 format (e.g., "8x10", "16x20"), return as-is
+    if (/^\d+x\d+$/.test(frameSize)) {
+      return frameSize;
+    }
+    
+    // Legacy compatibility: Map old enum values to v2 sizes
+    const legacySizeMap: Record<string, string> = {
+      'small': '8x10',
       'medium': '16x20',
-      'large': '16x24',
+      'large': '24x30',
       'extra_large': '30x40',
     };
-    return sizeMap[frameSize] || '16x20';
+    
+    return legacySizeMap[frameSize] || '16x20';
   }
 
   /**

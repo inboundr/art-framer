@@ -3,7 +3,7 @@ import { prodigiClient } from '@/lib/prodigi';
 import { z } from 'zod';
 
 const FrameImageSchema = z.object({
-  frameSize: z.enum(['small', 'medium', 'large', 'extra_large']),
+  frameSize: z.string().regex(/^\d+x\d+$/, 'Frame size must be in format "WIDTHxHEIGHT" (e.g., "8x10", "16x20")'),
   frameStyle: z.enum(['black', 'white', 'natural', 'gold', 'silver', 'brown', 'grey']),
   frameMaterial: z.enum(['wood', 'bamboo', 'canvas', 'acrylic', 'metal', 'plastic']),
 });
@@ -159,14 +159,30 @@ export async function GET(request: NextRequest) {
 
 // Helper functions for mock data
 function getMockPrice(size: string, style: string, material: string): number {
-  const basePrices = {
-    small: 29.99,
-    medium: 39.99,
-    large: 59.99,
-    extra_large: 89.99,
-  };
+  // V2 sizing: Calculate base price from actual size
+  let basePrice = 39.99; // Default to medium size price
   
-  const styleMultipliers = {
+  if (/^\d+x\d+$/.test(size)) {
+    // Parse size (e.g., "8x10" -> 8 inches x 10 inches)
+    const [widthStr, heightStr] = size.split('x');
+    const width = parseInt(widthStr || '16', 10);
+    const height = parseInt(heightStr || '20', 10);
+    const area = width * height; // Area in square inches
+    
+    // Price based on area: ~$0.10 per square inch, minimum $29.99
+    basePrice = Math.max(29.99, area * 0.10);
+  } else {
+    // Legacy compatibility: Map old enum values
+    const legacyPrices: Record<string, number> = {
+      small: 29.99,
+      medium: 39.99,
+      large: 59.99,
+      extra_large: 89.99,
+    };
+    basePrice = legacyPrices[size] || 39.99;
+  }
+  
+  const styleMultipliers: Record<string, number> = {
     black: 1.0,
     white: 1.0,
     natural: 1.1,
@@ -176,27 +192,42 @@ function getMockPrice(size: string, style: string, material: string): number {
     grey: 1.0,
   };
   
-  const materialMultipliers = {
+  const materialMultipliers: Record<string, number> = {
     wood: 1.0,
     bamboo: 1.1,
     canvas: 0.9,
     acrylic: 1.15,
   };
   
-  return Math.round((basePrices[size as keyof typeof basePrices] * 
-    styleMultipliers[style as keyof typeof styleMultipliers] * 
-    materialMultipliers[material as keyof typeof materialMultipliers]) * 100) / 100;
+  return Math.round((basePrice * 
+    (styleMultipliers[style] || 1.0) * 
+    (materialMultipliers[material] || 1.0)) * 100) / 100;
 }
 
 function getMockDimensions(size: string) {
-  const dimensions = {
+  // V2 sizing: Calculate dimensions from actual size
+  if (/^\d+x\d+$/.test(size)) {
+    const [widthStr, heightStr] = size.split('x');
+    const widthInches = parseInt(widthStr || '16', 10);
+    const heightInches = parseInt(heightStr || '20', 10);
+    
+    // Convert inches to cm (1 inch = 2.54 cm)
+    const widthCm = Math.round(widthInches * 2.54);
+    const heightCm = Math.round(heightInches * 2.54);
+    const depthCm = widthInches > 20 || heightInches > 20 ? 3 : 2;
+    
+    return { width: widthCm, height: heightCm, depth: depthCm };
+  }
+  
+  // Legacy compatibility: Map old enum values
+  const legacyDimensions: Record<string, { width: number; height: number; depth: number }> = {
     small: { width: 20, height: 25, depth: 2 },
     medium: { width: 30, height: 40, depth: 2 },
     large: { width: 40, height: 50, depth: 3 },
     extra_large: { width: 50, height: 70, depth: 3 },
   };
   
-  return dimensions[size as keyof typeof dimensions];
+  return legacyDimensions[size] || legacyDimensions.medium;
 }
 
 function getMockFrameImageUrl(style: string, material: string): string {

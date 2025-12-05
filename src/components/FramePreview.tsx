@@ -36,25 +36,48 @@ export function FramePreview({
   const [previewScale, setPreviewScale] = useState(1);
   const { frameDetails, loading: frameLoading } = useFrameImages(frameSize, frameStyle, frameMaterial);
 
-  // Calculate realistic dimensions based on frame size
+  // V2 sizing: Calculate realistic dimensions from actual size (e.g., "8x10" -> 8 inches x 10 inches)
   const getFrameDimensions = (size: string) => {
-    const dimensions = {
+    // If in v2 format (e.g., "8x10"), parse and convert to mm
+    if (/^\d+x\d+$/.test(size)) {
+      const [widthStr, heightStr] = size.split('x');
+      const widthInches = parseInt(widthStr || '16', 10);
+      const heightInches = parseInt(heightStr || '20', 10);
+      
+      // Convert inches to mm (1 inch = 25.4 mm)
+      // Add some padding for frame border (about 10-15mm per side)
+      const framePadding = 12;
+      const widthMm = Math.round((widthInches * 25.4) + framePadding);
+      const heightMm = Math.round((heightInches * 25.4) + framePadding);
+      const depthMm = widthInches > 20 || heightInches > 20 ? 15 : 10;
+      
+      return { width: widthMm, height: heightMm, depth: depthMm };
+    }
+    
+    // Legacy compatibility: Map old enum values
+    const legacyDimensions: Record<string, { width: number; height: number; depth: number }> = {
       small: { width: 120, height: 150, depth: 8 },
       medium: { width: 180, height: 240, depth: 10 },
       large: { width: 240, height: 300, depth: 12 },
       extra_large: { width: 300, height: 420, depth: 15 },
     };
-    return dimensions[size as keyof typeof dimensions] || dimensions.medium;
+    return legacyDimensions[size] || legacyDimensions.medium;
   };
 
   const getFrameSizeLabel = (size: string) => {
-    const labels = {
+    // V2 sizing: Format as "WIDTH×HEIGHT" (e.g., "8×10", "16×20")
+    if (/^\d+x\d+$/.test(size)) {
+      return size.replace('x', '×');
+    }
+    
+    // Legacy compatibility: Map old enum values
+    const legacyLabels: Record<string, string> = {
       small: 'Small',
       medium: 'Medium',
       large: 'Large',
       extra_large: 'Extra Large',
     };
-    return labels[size as keyof typeof labels] || size;
+    return legacyLabels[size] || size;
   };
 
   const getFrameStyleLabel = (style: string) => {

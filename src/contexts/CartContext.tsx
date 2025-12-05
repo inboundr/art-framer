@@ -146,7 +146,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
               products: {
                 id: item.productId,
                 image_id: '', // Not needed for display
-                frame_size: item.frameConfig?.size || 'medium',
+                frame_size: item.frameConfig?.size || '16x20', // V2 sizing: default to "16x20" instead of 'medium'
                 frame_style: item.frameConfig?.style || item.frameConfig?.color || 'black',
                 frame_material: item.frameConfig?.material || 'wood',
                 price: item.price || 0,

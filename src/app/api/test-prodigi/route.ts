@@ -40,7 +40,7 @@ export async function GET() {
           productSku: 'FRAME-MD-BLK-WD',
           quantity: 1,
           imageUrl: 'https://example.com/test-image.jpg',
-          frameSize: 'medium',
+          frameSize: '16x20', // V2 sizing: using actual size instead of 'medium'
           frameStyle: 'black',
           frameMaterial: 'wood',
         }

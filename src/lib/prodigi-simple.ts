@@ -135,15 +135,34 @@ export class SimpleProdigiClient {
    * Get the best SKU for a given frame specification
    */
   getBestSkuForFrame(frameSize: string, frameStyle: string, frameMaterial: string): string {
-    // Map frame sizes to the best matching known SKUs
-    const sizeMapping: Record<string, string[]> = {
-      'small': ['GLOBAL-FAP-8X10', 'GLOBAL-CAN-10x10'],
-      'medium': ['GLOBAL-FAP-11X14', 'GLOBAL-CFPM-16X20'],
-      'large': ['GLOBAL-FAP-16X24', 'GLOBAL-CFPM-16X20'],
-      'extra_large': ['GLOBAL-FRA-CAN-30X40']
-    };
+    // V2 sizing: Map actual sizes (e.g., "8x10", "16x20") to known SKUs
+    // Legacy compatibility: Still handles old enum values during migration
+    
+    let candidates: string[] = [];
+    
+    // If in v2 format (e.g., "8x10"), map directly
+    if (/^\d+x\d+$/.test(frameSize)) {
+      const sizeMapping: Record<string, string[]> = {
+        '8x10': ['GLOBAL-FAP-8X10', 'GLOBAL-CAN-10x10'],
+        '11x14': ['GLOBAL-FAP-11X14'],
+        '12x16': ['GLOBAL-CAN-12X16'],
+        '16x20': ['GLOBAL-FAP-16X20', 'GLOBAL-CFPM-16X20'],
+        '20x24': ['GLOBAL-FAP-20X24'],
+        '24x30': ['GLOBAL-FAP-24X30'],
+        '30x40': ['GLOBAL-FRA-CAN-30X40', 'GLOBAL-FAP-30X40'],
+      };
+      candidates = sizeMapping[frameSize] || sizeMapping['16x20'];
+    } else {
+      // Legacy compatibility: Map old enum values
+      const legacySizeMap: Record<string, string[]> = {
+        'small': ['GLOBAL-FAP-8X10', 'GLOBAL-CAN-10x10'],
+        'medium': ['GLOBAL-FAP-11X14', 'GLOBAL-CFPM-16X20'],
+        'large': ['GLOBAL-FAP-16X24', 'GLOBAL-CFPM-16X20'],
+        'extra_large': ['GLOBAL-FRA-CAN-30X40']
+      };
+      candidates = legacySizeMap[frameSize] || legacySizeMap['medium'];
+    }
 
-    const candidates = sizeMapping[frameSize] || sizeMapping['medium'];
     return candidates[0]; // Return the first (best) candidate
   }
 

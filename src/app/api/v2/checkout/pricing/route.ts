@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       originalPrice: item.price,
       currency: 'USD',
       frameConfig: {
-        size: item.frameConfig?.size || 'medium',
+        size: item.frameConfig?.size || '16x20', // V2 sizing: default to "16x20" instead of 'medium'
         color: item.frameConfig?.color || 'black',
         style: item.frameConfig?.style || 'black',
         material: item.frameConfig?.material || 'wood',

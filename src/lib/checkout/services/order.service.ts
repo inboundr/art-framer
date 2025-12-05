@@ -412,7 +412,7 @@ export class OrderService {
         unitPrice: parseFloat(item.unit_price || '0'),
         totalPrice: parseFloat(item.total_price || '0'),
         frameConfig: {
-          size: item.products?.frame_size || 'medium',
+          size: item.products?.frame_size || '16x20', // V2 sizing: default to "16x20" instead of 'medium'
           color: item.products?.frame_style || 'black',
           style: item.products?.frame_style || 'black',
           material: item.products?.frame_material || 'wood',

@@ -202,13 +202,19 @@ export function OrderManagement({ userId }: OrderManagementProps) {
   };
 
   const getFrameSizeLabel = (size: string) => {
-    const labels = {
+    // V2 sizing: Format as "WIDTH×HEIGHT" (e.g., "8×10", "16×20")
+    if (/^\d+x\d+$/.test(size)) {
+      return size.replace('x', '×');
+    }
+    
+    // Legacy compatibility: Map old enum values
+    const legacyLabels: Record<string, string> = {
       small: 'Small',
       medium: 'Medium',
       large: 'Large',
       extra_large: 'Extra Large',
     };
-    return labels[size as keyof typeof labels] || size;
+    return legacyLabels[size] || size;
   };
 
   const getFrameStyleLabel = (style: string) => {
