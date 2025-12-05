@@ -7,6 +7,7 @@
 
 import { azureSearchClient } from './client';
 import type { ProdigiSearchFilters, SearchResult } from './types';
+import { getColorsForProductType, getColorDisplayName, hasColorAttribute } from '../constants/colors';
 
 export interface FacetOption {
   value: string;
@@ -115,7 +116,7 @@ class FacetService {
 
     try {
       const facets = await this.queryFacets(productType, country, additionalFilters);
-      const availableOptions = this.parseFacetsToOptions(facets);
+      const availableOptions = this.parseFacetsToOptions(facets, productType);
 
       // Check if facets are empty (Azure Search returned no facets)
       // This can happen even when products exist but facets aren't populated
@@ -177,7 +178,7 @@ class FacetService {
   /**
    * Parse facets into a structured AvailableOptions object
    */
-  private parseFacetsToOptions(facets: ProductFacets): AvailableOptions {
+  private parseFacetsToOptions(facets: ProductFacets, productType?: string): AvailableOptions {
     const frameColors = facets.frameColour?.map(f => f.value) || [];
     const glazes = facets.glaze?.map(f => f.value) || [];
     const mounts = facets.mount?.map(f => f.value) || [];
@@ -191,8 +192,14 @@ class FacetService {
     // Wrap is not a facet, but we can infer it from the product type
     const hasWrap = edges.length > 0 || finishes.length > 0;
 
+    // Use colors from facets if available, otherwise use product-type-specific defaults
+    let finalFrameColors = frameColors;
+    if (frameColors.length === 0 && productType) {
+      finalFrameColors = getColorsForProductType(productType).map((c: string) => getColorDisplayName(c));
+    }
+
     return {
-      hasFrameColor: frameColors.length > 0,
+      hasFrameColor: frameColors.length > 0 || (productType ? hasColorAttribute(productType) : false),
       hasGlaze: glazes.length > 0,
       hasMount: mounts.length > 0,
       hasMountColor: mountColors.length > 0,
@@ -201,7 +208,7 @@ class FacetService {
       hasEdge: edges.length > 0,
       hasWrap, // Canvas products have wrap options
       
-      frameColors,
+      frameColors: finalFrameColors,
       glazes,
       mounts,
       mountColors,
@@ -232,7 +239,7 @@ class FacetService {
         hasEdge: true,
         hasWrap: true,
         
-        frameColors: type === 'framed-canvas' ? ['Black', 'White', 'Natural'] : [],
+        frameColors: getColorsForProductType(type).map(c => getColorDisplayName(c)),
         glazes: [],
         mounts: [],
         mountColors: [],
@@ -256,7 +263,7 @@ class FacetService {
         hasEdge: false,
         hasWrap: false,
         
-        frameColors: ['Black', 'White', 'Natural', 'Gold', 'Silver'],
+        frameColors: getColorsForProductType(type).map(c => getColorDisplayName(c)),
         glazes: ['Acrylic / Perspex', 'Float Glass', 'Motheye'],
         mounts: ['No Mount / Mat', '1.4mm', '2.0mm', '2.4mm'], // All mount options from Prodigi catalog
         mountColors: ['Snow White', 'Off White', 'Black'], // Most common mount colors

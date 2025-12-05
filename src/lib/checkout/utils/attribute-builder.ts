@@ -116,7 +116,23 @@ export function buildProdigiAttributes(
   addIfValid('paperType', config.paperType);
   addIfValid('finish', config.finish);
   addIfValid('edge', config.edge);
-  addIfValid('frame', config.frameStyle);
+  
+  // Frame attribute: Only add if it's a valid frame style, not a color
+  // Valid frame styles: "Classic", "38mm standard stretcher bar", etc.
+  // Skip if frameStyle is a color (black, white, brown, etc.)
+  if (config.frameStyle) {
+    const frameStyleLower = config.frameStyle.toLowerCase();
+    const colorNames = ['black', 'white', 'brown', 'natural', 'gold', 'silver', 'dark grey', 'light grey'];
+    const isColor = colorNames.some(color => frameStyleLower === color || frameStyleLower.includes(color));
+    
+    // Only add frame attribute if it's not a color
+    if (!isColor) {
+      addIfValid('frame', config.frameStyle);
+    } else {
+      console.warn(`[Attributes] Skipping frame attribute - "${config.frameStyle}" appears to be a color, not a frame style`);
+    }
+  }
+  
   addIfValid('substrateWeight', config.substrateWeight);
   addIfValid('style', config.style);
 
@@ -275,9 +291,19 @@ export function buildProdigiAttributesHeuristic(
     attributes.edge = config.edge;
   }
 
-  // Frame style
+  // Frame style - Only add if it's a valid frame style, not a color
   if (config.frameStyle) {
-    attributes.frame = config.frameStyle;
+    const frameStyleLower = config.frameStyle.toLowerCase();
+    const colorNames = ['black', 'white', 'brown', 'natural', 'gold', 'silver', 'dark grey', 'light grey'];
+    const isColor = colorNames.some(color => frameStyleLower === color || frameStyleLower.includes(color));
+    
+    // Only add frame attribute if it's not a color
+    // Valid frame styles: "classic", "box", "38mm standard stretcher bar", etc.
+    if (!isColor) {
+      attributes.frame = config.frameStyle;
+    } else {
+      console.warn(`[Attributes] Skipping frame attribute - "${config.frameStyle}" appears to be a color, not a frame style`);
+    }
   }
 
   // Substrate weight

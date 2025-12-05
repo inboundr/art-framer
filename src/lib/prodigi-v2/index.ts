@@ -33,6 +33,17 @@ export { ProductsAPI } from './products';
 export { ProdigiCatalogService } from './catalog';
 export { WebhooksManager, WebhookHelpers, createWebhookMiddleware } from './webhooks';
 
+// Color constants exports
+export {
+  PRODUCT_TYPE_COLORS,
+  getColorsForProductType,
+  hasColorAttribute,
+  getColorDisplayName,
+  normalizeColorName,
+  isValidColorForProductType,
+  getCanonicalColorName,
+} from './constants/colors';
+
 // Attribute helper exports
 export {
   ProductAttributeHelper,
