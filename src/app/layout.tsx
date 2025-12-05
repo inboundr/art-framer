@@ -9,6 +9,12 @@ import { CartProvider } from "@/contexts/CartContext";
 import { GenerationProvider } from "@/contexts/GenerationContext";
 import { AuthDebugPanel } from "@/components/AuthDebugPanel";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { initSentry } from "@/lib/monitoring/sentry";
+
+// Initialize Sentry for error tracking
+if (typeof window === 'undefined') {
+  initSentry();
+}
 
 const manrope = Manrope({ subsets: ["latin"] });
 

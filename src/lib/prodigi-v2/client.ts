@@ -84,8 +84,9 @@ export class ProdigiClient {
     this.cacheTtl = config.cacheTtl || DEFAULT_CONFIG.cacheTtl;
     this.cache = new MemoryCache();
     
-    // Setup rate limiting (10 requests per second)
-    this.rateLimiter = new TokenBucket(10, 10);
+    // Setup rate limiting - Prodigi allows 30 requests per 30 seconds (1 req/s average)
+    // Use conservative limit: 1 request per second with burst of 2
+    this.rateLimiter = new TokenBucket(2, 1); // 2 tokens, refill 1 per second
     
     // Setup logging
     this.logger = new Logger(`Prodigi:${this.environment}`);
@@ -189,6 +190,20 @@ export class ProdigiClient {
         method,
         requestBody: body,
       });
+      
+      // Track error in Sentry if available
+      if (typeof window === 'undefined') {
+        try {
+          const { captureError } = require('@/lib/monitoring/sentry');
+          captureError(error instanceof Error ? error : new Error(String(error)), {
+            endpoint,
+            method,
+            attempt,
+          });
+        } catch (e) {
+          // Sentry not available, ignore
+        }
+      }
       
       throw error;
     }
@@ -294,12 +309,36 @@ export class ProdigiClient {
         }
       }
     } catch (parseError) {
-      console.log('[Prodigi] Failed to parse error response:', {
-        status: response.status,
-        rawText,
-        parseError: parseError instanceof Error ? parseError.message : String(parseError)
-      });
-      // If we can't parse the error response, use empty object
+      // Handle non-JSON error responses (e.g., rate limit messages)
+      if (response.status === 429) {
+        // Rate limit error - parse the plain text message
+        // Format: "API calls quota exceeded! maximum admitted 30 per 30s."
+        const rateLimitMatch = rawText.match(/maximum admitted (\d+) per (\d+)s/);
+        const retryAfter = rateLimitMatch ? parseInt(rateLimitMatch[2], 10) : 30;
+        
+        errorData = {
+          message: rawText || 'Rate limit exceeded',
+          statusText: response.statusText,
+          retryAfter,
+        };
+        
+        console.log('[Prodigi] Rate limit error (non-JSON):', {
+          status: response.status,
+          message: rawText,
+          retryAfter,
+        });
+      } else {
+        console.log('[Prodigi] Failed to parse error response:', {
+          status: response.status,
+          rawText,
+          parseError: parseError instanceof Error ? parseError.message : String(parseError),
+        });
+        // For non-429 errors, use raw text as message
+        errorData = {
+          message: rawText || response.statusText || 'Unknown error',
+          statusText: response.statusText,
+        };
+      }
     }
 
     const error = parseProdigiError(response, errorData, url, method);

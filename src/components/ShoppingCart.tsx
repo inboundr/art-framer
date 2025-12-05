@@ -24,6 +24,8 @@ import { useToast } from '@/hooks/use-toast';
 import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { FramePreview } from '@/components/FramePreview';
 import { formatSizeWithCm } from '@/lib/utils/size-conversion';
+import { formatPrice } from '@/lib/prodigi-v2/utils';
+import { PricingDisplay, type PricingData } from '@/components/shared/PricingDisplay';
 import { createClient } from '@supabase/supabase-js';
 
 interface ShoppingCartProps {
@@ -63,14 +65,6 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
       totals
     });
   }, [cartData, cartItems.length, loading, totals]);
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
-
 
   const getFrameSizeLabel = (size: string) => {
     // V2 sizing: Format as "WIDTH×HEIGHT" (e.g., "8×10", "16×20")
@@ -247,10 +241,10 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                     {/* Price */}
                     <div className="text-base">
                       <div className="font-semibold text-lg">
-                        {formatPrice(item.products.price * item.quantity)}
+                        {formatPrice((item.price || item.products.price) * item.quantity, item.currency || item.products.currency || 'USD')}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {formatPrice(item.products.price)} each
+                        {formatPrice(item.price || item.products.price, item.currency || item.products.currency || 'USD')} each
                       </div>
                     </div>
                   </div>
@@ -299,31 +293,19 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="flex items-center gap-1.5">
-                  <span>Subtotal</span>
-                  <span className="text-gray-600">({totals.itemCount} {totals.itemCount === 1 ? 'item' : 'items'})</span>
-                </span>
-                <span className="font-semibold">{formatPrice(totals.subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Tax</span>
-                <span className="font-semibold">{formatPrice(totals.taxAmount)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="flex items-center gap-1.5">
-                  <span>Shipping</span>
-                  <span className="text-xs text-amber-600 font-medium" title="Shipping cost calculated at checkout based on your address">
-                    *
-                  </span>
-                </span>
-                <span className="text-gray-600 italic">Calculated at checkout</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between font-semibold text-lg">
-                <span>Subtotal (excl. shipping)</span>
-                <span>{formatPrice(totals.subtotal + totals.taxAmount)}</span>
-              </div>
+              {/* Use unified PricingDisplay component */}
+              <PricingDisplay
+                pricing={{
+                  subtotal: totals.subtotal,
+                  tax: totals.taxAmount,
+                  total: totals.subtotal + totals.taxAmount, // Excluding shipping (calculated at checkout)
+                  currency: totals.currency || 'USD',
+                  isPricingLoading: loading,
+                }}
+                showBreakdown={true}
+                showShippingInfo={false} // Shipping calculated at checkout
+              />
+              
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5">
                 <div className="flex items-start gap-2 text-xs text-amber-800">
                   <div className="flex-shrink-0 mt-0.5">

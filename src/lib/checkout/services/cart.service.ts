@@ -387,19 +387,42 @@ export class CartService {
         }
       });
 
-      // Format cart items
-      const items: CartItem[] = cartItems.map((item: any) =>
-        this.formatCartItem(item, (item.products as any).price)
-      );
-
-      // Get real-time pricing (optional - fallback to stored prices if it fails)
+      // Get real-time pricing for all items first
+      // This ensures we use actual Prodigi prices, not stored DB prices
+      let items: CartItem[] = [];
       let totals: Cart['totals'];
+      
       try {
+        // First, format items with temporary prices (will be updated with real-time pricing)
+        const tempItems: CartItem[] = cartItems.map((item: any) =>
+          this.formatCartItem(item, (item.products as any).price)
+        );
+
+        // Get real-time pricing for all items
         const pricing = await this.pricingService.calculatePricing(
-          items,
+          tempItems,
           destinationCountry,
           shippingMethod
         );
+
+        // Update items with real-time prices from Prodigi
+        // Use per-item prices from quote if available, otherwise fallback to average
+        const totalItemCost = pricing.subtotal;
+        const totalQuantity = tempItems.reduce((sum, item) => sum + item.quantity, 0);
+        const averagePricePerItem = totalQuantity > 0 ? totalItemCost / totalQuantity : 0;
+
+        // Update items with real-time prices
+        items = tempItems.map((item, index) => {
+          // Use per-item price from quote if available, otherwise use average
+          const itemPrice = pricing.itemPrices?.get(index) ?? averagePricePerItem;
+          
+          return {
+            ...item,
+            price: itemPrice,
+            originalPrice: itemPrice, // Will be updated if currency conversion happened
+            currency: pricing.currency,
+          };
+        });
 
         totals = {
           subtotal: pricing.subtotal,
@@ -414,6 +437,9 @@ export class CartService {
       } catch (pricingError) {
         console.error('[CartService] Pricing failed in getCart, using stored prices:', pricingError);
         // Fallback to stored prices
+        items = cartItems.map((item: any) =>
+          this.formatCartItem(item, (item.products as any).price)
+        );
         const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
         totals = {
           subtotal,

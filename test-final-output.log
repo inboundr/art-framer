@@ -1,0 +1,20 @@
+
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+Error: Transform failed with 1 error:
+/Users/hatem/Documents/inboundr/art-framer/scripts/test-pricing-comprehensive.ts:265:10: ERROR: The symbol "quotes" has already been declared
+    at failureErrorWithLog (/Users/hatem/.npm/_npx/fd45a72a545557e9/node_modules/esbuild/lib/main.js:1467:15)
+    at /Users/hatem/.npm/_npx/fd45a72a545557e9/node_modules/esbuild/lib/main.js:736:50
+    at responseCallbacks.<computed> (/Users/hatem/.npm/_npx/fd45a72a545557e9/node_modules/esbuild/lib/main.js:603:9)
+    at handleIncomingPacket (/Users/hatem/.npm/_npx/fd45a72a545557e9/node_modules/esbuild/lib/main.js:658:12)
+    at Socket.readFromStdout (/Users/hatem/.npm/_npx/fd45a72a545557e9/node_modules/esbuild/lib/main.js:581:7)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23) {
+  name: 'TransformError'
+}
+
+Node.js v22.16.0

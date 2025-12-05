@@ -11,6 +11,8 @@ interface CartItem {
   quantity: number;
   created_at: string;
   updated_at: string;
+  price?: number; // Real-time price from Prodigi
+  currency?: string; // Currency for this item
   products: {
     id: string;
     image_id: string;
@@ -27,6 +29,7 @@ interface CartItem {
     };
     status: string;
     sku: string;
+    currency?: string; // Currency for this product
     images: {
       id: string;
       prompt: string;
@@ -46,6 +49,7 @@ interface CartData {
     shippingAmount: number;
     total: number;
     itemCount: number;
+    currency?: string;
   };
 }
 
@@ -149,12 +153,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 frame_size: item.frameConfig?.size || '16x20', // V2 sizing: default to "16x20" instead of 'medium'
                 frame_style: item.frameConfig?.style || item.frameConfig?.color || 'black',
                 frame_material: item.frameConfig?.material || 'wood',
-                price: item.price || 0,
+                price: item.price || 0, // Real-time price from Prodigi
                 cost: (item.originalPrice || item.price || 0) * 0.4,
                 weight_grams: 0,
                 dimensions_cm: { width: 0, height: 0, depth: 0 },
                 status: 'active',
                 sku: item.sku || '',
+                currency: item.currency || 'USD', // Add currency to products
                 images: {
                   id: '',
                   prompt: '',
@@ -164,6 +169,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
                   created_at: new Date().toISOString(),
                 },
               },
+              // Add price and currency at item level for easier access
+              price: item.price || 0,
+              currency: item.currency || 'USD',
             };
           });
           
@@ -176,6 +184,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
               shippingAmount: v2Totals.shipping || 0,
               total: v2Totals.total || 0,
               itemCount: transformedItems.length,
+              currency: v2Totals.currency || 'USD',
             },
           };
           console.log('Cart: fetchCart - cartData created with', cartData.cartItems.length, 'items');

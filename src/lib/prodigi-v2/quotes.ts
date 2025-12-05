@@ -12,8 +12,9 @@ import type {
   ShippingMethod,
 } from './types';
 import { ProdigiClient } from './client';
-import { isValidSku, isValidCountryCode, parsePrice, formatPrice } from './utils';
+import { isValidSku, isValidCountryCode, parsePrice, formatPrice, MemoryCache, generateCacheKey } from './utils';
 import { ProdigiValidationError } from './errors';
+import { CACHE_KEYS } from './constants';
 
 /**
  * Quotes API Module
@@ -22,9 +23,36 @@ import { ProdigiValidationError } from './errors';
  * - Generating quotes
  * - Calculating total costs
  * - Comparing shipping methods
+ * - Quote caching for performance
  */
 export class QuotesAPI {
-  constructor(private readonly client: ProdigiClient) {}
+  private quoteCache: MemoryCache<Quote[]>;
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private cacheHits = 0;
+  private cacheMisses = 0;
+
+  constructor(private readonly client: ProdigiClient) {
+    this.quoteCache = new MemoryCache<Quote[]>();
+  }
+
+  /**
+   * Generate cache key for quote request
+   */
+  private getCacheKey(quoteRequest: CreateQuoteRequest): string {
+    // Create a stable key from request parameters
+    const keyData = {
+      destination: quoteRequest.destinationCountryCode,
+      shippingMethod: quoteRequest.shippingMethod,
+      items: quoteRequest.items.map(item => ({
+        sku: item.sku,
+        copies: item.copies,
+        attributes: item.attributes ? JSON.stringify(item.attributes) : undefined,
+      })),
+    };
+    
+    const hash = generateCacheKey(keyData);
+    return CACHE_KEYS.QUOTE(hash);
+  }
 
   /**
    * Create a quote for items
@@ -56,6 +84,19 @@ export class QuotesAPI {
   async create(quoteRequest: CreateQuoteRequest): Promise<Quote[]> {
     this.validateQuoteRequest(quoteRequest);
 
+    // Check cache first
+    const cacheKey = this.getCacheKey(quoteRequest);
+    const cachedQuotes = this.quoteCache.get(cacheKey);
+    
+    if (cachedQuotes) {
+      this.cacheHits++;
+      console.log(`[QuotesAPI] Cache HIT for quote: ${cacheKey.substring(0, 16)}...`);
+      return cachedQuotes;
+    }
+
+    this.cacheMisses++;
+    console.log(`[QuotesAPI] Cache MISS for quote: ${cacheKey.substring(0, 16)}...`);
+
     // Log the request being sent to Prodigi for debugging
     console.error('[QuotesAPI] Creating quote request:', JSON.stringify(quoteRequest, null, 2));
 
@@ -65,7 +106,37 @@ export class QuotesAPI {
       body: quoteRequest,
     });
 
+    // Cache successful quotes
+    if (response.quotes && response.quotes.length > 0) {
+      this.quoteCache.set(cacheKey, response.quotes, this.CACHE_TTL);
+      console.log(`[QuotesAPI] Cached quote: ${cacheKey.substring(0, 16)}... (TTL: ${this.CACHE_TTL/1000}s)`);
+    }
+
     return response.quotes;
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return {
+      hits: this.cacheHits,
+      misses: this.cacheMisses,
+      hitRate: this.cacheHits + this.cacheMisses > 0 
+        ? (this.cacheHits / (this.cacheHits + this.cacheMisses) * 100).toFixed(2) + '%'
+        : '0%',
+      size: this.quoteCache.size(),
+    };
+  }
+
+  /**
+   * Clear quote cache
+   */
+  clearCache(): void {
+    this.quoteCache.clear();
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
+    console.log('[QuotesAPI] Cache cleared');
   }
 
   /**

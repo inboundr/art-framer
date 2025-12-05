@@ -8,7 +8,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStudioStore, useTotalPrice } from '@/store/studio';
-import { PricingDisplay } from './PricingDisplay';
+import { StudioPricingDisplay as PricingDisplay } from './PricingDisplay';
 import { ConfigurationSummary } from './ConfigurationSummary';
 import { SmartSuggestions } from './SmartSuggestions';
 import { CountrySelector } from '../CountrySelector';

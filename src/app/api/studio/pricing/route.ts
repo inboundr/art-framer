@@ -12,6 +12,7 @@ import { estimateDeliveryTime, formatDeliveryEstimate } from '@/lib/prodigi-v2/d
 import { detectUserLocation } from '@/lib/location-detection';
 import { currencyService } from '@/lib/currency';
 import { getCountry } from '@/lib/countries';
+import { getUserFriendlyError } from '@/lib/error-handling/user-friendly-errors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
         
       case 'framed-print':
         // Framed print: NO wrap
+        // Glaze and mount availability depends on the specific product, but we'll let validation handle it
         delete config.wrap;
         break;
         
@@ -86,7 +88,27 @@ export async function POST(request: NextRequest) {
       hasWrap: config.wrap,
     });
 
-    // Step 1: Validate configuration against available options (use detected country)
+    // Step 1: Get available options first to clean config properly
+    const availableOptions = await facetService.getAvailableOptions(
+      config.productType,
+      country
+    );
+    
+    // Step 1.5: Clean config based on available options (auto-fix invalid attributes)
+    if (!availableOptions.hasGlaze && config.glaze && config.glaze !== 'none') {
+      console.log('[Pricing] Removing glaze (not available for this product type)');
+      config.glaze = 'none';
+    }
+    if (!availableOptions.hasMount && config.mount && config.mount !== 'none') {
+      console.log('[Pricing] Removing mount (not available for this product type)');
+      config.mount = 'none';
+    }
+    if (!availableOptions.hasWrap && config.wrap) {
+      console.log('[Pricing] Removing wrap (not available for this product type)');
+      delete config.wrap;
+    }
+    
+    // Step 2: Validate configuration against available options (use detected country)
     const validation = await facetService.validateConfiguration(
       config.productType,
       config,
@@ -96,12 +118,6 @@ export async function POST(request: NextRequest) {
     if (!validation.valid) {
       console.warn('[Pricing] Invalid configuration:', validation.errors);
       
-      // Get available options to help user fix the issue
-      const availableOptions = await facetService.getAvailableOptions(
-        config.productType,
-        country
-      );
-      
       return NextResponse.json({
         error: 'Invalid configuration',
         message: validation.errors.join('; '),
@@ -110,7 +126,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Step 2: Always lookup fresh SKU from Azure Search catalog
+    // Step 3: Always lookup fresh SKU from Azure Search catalog
     // This ensures we get the right SKU for the current product type + size
     // (The frontend might send a stale SKU from a previous product type)
     let sku: string | null = null;
@@ -371,11 +387,17 @@ export async function POST(request: NextRequest) {
       sku: rawConfig?.sku,
     });
 
-    // Return error response with more details
+    // Get user-friendly error message
+    const friendlyError = getUserFriendlyError(error);
+    
+    // Return error response with user-friendly message
     return NextResponse.json({
-      error: 'Failed to calculate pricing',
-      message: error.message || 'Unknown error',
-      details: error.validationErrors || error.data || null,
+      error: friendlyError.title,
+      message: friendlyError.message,
+      action: friendlyError.action,
+      retryable: friendlyError.retryable,
+      details: process.env.NODE_ENV === 'development' ? (error.validationErrors || error.data || null) : undefined,
+      technicalError: process.env.NODE_ENV === 'development' ? error.message : undefined,
       statusCode: error.statusCode || 500,
     }, {
       status: error.statusCode || 500,

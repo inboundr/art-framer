@@ -31,6 +31,8 @@ export interface PricingResult {
   originalTotal?: number;
   exchangeRate?: number;
   estimatedDays?: number;
+  // Per-item prices: maps cart item index to unit price
+  itemPrices?: Map<number, number>;
 }
 
 export interface ShippingOption {
@@ -86,9 +88,11 @@ export class PricingService {
   ): Promise<PricingResult> {
     try {
       // First, map items to quote items with base SKU extraction
+      // Track which cart items map to which quote items for per-item pricing
       const quoteItemsMap = new Map<string, QuoteItem>();
+      const cartItemToQuoteKey = new Map<number, string>(); // cart index -> quote key
       
-      items.forEach((item) => {
+      items.forEach((item, cartIndex) => {
         // Extract base SKU (remove image ID suffix if present)
         // Prodigi API only accepts base SKUs, not SKUs with image ID suffixes
         const baseSku = this.extractBaseSku(item.sku);
@@ -115,18 +119,24 @@ export class PricingService {
         
         // For quotes, assets only need printArea (not url - that's only for orders)
         // Prodigi expects lowercase 'default' for printArea
-        // Also filter out undefined values from attributes
+        // Also filter out undefined values from attributes and normalize for matching
         const cleanAttributes: Record<string, string> = {};
         Object.entries(attributes).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== '') {
-            cleanAttributes[key] = String(value).trim();
+            // Normalize to lowercase for consistent matching with quote response
+            cleanAttributes[key.toLowerCase()] = String(value).toLowerCase().trim();
           }
         });
         
         // Create a unique key for this SKU + attributes combination
         // Items with the same base SKU and attributes should be combined
+        // Normalize SKU to lowercase for consistent matching
+        const normalizedSku = baseSku.toLowerCase();
         const attributesKey = JSON.stringify(cleanAttributes);
-        const uniqueKey = `${baseSku}:${attributesKey}`;
+        const uniqueKey = `${normalizedSku}:${attributesKey}`;
+        
+        // Track which cart item maps to which quote key
+        cartItemToQuoteKey.set(cartIndex, uniqueKey);
         
         // Combine items with the same SKU and attributes
         if (quoteItemsMap.has(uniqueKey)) {
@@ -218,6 +228,43 @@ export class PricingService {
       );
       const quoteCurrency = quote.costSummary.items?.currency || 'USD';
 
+      // Build per-item price map from quote.items[].unitCost
+      const itemPrices = new Map<number, number>();
+      if (quote.items && quote.items.length > 0) {
+        // Create a map: quote key -> unit cost
+        // Match by SKU and normalized attributes
+        const quoteKeyToUnitCost = new Map<string, number>();
+        quote.items.forEach((quoteItem) => {
+          // Normalize attributes for matching (same as we did when building quote items)
+          const normalizedAttrs = quoteItem.attributes || {};
+          // Normalize attribute values (lowercase, trim) to match how we built them
+          const normalizedAttrsForKey: Record<string, string> = {};
+          Object.entries(normalizedAttrs).forEach(([key, value]) => {
+            normalizedAttrsForKey[key.toLowerCase()] = String(value).toLowerCase().trim();
+          });
+          const attrsKey = JSON.stringify(normalizedAttrsForKey);
+          // Normalize SKU to lowercase to match cart item quote keys
+          const normalizedSku = quoteItem.sku.toLowerCase();
+          const quoteKey = `${normalizedSku}:${attrsKey}`;
+          const unitCost = parseFloat(quoteItem.unitCost?.amount || '0');
+          quoteKeyToUnitCost.set(quoteKey, unitCost);
+          console.log(`[Pricing] Mapped quote item to unit cost: ${quoteKey} = ${unitCost}`);
+        });
+
+        // Map cart items to their unit costs
+        items.forEach((item, cartIndex) => {
+          const quoteKey = cartItemToQuoteKey.get(cartIndex);
+          if (quoteKey && quoteKeyToUnitCost.has(quoteKey)) {
+            const unitCost = quoteKeyToUnitCost.get(quoteKey)!;
+            itemPrices.set(cartIndex, unitCost);
+            console.log(`[Pricing] Mapped cart item ${cartIndex} to unit cost: ${unitCost} (quoteKey: ${quoteKey})`);
+          } else {
+            // Fallback: if we can't find exact match, log warning
+            console.warn(`[Pricing] Could not find unit cost for cart item ${cartIndex} (quoteKey: ${quoteKey})`);
+          }
+        });
+      }
+
       // Calculate tax (simplified - in production, use proper tax service)
       const taxRate = this.getTaxRate(destinationCountry);
       const taxAmount = itemsCost * taxRate;
@@ -270,6 +317,32 @@ export class PricingService {
         exchangeRate = total / originalTotal;
       }
 
+      // Convert per-item prices if currency conversion happened
+      const convertedItemPrices = new Map<number, number>();
+      if (itemPrices.size > 0 && targetCurrency !== quoteCurrency.toLowerCase()) {
+        for (const [cartIndex, unitCost] of itemPrices.entries()) {
+          let convertedPrice = unitCost;
+          if (quoteCurrency.toUpperCase() === 'USD') {
+            convertedPrice = await this.currencyService.convertFromUSD(
+              unitCost,
+              targetCurrency
+            );
+          } else {
+            convertedPrice = await this.currencyService.convert(
+              unitCost,
+              quoteCurrency,
+              targetCurrency.toUpperCase()
+            );
+          }
+          convertedItemPrices.set(cartIndex, Math.round(convertedPrice * 100) / 100);
+        }
+      } else {
+        // No conversion needed, just round the prices
+        for (const [cartIndex, unitCost] of itemPrices.entries()) {
+          convertedItemPrices.set(cartIndex, Math.round(unitCost * 100) / 100);
+        }
+      }
+
       return {
         subtotal: Math.round(subtotal * 100) / 100,
         shipping: Math.round(shipping * 100) / 100,
@@ -280,6 +353,7 @@ export class PricingService {
         originalTotal: Math.round(originalTotal * 100) / 100,
         exchangeRate,
         estimatedDays: this.estimateDeliveryDays(quote.shipmentMethod),
+        itemPrices: convertedItemPrices.size > 0 ? convertedItemPrices : undefined,
       };
     } catch (error) {
       if (error instanceof PricingError) {

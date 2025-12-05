@@ -719,6 +719,36 @@ export const useStudioStore = create<StudioStore>()(
                 };
               });
             }
+          } else {
+            // Handle API errors - parse error response and clean invalid config
+            const errorData = await response.json().catch(() => ({}));
+            console.error('[Pricing] API error:', response.status, errorData);
+            
+            // If validation error, try to clean invalid attributes from config
+            if (response.status === 400 && errorData.validationErrors) {
+              const { config } = get();
+              const cleanedConfig = { ...config };
+              
+              // Remove invalid attributes based on error messages
+              if (errorData.validationErrors.some((e: string) => e.includes('Glaze is not available'))) {
+                cleanedConfig.glaze = 'none';
+              }
+              if (errorData.validationErrors.some((e: string) => e.includes('Mount is not available'))) {
+                cleanedConfig.mount = 'none';
+              }
+              if (errorData.validationErrors.some((e: string) => e.includes('Wrap is not available'))) {
+                delete cleanedConfig.wrap;
+              }
+              
+              // Update config with cleaned values and retry
+              set((state) => ({
+                config: cleanedConfig,
+              }));
+              
+              // Retry pricing update with cleaned config
+              console.log('[Pricing] Retrying with cleaned config');
+              await get().updatePricingAsync();
+            }
           }
         } catch (error) {
           console.error('Error updating pricing:', error);

@@ -26,6 +26,8 @@ import { GooglePlacesAutocomplete } from '@/components/ui/google-places-autocomp
 import { supabase } from '@/lib/supabase/client';
 import type { ShippingAddress } from '@/lib/pricing';
 import { formatSizeWithCm } from '@/lib/utils/size-conversion';
+import { formatPrice } from '@/lib/prodigi-v2/utils';
+import { PricingDisplay, type PricingData } from '@/components/shared/PricingDisplay';
 
 interface CheckoutFlowProps {
   onSuccess?: (orderId: string) => void;
@@ -575,12 +577,6 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     return () => clearInterval(interval);
   }, [shippingAddress, calculatedShipping, addressManuallyModified, shippingLoading]);
 
-  const formatPrice = (price: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency.toUpperCase(),
-    }).format(price);
-  };
 
 
   const getFrameSizeLabel = (size: string) => {
@@ -1195,7 +1191,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-sm">Qty: {item.quantity}</span>
                           <span className="font-medium">
-                            {formatPrice(item.products.price * item.quantity)}
+                            {formatPrice((item.price || item.products.price) * item.quantity, item.currency || item.products.currency || totals.currency || 'USD')}
                           </span>
                         </div>
                       </div>
@@ -1288,78 +1284,34 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                     <span className="line-clamp-1">
                       {getFrameSizeLabel(item.products.frame_size)} Frame × {item.quantity}
                     </span>
-                    <span>{formatPrice(item.products.price * item.quantity)}</span>
+                    <span>{formatPrice((item.price || item.products.price) * item.quantity, item.currency || item.products.currency || totals.currency || 'USD')}</span>
                   </div>
                 ))}
               </div>
               
               <Separator />
               
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="font-medium">Subtotal</span>
-                  <span className="font-semibold">{formatPrice(totals.subtotal, getDisplayCurrency())}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Tax</span>
-                  <span className="font-semibold">{formatPrice(totals.taxAmount, getDisplayCurrency())}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="flex items-center gap-1 font-medium">
-                    <Truck className="h-3 w-3" />
-                    Shipping
-                    {calculatedShipping && (
-                      <>
-                        <span className="text-xs text-gray-600">
-                          {calculatedShipping.estimatedDaysRange ? (
-                            `(${calculatedShipping.estimatedDaysRange.min}-${calculatedShipping.estimatedDaysRange.max} days)`
-                          ) : (
-                            `(${calculatedShipping.estimatedDays} days)`
-                          )}
-                        </span>
-                        {calculatedShipping.isEstimated && (
-                          <span className="text-xs text-amber-600 flex items-center gap-1" title="Estimated shipping cost">
-                            <AlertTriangle className="h-2 w-2" />
-                            Est.
-                          </span>
-                        )}
-                        {calculatedShipping.addressValidated && (
-                          <span className="text-xs text-green-600 flex items-center gap-1" title="Address verified">
-                            <CheckCircle className="h-2 w-2" />
-                            Verified
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </span>
-                  <span>
-                    {shippingLoading ? (
-                      <span className="text-gray-600 text-sm italic">Calculating...</span>
-                    ) : calculatedShipping ? (
-                      <div className="text-right">
-                        <div className="font-semibold">{formatPrice(calculatedShipping.cost, calculatedShipping.currency || getDisplayCurrency())}</div>
-                        {calculatedShipping.isEstimated && (
-                          <div className="text-xs text-amber-600">Estimated</div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-gray-600 text-sm italic">Enter address</span>
-                    )}
-                  </span>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="flex justify-between font-semibold text-lg">
-                <span>Total</span>
-                <span>
-                  {calculatedShipping ? 
-                    formatPrice(totals.subtotal + totals.taxAmount + calculatedShipping.cost, getDisplayCurrency()) : 
-                    formatPrice(totals.subtotal + totals.taxAmount, getDisplayCurrency())
-                  }
-                </span>
-              </div>
+              {/* Use unified PricingDisplay component */}
+              <PricingDisplay
+                pricing={{
+                  subtotal: totals.subtotal,
+                  tax: totals.taxAmount,
+                  total: calculatedShipping 
+                    ? totals.subtotal + totals.taxAmount + calculatedShipping.cost
+                    : totals.subtotal + totals.taxAmount,
+                  shipping: calculatedShipping?.cost,
+                  shippingRange: calculatedShipping?.estimatedDaysRange 
+                    ? undefined 
+                    : undefined, // We have exact shipping, not range
+                  currency: totals.currency || getDisplayCurrency(),
+                  isPricingLoading: shippingLoading,
+                  estimatedDays: calculatedShipping?.estimatedDays,
+                  estimatedDaysRange: calculatedShipping?.estimatedDaysRange,
+                  productionCountry: undefined, // Not available in checkout
+                }}
+                showBreakdown={true}
+                showShippingInfo={true}
+              />
 
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 <Shield className="h-3 w-3" />

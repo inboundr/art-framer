@@ -239,10 +239,16 @@ export function parseProdigiError(
       );
     
     case HTTP_STATUS.TOO_MANY_REQUESTS:
-      const retryAfter = response.headers.get('Retry-After');
+      // Try to get retryAfter from header first, then from error data
+      let retryAfter = response.headers.get('Retry-After');
+      if (!retryAfter && errorData.retryAfter) {
+        retryAfter = String(errorData.retryAfter);
+      }
+      // If still no retryAfter, default to 30 seconds (Prodigi's rate limit window)
+      const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : 30;
       return new ProdigiRateLimitError(
-        retryAfter ? parseInt(retryAfter, 10) : undefined,
-        errorData.data,
+        retryAfterSeconds,
+        errorData.data || errorData,
         traceParent
       );
     
