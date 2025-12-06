@@ -810,7 +810,7 @@ export function RoomScene({ config, environment, resetTrigger = 0 }: RoomScenePr
             mount={config.mount}
           />
           <FrameModel
-            key={`${config.productType}-${config.frameColor}-${config.wrap}-${config.glaze}-${config.size}`}
+            key={`${config.productType}-${config.frameColor}-${config.wrap}-${config.glaze}-${config.size}-${config.edge}-${config.canvasType}`}
             color={config.frameColor}
             style={config.frameStyle}
             size={config.size}
@@ -820,6 +820,8 @@ export function RoomScene({ config, environment, resetTrigger = 0 }: RoomScenePr
             wrap={config.wrap}
             productType={config.productType}
             finish={config.finish}
+            edge={config.edge}
+            canvasType={config.canvasType}
           />
         </group>
 

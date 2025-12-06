@@ -21,7 +21,8 @@ const PRODUCT_TYPE_MAP: Record<string, string[]> = {
   'framed-canvas': ['Framed canvas'], // 1655 products
   'acrylic': ['Acrylic panels'], // 37 products
   'metal': ['Aluminium prints', 'Dibond prints'], // 33 + 51 products
-  'poster': ['Rolled canvas'], // 1904 products (closest match for unframed prints)
+  'poster': ['Rolled canvas'], // Rolled canvas is the Prodigi product type for unframed posters/prints
+  // Note: Prodigi doesn't have a separate "Poster" product type - they use "Rolled canvas" for unframed prints
 };
 
 /**
@@ -78,10 +79,24 @@ export class ProdigiCatalogService {
    * 
    * @param productType - Product type (e.g., 'framed-print', 'canvas')
    * @param size - Size in inches format like '16x20', '8x10'
+   * @param country - Country code for shipping
+   * @param preferences - Optional preferences for edge depth, canvas type, etc.
    * @returns SKU if found, null otherwise
    */
-  async getSKU(productType: string, size: string, country: string = 'US'): Promise<string | null> {
-    const cacheKey = `${productType}-${size}-${country}`;
+  async getSKU(
+    productType: string, 
+    size: string, 
+    country: string = 'US',
+    preferences?: {
+      edge?: '19mm' | '38mm' | 'auto';
+      canvasType?: 'standard' | 'slim' | 'eco' | 'auto';
+    }
+  ): Promise<string | null> {
+    // Include preferences in cache key to ensure different preferences get different results
+    const prefsKey = preferences 
+      ? `-${preferences.edge || 'auto'}-${preferences.canvasType || 'auto'}`
+      : '';
+    const cacheKey = `${productType}-${size}-${country}${prefsKey}`;
     const cached = this.cache.get(cacheKey);
     
     if (cached && Date.now() - cached.fetchedAt < this.CACHE_TTL) {
@@ -124,10 +139,12 @@ export class ProdigiCatalogService {
         scoringParameter: `prodCountry-${country}`, // ✅ Boost products produced in destination country
       });
 
-      // Filter out Cork products for framed-print searches
-      // Cork pin boards are classified as "Framed prints" but have incompatible attributes
+      // Filter out incompatible products
       let products = result.products;
+      
       if (productType.toLowerCase() === 'framed-print') {
+        // Filter out Cork products for framed-print searches
+        // Cork pin boards are classified as "Framed prints" but have incompatible attributes
         const originalCount = products.length;
         products = products.filter(p => {
           const isCork = p.paperType?.some(pt => pt.toLowerCase().includes('cork'));
@@ -135,6 +152,7 @@ export class ProdigiCatalogService {
         });
         console.log(`[Catalog] Filtered out ${originalCount - products.length} cork products from ${originalCount} total`);
       }
+      // Note: We no longer filter out slim canvas - it's a valid configuration option
 
       if (products.length === 0) {
         console.warn(`[Catalog] No products found for ${productType} ${size}`);
@@ -142,10 +160,72 @@ export class ProdigiCatalogService {
       }
 
       // Score and rank products for optimal selection
-      const scoredProducts = products.map(product => ({
-        product,
-        score: this.calculateProductScore(product, country),
-      }));
+      // Also prioritize exact size matches and user preferences
+      const [requestedWidth, requestedHeight] = size.split('x').map(Number);
+      const scoredProducts = products.map(product => {
+        let score = this.calculateProductScore(product, country, productType);
+        
+        // Bonus for exact size match
+        const productWidth = product.fullProductHorizontalDimensions;
+        const productHeight = product.fullProductVerticalDimensions;
+        const isExactSizeMatch = (
+          (Math.abs(productWidth - requestedWidth) < 0.5 && Math.abs(productHeight - requestedHeight) < 0.5) ||
+          (Math.abs(productWidth - requestedHeight) < 0.5 && Math.abs(productHeight - requestedWidth) < 0.5)
+        );
+        if (isExactSizeMatch) {
+          score += 50; // Significant bonus for exact size match
+        }
+        
+        // Apply user preferences for edge depth and canvas type
+        if (preferences) {
+          // Edge preference (19mm = slim, 38mm = standard)
+          if (preferences.edge && preferences.edge !== 'auto') {
+            const productEdge = product.edge?.[0];
+            const isSlimCanvas = product.sku?.toLowerCase().includes('slimcan') || 
+                                product.sku?.toLowerCase().includes('slim-can');
+            
+            if (preferences.edge === '19mm') {
+              // Prefer slim canvas (19mm edge)
+              if (isSlimCanvas || productEdge === '19mm') {
+                score += 30; // Bonus for matching slim preference
+              } else {
+                score -= 20; // Penalty for not matching
+              }
+            } else if (preferences.edge === '38mm') {
+              // Prefer standard canvas (38mm edge)
+              if (!isSlimCanvas && (productEdge === '38mm' || !productEdge)) {
+                score += 30; // Bonus for matching standard preference
+              } else {
+                score -= 20; // Penalty for not matching
+              }
+            }
+          }
+          
+          // Canvas type preference
+          if (preferences.canvasType && preferences.canvasType !== 'auto') {
+            const isSlim = product.sku?.toLowerCase().includes('slimcan') || 
+                          product.sku?.toLowerCase().includes('slim-can');
+            const isEco = product.sku?.toLowerCase().includes('eco') ||
+                         product.paperType?.some(pt => pt.toLowerCase().includes('eco'));
+            
+            if (preferences.canvasType === 'slim' && isSlim) {
+              score += 25; // Bonus for matching slim preference
+            } else if (preferences.canvasType === 'slim' && !isSlim) {
+              score -= 15; // Penalty for not matching
+            } else if (preferences.canvasType === 'eco' && isEco) {
+              score += 25; // Bonus for matching eco preference
+            } else if (preferences.canvasType === 'eco' && !isEco) {
+              score -= 15; // Penalty for not matching
+            } else if (preferences.canvasType === 'standard' && !isSlim && !isEco) {
+              score += 25; // Bonus for matching standard preference
+            } else if (preferences.canvasType === 'standard' && (isSlim || isEco)) {
+              score -= 15; // Penalty for not matching
+            }
+          }
+        }
+        
+        return { product, score };
+      });
       
       // Sort by score (highest first)
       scoredProducts.sort((a, b) => b.score - a.score);

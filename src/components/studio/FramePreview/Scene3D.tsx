@@ -83,7 +83,7 @@ export function Scene3D({ config, autoRotate = false, resetTrigger = 0 }: Scene3
           
           {/* Frame - Key prop forces re-render when critical config changes */}
           <FrameModel
-            key={`${config.productType}-${config.frameColor}-${config.frameStyle}-${config.wrap}-${config.glaze}-${config.size}-${config.mount}-${config.mountColor}`}
+            key={`${config.productType}-${config.frameColor}-${config.frameStyle}-${config.wrap}-${config.glaze}-${config.size}-${config.mount}-${config.mountColor}-${config.edge}-${config.canvasType}`}
             color={config.frameColor}
             style={config.frameStyle}
             size={config.size}
@@ -93,6 +93,8 @@ export function Scene3D({ config, autoRotate = false, resetTrigger = 0 }: Scene3
             wrap={config.wrap}
             productType={config.productType}
             finish={config.finish}
+            edge={config.edge}
+            canvasType={config.canvasType}
           />
         </group>
 

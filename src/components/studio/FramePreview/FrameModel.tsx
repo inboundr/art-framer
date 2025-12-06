@@ -25,6 +25,8 @@ interface FrameModelProps {
   wrap?: string;
   productType?: string;
   finish?: string;
+  edge?: '19mm' | '38mm' | 'auto'; // Edge depth for canvas products
+  canvasType?: 'standard' | 'slim' | 'eco' | 'auto'; // Canvas type
 }
 
 export function FrameModel({
@@ -37,6 +39,8 @@ export function FrameModel({
   wrap,
   productType = 'framed-print',
   finish,
+  edge,
+  canvasType,
 }: FrameModelProps) {
   // Parse size
   const [widthInches, heightInches] = size.split('x').map(Number);
@@ -67,9 +71,56 @@ export function FrameModel({
     return 'classic'; // Default to classic
   }, [style]);
 
+  // Calculate frame dimensions based on Prodigi specifications
+  // For framed-canvas: Frame and canvas have different sizes with a 5mm gap
+  const frameSpecs = useMemo(() => {
+    if (productType === 'framed-canvas') {
+      const mmToFeet = 0.00328084;
+      
+      if (edge === '19mm' || canvasType === 'slim') {
+        // Classic framed canvas (slim)
+        return {
+          frameDepth: 17 * mmToFeet, // Rebate depth: 17mm
+          frameFaceWidth: 20 * mmToFeet, // Face width: 20mm
+          frameGap: 5 * mmToFeet, // Gap between frame and canvas: 5mm
+          canvasDepth: 19 * mmToFeet, // Canvas depth: 19mm (slim)
+          totalDepth: 22 * mmToFeet, // Total depth from wall: 22mm
+        };
+      } else if (canvasType === 'eco') {
+        // Eco Frame canvas
+        return {
+          frameDepth: 40 * mmToFeet, // Rebate depth: 40mm
+          frameFaceWidth: 12 * mmToFeet, // Face width: 12mm
+          frameGap: 5 * mmToFeet, // Gap: 5mm
+          canvasDepth: 38 * mmToFeet, // Canvas depth: 38mm (standard)
+          totalDepth: 53 * mmToFeet, // Total depth: 53mm
+        };
+      } else {
+        // Framed canvas (standard)
+        return {
+          frameDepth: 40 * mmToFeet, // Rebate depth: 40mm
+          frameFaceWidth: 12 * mmToFeet, // Face width: 12mm
+          frameGap: 5 * mmToFeet, // Gap: 5mm
+          canvasDepth: 38 * mmToFeet, // Canvas depth: 38mm (standard)
+          totalDepth: 53 * mmToFeet, // Total depth: 53mm
+        };
+      }
+    }
+    return null;
+  }, [productType, edge, canvasType]);
+
+  // Frame depth for geometry creation
+  const frameDepth = useMemo(() => {
+    if (frameSpecs) {
+      return frameSpecs.frameDepth;
+    }
+    // For framed-print, use style-based depth
+    return style === 'ornate' ? 0.12 : 0.08;
+  }, [frameSpecs, style]);
+
   // Frame geometry with proper UV mapping
   const frameGeometry = useMemo(() => {
-    const geometry = createFrameGeometry(width, height, style);
+    const geometry = createFrameGeometry(width, height, style, frameDepth, productType, frameSpecs);
     
     // Get texture configuration to determine UV mapping settings
     const textureConfig = getFrameTextureConfig(frameType, color);
@@ -81,7 +132,7 @@ export function FrameModel({
     }
     
     return geometry;
-  }, [width, height, style, frameType, color]);
+  }, [width, height, style, frameType, color, frameDepth, productType, frameSpecs]);
 
   // Frame material using Prodigi textures
   const {
@@ -309,12 +360,56 @@ export function FrameModel({
     enabled: ['canvas', 'framed-canvas'].includes(productType),
   });
 
+  // Calculate canvas z-position for framed-canvas
+  // Canvas should sit inside the frame's rebate (L-shaped groove), recessed by the gap
+  const canvasZPosition = useMemo(() => {
+    if (productType === 'framed-canvas' && frameSpecs) {
+      // Frame front is at z=0
+      // Frame rebate extends from z=0 to z=-rebateDepth
+      // Canvas sits INSIDE the rebate, recessed by the gap (5mm) from the frame's inner edge
+      // Canvas front should be at z=-gap (recessed), canvas back at z=-(gap + canvasDepth)
+      return -frameSpecs.frameGap; // Canvas front at z=-gap, back at z=-(gap + canvasDepth)
+    }
+    return 0; // Default position for non-framed canvas
+  }, [productType, frameSpecs]);
+
   // For canvas products, create edge geometries and back panel
   // IMPORTANT: Including wrap in dependencies ensures edges update when wrap changes
   const canvasEdges = useMemo(() => {
     if (!['canvas', 'framed-canvas'].includes(productType)) return null;
     
-    const edgeDepth = 0.08; // Canvas depth (how thick the canvas is)
+    // Calculate canvas dimensions
+    let canvasWidth = width;
+    let canvasHeight = height;
+    let edgeDepth: number;
+    let canvasOffsetX = 0;
+    let canvasOffsetY = 0;
+    
+    if (productType === 'framed-canvas' && frameSpecs) {
+      // For framed-canvas, canvas sits inside the frame's rebate with a 5mm gap
+      // Canvas dimensions = artwork size - (2 * gap) on each side
+      // The gap is between the frame's inner edge and the canvas
+      const gap = frameSpecs.frameGap; // 5mm gap
+      canvasWidth = width - (gap * 2); // Canvas is smaller than artwork by gap on each side
+      canvasHeight = height - (gap * 2); // Canvas is smaller than artwork by gap on each side
+      
+      // Canvas depth is the actual canvas depth (19mm for slim, 38mm for standard)
+      // Canvas sits in the rebate, which is deeper than the canvas
+      // Canvas extends from z=-gap to z=-(gap + canvasDepth)
+      edgeDepth = frameSpecs.canvasDepth; // Use actual canvas depth (19mm for slim, 38mm for standard)
+      
+      // Canvas is centered (no offset needed - it's centered in the frame rebate)
+      canvasOffsetX = 0;
+      canvasOffsetY = 0;
+    } else {
+      // For regular canvas (not framed), use full size
+      if (edge === '19mm' || canvasType === 'slim') {
+        edgeDepth = 19 * 0.00328084; // ~0.0623 feet
+      } else {
+        edgeDepth = 38 * 0.00328084; // ~0.1246 feet
+      }
+    }
+    
     const edgeThickness = 0.01; // How thick each edge strip is
     
     // Use wrap texture if available, otherwise fallback to color
@@ -350,45 +445,66 @@ export function FrameModel({
     }
     const backMaterial = new THREE.MeshStandardMaterial(backMaterialConfig);
     
+    // Calculate z-position for canvas edges
+    // Canvas sits in frame rebate, starting from z=0 (front of frame)
+    // Canvas edges extend from z=0 (front) to z=-edgeDepth (back)
+    // For BoxGeometry, position is the center, so we need to offset by half the depth
+    // To have front at z=0: center = 0 - edgeDepth/2 = -edgeDepth/2
+    // Use canvasZPosition (which is 0 for framed-canvas) as the front position
+    const canvasZCenter = canvasZPosition - (edgeDepth / 2);
+    
     // Create 4 edge strips (top, bottom, left, right) + back panel
+    // Use canvas dimensions (smaller than frame for framed-canvas)
     return [
-      // Top edge
+      // Top edge - front at z=0, back at z=-edgeDepth
       {
-        geometry: new THREE.BoxGeometry(width, edgeThickness, edgeDepth),
-        position: [0, height / 2, -edgeDepth / 2] as [number, number, number],
+        geometry: new THREE.BoxGeometry(canvasWidth, edgeThickness, edgeDepth),
+        position: [canvasOffsetX, canvasOffsetY + canvasHeight / 2, canvasZCenter] as [number, number, number],
         material: edgeMaterial,
         key: `top-${wrap}`, // Key for React to track changes
       },
-      // Bottom edge
+      // Bottom edge - front at z=0, back at z=-edgeDepth
       {
-        geometry: new THREE.BoxGeometry(width, edgeThickness, edgeDepth),
-        position: [0, -height / 2, -edgeDepth / 2] as [number, number, number],
+        geometry: new THREE.BoxGeometry(canvasWidth, edgeThickness, edgeDepth),
+        position: [canvasOffsetX, canvasOffsetY - canvasHeight / 2, canvasZCenter] as [number, number, number],
         material: edgeMaterial,
         key: `bottom-${wrap}`,
       },
-      // Left edge
+      // Left edge - front at z=0, back at z=-edgeDepth
       {
-        geometry: new THREE.BoxGeometry(edgeThickness, height, edgeDepth),
-        position: [-width / 2, 0, -edgeDepth / 2] as [number, number, number],
+        geometry: new THREE.BoxGeometry(edgeThickness, canvasHeight, edgeDepth),
+        position: [canvasOffsetX - canvasWidth / 2, canvasOffsetY, canvasZCenter] as [number, number, number],
         material: edgeMaterial,
         key: `left-${wrap}`,
       },
-      // Right edge
+      // Right edge - front at z=0, back at z=-edgeDepth
       {
-        geometry: new THREE.BoxGeometry(edgeThickness, height, edgeDepth),
-        position: [width / 2, 0, -edgeDepth / 2] as [number, number, number],
+        geometry: new THREE.BoxGeometry(edgeThickness, canvasHeight, edgeDepth),
+        position: [canvasOffsetX + canvasWidth / 2, canvasOffsetY, canvasZCenter] as [number, number, number],
         material: edgeMaterial,
         key: `right-${wrap}`,
       },
-      // Back panel
+      // Back panel - positioned at the back of the canvas (z=-edgeDepth)
       {
-        geometry: new THREE.PlaneGeometry(width - edgeThickness * 2, height - edgeThickness * 2),
-        position: [0, 0, -edgeDepth] as [number, number, number],
+        geometry: new THREE.PlaneGeometry(canvasWidth - edgeThickness * 2, canvasHeight - edgeThickness * 2),
+        position: [canvasOffsetX, canvasOffsetY, canvasZPosition - edgeDepth] as [number, number, number],
         material: backMaterial,
         key: 'back',
       },
     ];
-  }, [productType, width, height, wrap, wrapTexture, substrateTexture]); // wrap and textures in dependencies!
+  }, [productType, width, height, wrap, wrapTexture, substrateTexture, frameSpecs, edge, canvasType, canvasZPosition]); // Include canvasZPosition
+
+  // Calculate frame position to align with canvas depth for framed-canvas
+  const framePosition = useMemo((): [number, number, number] => {
+    // For framed-canvas, frame front is at z=0
+    // Frame has L-shape with rebate extending from z=0 to z=-rebateDepth
+    // Canvas sits inside the rebate, recessed by gap (5mm)
+    if (productType === 'framed-canvas') {
+      return [0, 0, -0.1]; // Frame front at z=0
+    }
+    // For framed-print, use the original offset
+    return [0, 0, -0.05];
+  }, [productType]);
 
   return (
     <group>
@@ -398,7 +514,7 @@ export function FrameModel({
           geometry={frameGeometry}
           material={frameMaterial}
           castShadow
-          position={[0, 0, -0.05]}
+          position={framePosition}
         />
       )}
 
@@ -444,12 +560,43 @@ export function FrameModel({
 function createFrameGeometry(
   width: number,
   height: number,
-  style: string
+  style: string,
+  depth?: number, // Optional depth override (for framed-canvas with edge/canvasType)
+  productType?: string,
+  frameSpecs?: {
+    frameDepth: number;
+    frameFaceWidth: number;
+    frameGap: number;
+    canvasDepth: number;
+    totalDepth: number;
+  } | null
 ): THREE.ExtrudeGeometry {
-  const frameWidth = 0.08; // Frame border width
-  const depth = style === 'ornate' ? 0.12 : 0.08;
+  // For framed-canvas, use frame face width from specs
+  // For framed-print, use default frame width
+  let frameWidth: number;
+  let innerWidth: number;
+  let innerHeight: number;
+  
+  if (productType === 'framed-canvas' && frameSpecs) {
+    // Frame outer dimensions = artwork size + frame face width on each side
+    frameWidth = frameSpecs.frameFaceWidth;
+    // Inner hole = artwork size - gap on each side
+    // The gap creates space between frame inner edge and canvas
+    innerWidth = width - (frameSpecs.frameGap * 2);
+    innerHeight = height - (frameSpecs.frameGap * 2);
+  } else {
+    // Default frame width for framed-print
+    frameWidth = 0.08;
+    innerWidth = width;
+    innerHeight = height;
+  }
+  
+  // Use provided depth if available (for framed-canvas), otherwise use style-based depth
+  const frameDepth = depth !== undefined 
+    ? depth 
+    : (style === 'ornate' ? 0.12 : 0.08);
 
-  // Outer rectangle
+  // Outer rectangle (frame outer edge)
   const shape = new THREE.Shape();
   shape.moveTo(-width / 2 - frameWidth, -height / 2 - frameWidth);
   shape.lineTo(width / 2 + frameWidth, -height / 2 - frameWidth);
@@ -457,19 +604,20 @@ function createFrameGeometry(
   shape.lineTo(-width / 2 - frameWidth, height / 2 + frameWidth);
   shape.lineTo(-width / 2 - frameWidth, -height / 2 - frameWidth);
 
-  // Inner rectangle (hole for artwork)
+  // Inner rectangle (hole for canvas/artwork)
+  // For framed-canvas, this creates the gap between frame and canvas
   const hole = new THREE.Path();
-  hole.moveTo(-width / 2, -height / 2);
-  hole.lineTo(width / 2, -height / 2);
-  hole.lineTo(width / 2, height / 2);
-  hole.lineTo(-width / 2, height / 2);
-  hole.lineTo(-width / 2, -height / 2);
+  hole.moveTo(-innerWidth / 2, -innerHeight / 2);
+  hole.lineTo(innerWidth / 2, -innerHeight / 2);
+  hole.lineTo(innerWidth / 2, innerHeight / 2);
+  hole.lineTo(-innerWidth / 2, innerHeight / 2);
+  hole.lineTo(-innerWidth / 2, -innerHeight / 2);
 
   shape.holes.push(hole);
 
   // Extrude settings based on style
   const extrudeSettings: THREE.ExtrudeGeometryOptions = {
-    depth,
+    depth: frameDepth,
     bevelEnabled: style !== 'modern',
     bevelThickness: style === 'ornate' ? 0.015 : 0.008,
     bevelSize: style === 'ornate' ? 0.015 : 0.008,

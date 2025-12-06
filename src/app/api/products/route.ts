@@ -11,6 +11,16 @@ const CreateProductSchema = z.object({
   frameMaterial: z.enum(['wood', 'metal', 'plastic', 'bamboo', 'canvas', 'acrylic']).optional().default('wood'),
   price: z.number().positive(),
   cost: z.number().positive().optional(),
+  productType: z.enum(['framed-print', 'canvas', 'framed-canvas', 'acrylic', 'metal', 'poster']).optional(),
+  // Optional configuration fields for metadata
+  wrap: z.enum(['Black', 'White', 'ImageWrap', 'MirrorWrap']).optional(),
+  glaze: z.enum(['none', 'acrylic', 'glass', 'motheye']).optional(),
+  mount: z.enum(['none', '1.4mm', '2.0mm', '2.4mm']).optional(),
+  mountColor: z.string().optional(),
+  paperType: z.string().optional(),
+  finish: z.string().optional(),
+  edge: z.enum(['19mm', '38mm', 'auto']).optional(),
+  canvasType: z.enum(['standard', 'slim', 'eco', 'auto']).optional(),
 });
 
 const GetProductsSchema = z.object({
@@ -129,7 +139,8 @@ export async function POST(request: NextRequest) {
       frameSize: body.frameSize,
       frameStyle: body.frameStyle,
       frameMaterial: body.frameMaterial,
-      price: body.price
+      price: body.price,
+      productType: body.productType // Log productType to verify it's being sent
     });
     
     console.log('✅ Products API: Validating data...');
@@ -221,18 +232,123 @@ export async function POST(request: NextRequest) {
     console.log('📐 Products API: Calculated dimensions and cost', { dimensions, cost });
 
     // Generate SKU using Prodigi client
-    console.log('🔑 Products API: Generating SKU...');
+    // If productType is provided, use it to find the correct SKU
+    console.log('🔑 Products API: Generating SKU...', { 
+      productType: validatedData.productType,
+      frameSize: validatedData.frameSize 
+    });
+    
+    let sku: string;
     const { prodigiClient } = await import('@/lib/prodigi');
-    const sku = await prodigiClient.generateFrameSku(
-      validatedData.frameSize,
-      validatedData.frameStyle,
-      validatedData.frameMaterial,
-      validatedData.imageId // Pass image ID to make SKU unique
-    );
+    
+    if (validatedData.productType) {
+      // Use productType-aware SKU lookup via Prodigi v2 catalog
+      try {
+        const { ProdigiClient: ProdigiClientV2 } = await import('@/lib/prodigi-v2/client');
+        const { ProdigiCatalogService } = await import('@/lib/prodigi-v2/catalog');
+        
+        const apiKey = process.env.PRODIGI_API_KEY;
+        const environment = (process.env.PRODIGI_ENVIRONMENT as 'sandbox' | 'production') || 'production';
+        
+        if (apiKey) {
+          const prodigiClientV2 = new ProdigiClientV2({
+            apiKey,
+            environment,
+          });
+          const catalogService = new ProdigiCatalogService(prodigiClientV2);
+          
+          // Extract preferences from metadata
+          const data = validatedData as any;
+          const preferences = {
+            edge: data.edge && data.edge !== 'auto' ? data.edge : undefined,
+            canvasType: data.canvasType && data.canvasType !== 'auto' ? data.canvasType : undefined,
+          };
+          
+          const baseSku = await catalogService.getSKU(
+            validatedData.productType,
+            validatedData.frameSize,
+            'US', // Default country, will be adjusted based on destination
+            Object.keys(preferences).length > 0 ? preferences : undefined
+          );
+          
+          if (baseSku) {
+            // Add image ID suffix to make SKU unique
+            sku = validatedData.imageId 
+              ? `${baseSku}-${validatedData.imageId.substring(0, 8)}`
+              : baseSku;
+            console.log('✅ Products API: SKU generated from productType', { sku, baseSku, productType: validatedData.productType });
+          } else {
+            // Fallback to frame-based SKU generation
+            console.warn('⚠️ Products API: No SKU found for productType, falling back to frame SKU generation');
+            sku = await prodigiClient.generateFrameSku(
+              validatedData.frameSize,
+              validatedData.frameStyle,
+              validatedData.frameMaterial,
+              validatedData.imageId
+            );
+          }
+        } else {
+          throw new Error('PRODIGI_API_KEY not configured');
+        }
+      } catch (catalogError) {
+        console.error('❌ Products API: Catalog lookup failed, using frame SKU generation', catalogError);
+        // Fallback to frame-based SKU generation
+        sku = await prodigiClient.generateFrameSku(
+          validatedData.frameSize,
+          validatedData.frameStyle,
+          validatedData.frameMaterial,
+          validatedData.imageId
+        );
+      }
+    } else {
+      // No productType provided, use frame-based SKU generation (default behavior)
+      sku = await prodigiClient.generateFrameSku(
+        validatedData.frameSize,
+        validatedData.frameStyle,
+        validatedData.frameMaterial,
+        validatedData.imageId
+      );
+    }
+    
     console.log('✅ Products API: SKU generated', { sku });
 
+    // Generate product name based on productType
+    const productTypeNames: Record<string, string> = {
+      'framed-print': 'Framed Print',
+      'canvas': 'Canvas',
+      'framed-canvas': 'Framed Canvas',
+      'acrylic': 'Acrylic Print',
+      'metal': 'Metal Print',
+      'poster': 'Poster',
+    };
+    const productName = validatedData.productType 
+      ? productTypeNames[validatedData.productType] || 'Framed Print'
+      : 'Framed Print';
+
+    // Build metadata object with full configuration
+    // This stores all configuration fields that aren't in the main columns
+    const metadata: Record<string, any> = {};
+    if (validatedData.productType) {
+      metadata.productType = validatedData.productType;
+    }
+    // Store all optional configuration fields in metadata
+    // Use type assertion to access optional fields from Zod schema
+    const data = validatedData as any;
+    if (data.wrap) metadata.wrap = data.wrap;
+    if (data.glaze) metadata.glaze = data.glaze;
+    if (data.mount) metadata.mount = data.mount;
+    if (data.mountColor) metadata.mountColor = data.mountColor;
+    if (data.paperType) metadata.paperType = data.paperType;
+    if (data.finish) metadata.finish = data.finish;
+    if (data.edge && data.edge !== 'auto') metadata.edge = data.edge;
+    if (data.canvasType && data.canvasType !== 'auto') metadata.canvasType = data.canvasType;
+
     // Create product using service client to bypass RLS
-    console.log('💾 Products API: Inserting product into database...');
+    console.log('💾 Products API: Inserting product into database...', { 
+      productType: validatedData.productType,
+      productName,
+      metadata
+    });
     const { data: product, error: productError } = await (serviceSupabase as any)
       .from('products')
       .insert({
@@ -244,7 +360,10 @@ export async function POST(request: NextRequest) {
         cost: cost,
         dimensions_cm: dimensions,
         sku: sku,
-        status: 'active'
+        name: productName, // Store product name based on productType
+        product_type: validatedData.productType || null, // Store productType in new column
+        metadata: metadata, // Store full configuration in metadata JSONB
+        status: 'active',
       })
       .select(`
         *,

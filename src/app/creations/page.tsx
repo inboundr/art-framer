@@ -18,9 +18,6 @@ export default function Creations() {
       {({ onOpenAuthModal }) => (
         /* Exact same layout as home page */
       <div className="flex flex-col min-h-screen bg-background">
-        {/* Top Spacer - same as home */}
-        <div className="h-16 min-h-16 self-stretch bg-gray-50" />
-        
         {/* Search/Navigation Bar - same as home */}
         <SearchBar onOpenGenerationPanel={handleOpenGenerationPanel} />
         

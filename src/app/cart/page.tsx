@@ -29,9 +29,6 @@ export default function CartPage() {
     return (
       <AuthenticatedLayout>
         <div className="flex flex-col min-h-screen bg-gray-50">
-          {/* Top Spacer - same as other pages */}
-          <div className="h-16 min-h-16 self-stretch bg-gray-50" />
-          
           {/* Main Content */}
           <div className="flex-1 container mx-auto px-4 py-8">
             <CheckoutFlow
@@ -47,9 +44,6 @@ export default function CartPage() {
   return (
     <AuthenticatedLayout>
       <div className="flex flex-col min-h-screen bg-gray-50">
-        {/* Top Spacer - same as other pages */}
-        <div className="h-16 min-h-16 self-stretch bg-gray-50" />
-        
         {/* Main Content */}
         <div className="flex-1 container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">

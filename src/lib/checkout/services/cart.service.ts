@@ -62,22 +62,9 @@ export class CartService {
         });
       }
 
-      // Generate/validate SKU
-      let sku = product.sku;
-      if (this.prodigiClient) {
-        try {
-          const freshSku = await this.prodigiClient.generateFrameSku(
-            product.frame_size || '16x20', // V2 sizing: default to "16x20" instead of 'medium'
-            product.frame_style || 'black',
-            product.frame_material || 'wood',
-            product.image_id
-          );
-          const baseSku = this.prodigiClient.extractBaseProdigiSku(freshSku);
-          sku = baseSku;
-        } catch (skuError) {
-          console.warn('Failed to generate fresh SKU, using stored SKU:', skuError);
-        }
-      }
+      // Use the product's SKU from database (should be full SKU with image ID)
+      // Only extract base SKU when making Prodigi API calls, not for storage
+      const sku = product.sku;
 
       // Get real-time pricing from Prodigi
       // If pricing fails, we'll use the stored product price as fallback
@@ -424,14 +411,15 @@ export class CartService {
           };
         });
 
+        // Cart only shows subtotal - shipping calculated at checkout
         totals = {
           subtotal: pricing.subtotal,
-          shipping: pricing.shipping,
-          tax: pricing.tax,
-          total: pricing.total,
+          shipping: 0, // Shipping calculated at checkout only
+          tax: 0, // Tax calculated at checkout only
+          total: pricing.subtotal, // Only subtotal in cart
           currency: pricing.currency,
           originalCurrency: pricing.originalCurrency,
-          originalTotal: pricing.originalTotal,
+          originalTotal: pricing.subtotal, // Only subtotal in cart
           exchangeRate: pricing.exchangeRate,
         };
       } catch (pricingError) {
@@ -528,11 +516,20 @@ export class CartService {
       }
     }
     
+    // Extract metadata fields (wrap, glaze, mount, paperType, finish, etc.)
+    const metadata = product.metadata || {};
+    
+    // Infer product type from SKU or stored product_type
+    const productType = product.product_type || this.inferProductTypeFromSku(product.sku);
+    
+    // Infer missing metadata from SKU and product type for backward compatibility
+    const inferredMetadata = this.inferMetadataFromSku(product.sku, productType, metadata);
+    
     return {
       id: dbItem.id,
       productId: dbItem.product_id,
       sku: product.sku || '',
-      name: product.name || 'Framed Print',
+      name: product.name || 'Framed Print', // Use stored product name (now includes productType)
       imageUrl: product.images?.image_url || product.images?.thumbnail_url || '',
       quantity: dbItem.quantity,
       price,
@@ -543,10 +540,113 @@ export class CartService {
         color: product.frame_style || 'black',
         style: product.frame_style || 'black',
         material: product.frame_material || 'wood',
+        // Use metadata if available, otherwise infer from SKU/product type
+        // Only include fields that are relevant for the product type
+        ...(metadata.wrap || inferredMetadata.wrap ? { wrap: metadata.wrap || inferredMetadata.wrap } : {}),
+        ...(metadata.glaze || inferredMetadata.glaze ? { glaze: metadata.glaze || inferredMetadata.glaze } : {}),
+        ...(metadata.mount || inferredMetadata.mount ? { mount: metadata.mount || inferredMetadata.mount } : {}),
+        ...(metadata.mountColor || inferredMetadata.mountColor ? { mountColor: metadata.mountColor || inferredMetadata.mountColor } : {}),
+        ...(metadata.paperType || inferredMetadata.paperType ? { paperType: metadata.paperType || inferredMetadata.paperType } : {}),
+        ...(metadata.finish || inferredMetadata.finish ? { finish: metadata.finish || inferredMetadata.finish } : {}),
+        ...(metadata.edge || inferredMetadata.edge ? { edge: metadata.edge || inferredMetadata.edge } : {}),
       },
       createdAt: new Date(dbItem.created_at),
       updatedAt: new Date(dbItem.updated_at || dbItem.created_at),
     };
+  }
+
+  /**
+   * Infer product type from SKU pattern
+   */
+  private inferProductTypeFromSku(sku: string | null | undefined): string | undefined {
+    if (!sku) return undefined;
+    const skuLower = sku.toLowerCase();
+    
+    if (skuLower.includes('can-rol') || skuLower.includes('rol-')) {
+      return 'poster';
+    } else if (skuLower.includes('fra-can') || skuLower.includes('framed-canvas')) {
+      return 'framed-canvas';
+    } else if (skuLower.includes('can-') && !skuLower.includes('fra-') && !skuLower.includes('rol-')) {
+      return 'canvas';
+    } else if (skuLower.includes('acry') || skuLower.includes('acrylic')) {
+      return 'acrylic';
+    } else if (skuLower.includes('metal') || skuLower.includes('dibond')) {
+      return 'metal';
+    } else if (skuLower.includes('cfpm') || skuLower.includes('fra-')) {
+      return 'framed-print';
+    }
+    return undefined;
+  }
+
+  /**
+   * Infer missing metadata from SKU and product type for backward compatibility
+   */
+  private inferMetadataFromSku(
+    sku: string | null | undefined,
+    productType: string | undefined,
+    existingMetadata: Record<string, any>
+  ): {
+    wrap?: string;
+    glaze?: string;
+    mount?: string;
+    mountColor?: string;
+    paperType?: string;
+    finish?: string;
+    edge?: string;
+  } {
+    const inferred: Record<string, string> = {};
+    
+    if (!sku) return inferred;
+    const skuLower = sku.toLowerCase();
+    
+    // Infer edge depth from SKU
+    if (!existingMetadata.edge) {
+      if (skuLower.includes('slimcan') || skuLower.includes('slim-can')) {
+        inferred.edge = '19mm';
+      } else if (skuLower.includes('can-') || skuLower.includes('fra-can')) {
+        // Standard canvas typically has 38mm edge
+        inferred.edge = '38mm';
+      }
+    }
+    
+    // Infer wrap for canvas products (not for posters)
+    if (!existingMetadata.wrap && (productType === 'canvas' || productType === 'framed-canvas')) {
+      inferred.wrap = 'Black'; // Default wrap for canvas
+    }
+    // Posters don't have wrap - don't infer it
+    
+    // Infer glaze for framed prints
+    if (!existingMetadata.glaze && productType === 'framed-print') {
+      inferred.glaze = 'none'; // Default to none, user can change
+    }
+    
+    // Infer mount for framed prints
+    if (!existingMetadata.mount && productType === 'framed-print') {
+      inferred.mount = 'none'; // Default to none
+    }
+    
+    // Infer mount color for framed prints
+    if (!existingMetadata.mountColor && productType === 'framed-print') {
+      inferred.mountColor = 'white'; // Default mount color
+    }
+    
+    // Infer paper type
+    if (!existingMetadata.paperType) {
+      if (productType === 'canvas' || productType === 'framed-canvas') {
+        inferred.paperType = 'enhanced-matte'; // Default for canvas
+      } else if (productType === 'framed-print') {
+        inferred.paperType = 'enhanced-matte'; // Default for framed prints
+      }
+    }
+    
+    // Infer finish
+    if (!existingMetadata.finish) {
+      if (productType === 'canvas' || productType === 'framed-canvas') {
+        inferred.finish = 'matte'; // Default finish for canvas
+      }
+    }
+    
+    return inferred;
   }
 }
 

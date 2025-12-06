@@ -195,6 +195,43 @@ export function ConfigurationSummary() {
       }
     }
 
+    // Edge/Depth - only show for canvas products
+    if (availableOptions?.hasEdge && ['canvas', 'framed-canvas'].includes(config.productType)) {
+      opts.push({
+        label: '📏 Edge Depth',
+        value: config.edge || 'auto',
+        key: 'edge',
+        editable: true,
+        options: ['auto', '19mm', '38mm'],
+        displayNames: {
+          'auto': 'Auto (Recommended)',
+          '19mm': '19mm (Slim Canvas)',
+          '38mm': '38mm (Standard Canvas)'
+        },
+        description: 'Canvas edge depth - 19mm is thinner, 38mm is standard',
+        showIf: true,
+      });
+    }
+
+    // Canvas Type - only show for canvas/framed-canvas products
+    if (['canvas', 'framed-canvas'].includes(config.productType)) {
+      opts.push({
+        label: '🎨 Canvas Type',
+        value: config.canvasType || 'auto',
+        key: 'canvasType',
+        editable: true,
+        options: ['auto', 'standard', 'slim', 'eco'],
+        displayNames: {
+          'auto': 'Auto (Recommended)',
+          'standard': 'Standard Canvas',
+          'slim': 'Slim Canvas (19mm)',
+          'eco': 'Eco Canvas'
+        },
+        description: 'Canvas type affects thickness and appearance',
+        showIf: true,
+      });
+    }
+
     // Wrap - only show for canvas products
     if (availableOptions?.hasWrap) {
       opts.push({

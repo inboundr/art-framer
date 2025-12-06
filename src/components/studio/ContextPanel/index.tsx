@@ -15,6 +15,7 @@ import { CountrySelector } from '../CountrySelector';
 import { ShippingMethodSelector } from '../ShippingMethodSelector';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/contexts/CartContext';
+import { useCartSidebar } from '@/contexts/CartSidebarContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface ContextPanelProps {
@@ -27,6 +28,7 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
   const totalPrice = useTotalPrice();
   const { user, session } = useAuth();
   const { addToCart, refreshCart } = useCart();
+  const { openCart, closeCart } = useCartSidebar();
   const { toast } = useToast();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
@@ -153,6 +155,16 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
           frameStyle: normalizedFrameStyle, // Use frameColor, normalized to valid database enum values
           frameMaterial: 'wood', // Default, can be enhanced later
           price: config.price,
+          productType: config.productType, // Include product type (poster, canvas, etc.)
+          // Include all configuration fields for metadata storage
+          wrap: config.wrap,
+          glaze: config.glaze,
+          mount: config.mount,
+          mountColor: config.mountColor,
+          paperType: config.paperType,
+          finish: config.finish,
+          edge: config.edge, // Edge depth preference (19mm/38mm/auto)
+          canvasType: config.canvasType, // Canvas type preference (standard/slim/eco/auto)
         }),
       });
 
@@ -184,30 +196,25 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
       console.log('🛒 ContextPanel: addToCart returned:', success);
       
       if (success) {
-        console.log('✅ ContextPanel: Item added to cart successfully, redirecting...');
+        console.log('✅ ContextPanel: Item added to cart successfully');
         
-        // Show success toast
+        // Refresh cart to show the new item
+        await refreshCart();
+        
+        // Show success toast with animation
         toast({
-          title: 'Added to Cart',
+          title: 'Added to Cart! 🎉',
           description: 'Item has been added to your cart successfully.',
         });
         
-        // Reset loading state BEFORE redirect to ensure it's cleared
+        // Reset loading state
         setIsAddingToCart(false);
         
-        // Set a flag so the cart page knows to wait a moment for DB commit
-        // This ensures the cart fetch happens after the transaction is committed
-        localStorage.setItem('cart-just-updated', Date.now().toString());
-        
-        // Redirect to cart page immediately (fast UX)
-        // The cart page will detect the flag and wait briefly before fetching
-        console.log('🚀 ContextPanel: Redirecting to /cart...');
-        try {
-          router.push('/cart');
-        } catch (error) {
-          console.error('❌ ContextPanel: router.push failed, using window.location.href:', error);
-          window.location.href = '/cart';
-        }
+        // Open cart sidebar automatically (Shopify-style UX)
+        // Small delay to let the toast appear first, then slide in the cart
+        setTimeout(() => {
+          openCart();
+        }, 300);
       } else {
         console.error('❌ ContextPanel: addToCart returned false');
         throw new Error('Failed to add to cart');
@@ -224,7 +231,7 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
       console.log('🔄 ContextPanel: Resetting loading state');
       setIsAddingToCart(false);
     }
-  }, [user, session, config, addToCart, toast, onOpenAuthModal, router]);
+  }, [user, session, config, addToCart, refreshCart, toast, onOpenAuthModal, router, openCart, closeCart]);
 
   // Listen for retry event after authentication
   useEffect(() => {
@@ -326,14 +333,34 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
       {/* Footer - CTA */}
       {config.imageUrl && (
         <div className="border-t border-gray-200 p-4 space-y-3 bg-white">
-          <button
-            data-add-to-cart-button
-            className="w-full px-6 py-4 bg-black text-white rounded-xl font-bold text-base hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleAddToCart}
-            disabled={isAddingToCart}
-          >
-            {isAddingToCart ? 'Adding...' : `Add to Cart · ${totalPrice.toFixed(2)}`}
-          </button>
+          <div className="flex gap-2">
+            <button
+              data-add-to-cart-button
+              className="flex-1 px-6 py-4 bg-black text-white rounded-xl font-bold text-base hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleAddToCart}
+              disabled={isAddingToCart}
+            >
+              {isAddingToCart ? 'Adding...' : `Add to Cart`}
+            </button>
+            <button
+              className="flex-1 px-6 py-4 bg-gray-900 text-white rounded-xl font-bold text-base hover:bg-gray-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={async () => {
+                // Add to cart first, then go to checkout
+                await handleAddToCart();
+                // Close cart sidebar if open, then navigate to checkout
+                setTimeout(() => {
+                  closeCart();
+                  router.push('/checkout');
+                }, 500);
+              }}
+              disabled={isAddingToCart}
+            >
+              Checkout
+            </button>
+          </div>
+          <div className="text-center text-sm text-gray-600">
+            ${totalPrice.toFixed(2)} • Shipping calculated at checkout
+          </div>
 
           <div className="flex gap-2">
             <button

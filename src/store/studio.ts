@@ -60,6 +60,12 @@ export interface FrameConfiguration {
   // Wrap (for canvas)
   wrap?: 'Black' | 'White' | 'ImageWrap' | 'MirrorWrap';
   
+  // Edge/Depth (for canvas products - 19mm slim, 38mm standard)
+  edge?: '19mm' | '38mm' | 'auto';
+  
+  // Canvas Type (standard, slim, eco) - affects SKU selection
+  canvasType?: 'standard' | 'slim' | 'eco' | 'auto';
+  
   // Pricing
   price: number;
   currency: string; // Display currency (user's currency)
@@ -287,6 +293,8 @@ const getDefaultConfig = (): FrameConfiguration => ({
   mount: 'none',
   mountColor: 'white',
   wrap: 'Black', // Default canvas wrap
+  edge: 'auto', // Auto-select edge depth based on product
+  canvasType: 'auto', // Auto-select canvas type (standard/slim/eco)
   size: '16x20',
   paperType: 'enhanced-matte',
   finish: 'matte',

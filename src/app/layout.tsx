@@ -6,10 +6,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CentralizedAuthProvider } from "@/contexts/CentralizedAuthProvider";
 import { CartProvider } from "@/contexts/CartContext";
+import { CartSidebarProvider } from "@/contexts/CartSidebarContext";
 import { GenerationProvider } from "@/contexts/GenerationContext";
 import { AuthDebugPanel } from "@/components/AuthDebugPanel";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { initSentry } from "@/lib/monitoring/sentry";
+import { GlobalHeader } from "@/components/GlobalHeader";
 
 // Initialize Sentry for error tracking
 if (typeof window === 'undefined') {
@@ -53,14 +55,17 @@ export default function RootLayout({
         <GoogleAnalytics />
         <CentralizedAuthProvider>
           <CartProvider>
-            <GenerationProvider>
-              <TooltipProvider>
-                {children}
-                <Toaster />
-                <Sonner />
-                {process.env.NODE_ENV === 'development' && <AuthDebugPanel />}
-              </TooltipProvider>
-            </GenerationProvider>
+            <CartSidebarProvider>
+              <GenerationProvider>
+                <TooltipProvider>
+                  <GlobalHeader />
+                  {children}
+                  <Toaster />
+                  <Sonner />
+                  {process.env.NODE_ENV === 'development' && <AuthDebugPanel />}
+                </TooltipProvider>
+              </GenerationProvider>
+            </CartSidebarProvider>
           </CartProvider>
         </CentralizedAuthProvider>
       </body>

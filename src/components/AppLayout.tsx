@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sidebar } from './Sidebar';
 import { GenerationPanel } from './GenerationPanel';
 import { SearchBar } from './SearchBar';
 import { NotificationBar } from './NotificationBar';
@@ -21,8 +20,6 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, profile, updateProfile } = useAuth();
   const router = useRouter();
-  const [isMobile, setIsMobile] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [generationPanelVisible, setGenerationPanelVisible] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [authRedirectPath, setAuthRedirectPath] = useState<string | null>(null);
@@ -53,16 +50,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     process.env.NEXT_PUBLIC_SHOW_NOTIFICATION_BAR === 'true'
   );
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Check if user should see welcome modal (only on second login)
   useEffect(() => {
@@ -134,47 +121,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     // Temporarily removed dynamic components to resolve bundler issues
     // <DynamicErrorBoundary>
     //   <DynamicThemeProvider>
-        <div className="flex min-h-screen bg-gray-50 text-gray-900 relative">
-      {/* Mobile Sidebar Overlay */}
-      {isMobile && sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-      
-            {/* Sidebar */}
-      <Sidebar 
-        isMobile={isMobile} 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)}
-        onOpenAuthModal={(redirectPath) => {
-          setAuthRedirectPath(redirectPath || null);
-          setAuthModalVisible(true);
-        }}
-      />
-      
+        <div className="flex min-h-screen bg-gray-50 text-gray-900 relative flex-col">
       {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 ${
-        isMobile ? 'ml-0' : 'ml-20'
-      }`}>
-        {/* Mobile Header */}
-        {isMobile && (
-          <div className="fixed top-0 left-0 right-0 h-14 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 z-30 flex items-center px-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="flex w-10 h-10 items-center justify-center rounded-lg hover:bg-gray-100/50 transition-colors"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <h1 className="ml-3 text-lg font-semibold">Art Framer</h1>
-          </div>
-        )}
-        
-        {/* Content with mobile padding */}
-        <div className={isMobile ? 'pt-14' : ''}>
+      <main className="flex-1 pt-16">
           {children ? (
             // Render children (for other pages like creations)
             children
@@ -186,9 +135,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <NotificationBar onClose={() => setShowNotification(false)} />
               )}
               
-              {/* Top Spacer */}
-              <div className="h-16 min-h-16 self-stretch bg-gray-50" />
-              
               {/* Search/Navigation Bar */}
               <SearchBar onOpenGenerationPanel={handleOpenGenerationPanel} />
               
@@ -196,7 +142,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               <CuratedImageGallery onOpenAuthModal={() => setAuthModalVisible(true)} />
             </div>
           )}
-        </div>
       </main>
       
         {/* Generation Panel */}
