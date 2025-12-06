@@ -6,9 +6,9 @@
  */
 
 import 'dotenv/config';
-import { ProdigiClient } from './src/lib/prodigi-v2/client';
-import { ProdigiCatalogService } from './src/lib/prodigi-v2/catalog';
-import { azureSearchClient } from './src/lib/prodigi-v2/azure-search/client';
+import { ProdigiClient } from '../src/lib/prodigi-v2/client';
+import { ProdigiCatalogService } from '../src/lib/prodigi-v2/catalog';
+import { azureSearchClient } from '../src/lib/prodigi-v2/azure-search/client';
 
 const PRODIGI_API_KEY = process.env.PRODIGI_API_KEY;
 if (!PRODIGI_API_KEY) {
