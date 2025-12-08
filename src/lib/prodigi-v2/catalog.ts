@@ -163,7 +163,7 @@ export class ProdigiCatalogService {
       // Also prioritize exact size matches and user preferences
       const [requestedWidth, requestedHeight] = size.split('x').map(Number);
       const scoredProducts = products.map(product => {
-        let score = this.calculateProductScore(product, country, productType);
+        let score = this.calculateProductScore(product, country);
         
         // Bonus for exact size match
         const productWidth = product.fullProductHorizontalDimensions;
