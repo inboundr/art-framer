@@ -46,10 +46,6 @@ export function AppLayout({ children }: AppLayoutProps) {
       referenceImages: string[];
     };
   } | null>(null);
-  const [showNotification, setShowNotification] = useState(
-    process.env.NEXT_PUBLIC_SHOW_NOTIFICATION_BAR === 'true'
-  );
-
 
   // Check if user should see welcome modal (only on second login)
   useEffect(() => {
@@ -130,11 +126,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           ) : (
             // Render default home page content
             <div className="flex flex-col min-h-screen bg-gray-50">
-              {/* Notification Bar */}
-              {showNotification && (
-                <NotificationBar onClose={() => setShowNotification(false)} />
-              )}
-              
               {/* Search/Navigation Bar */}
               <SearchBar onOpenGenerationPanel={handleOpenGenerationPanel} />
               

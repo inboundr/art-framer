@@ -3,6 +3,7 @@
 import { Header } from './Header';
 import { CartSidebar } from './CartSidebar';
 import { AuthModal } from './AuthModal';
+import { NotificationBar } from './NotificationBar';
 import { useCartSidebar } from '@/contexts/CartSidebarContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -12,16 +13,29 @@ export function GlobalHeader() {
   const { isOpen: cartSidebarOpen, openCart, closeCart: closeCartSidebar } = useCartSidebar();
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [authRedirectPath, setAuthRedirectPath] = useState<string | null>(null);
+  const [showBanner, setShowBanner] = useState(true);
+
+  const BANNER_HEIGHT = 56; // px (approx NotificationBar height)
+  const HEADER_HEIGHT = 64; // px
+  const spacerHeight = (showBanner ? BANNER_HEIGHT : 0) + HEADER_HEIGHT;
 
   return (
     <>
-      <Header
-        onOpenAuthModal={(redirectPath) => {
-          setAuthRedirectPath(redirectPath || null);
-          setAuthModalVisible(true);
-        }}
-        onOpenCart={openCart}
-      />
+      <div className="fixed top-0 left-0 right-0 z-[120]">
+        {showBanner && (
+          <NotificationBar onClose={() => setShowBanner(false)} />
+        )}
+        <Header
+          isFixed={false}
+          onOpenAuthModal={(redirectPath) => {
+            setAuthRedirectPath(redirectPath || null);
+            setAuthModalVisible(true);
+          }}
+          onOpenCart={openCart}
+        />
+      </div>
+      {/* Spacer to offset fixed header + banner */}
+      <div aria-hidden style={{ height: spacerHeight }} />
       <CartSidebar
         isOpen={cartSidebarOpen}
         onClose={closeCartSidebar}

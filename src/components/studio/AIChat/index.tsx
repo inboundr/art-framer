@@ -330,9 +330,9 @@ export function AIChat() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
         {messages.length === 0 && configurationChanges.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
             <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mb-4">
@@ -440,7 +440,7 @@ export function AIChat() {
       )}
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
+      <form onSubmit={handleSubmit} className="sticky bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
         <div className="flex items-end gap-2">
           <div className="flex-1">
             <textarea

@@ -17,7 +17,6 @@ import { ContextPanel } from '@/components/studio/ContextPanel';
 import { WelcomeModal } from '@/components/studio/WelcomeModal';
 import { ImageUpload } from '@/components/studio/ImageUpload';
 import { AuthModal } from '@/components/AuthModal';
-import { Header } from '@/components/Header';
 
 type MobileTab = 'preview' | 'chat' | 'config';
 
@@ -57,17 +56,14 @@ export default function StudioPage() {
   return (
     <>
       {/* Desktop Layout (lg and above) */}
-      <div className="hidden lg:flex h-screen w-full overflow-hidden bg-gray-50 flex-col">
-        {/* Header */}
-        <Header onOpenAuthModal={() => setAuthModalVisible(true)} />
-
+      <div className="hidden lg:flex h-[calc(100vh-120px)] min-h-[calc(100vh-120px)] bg-gray-50 flex-col overflow-hidden">
         {/* Welcome Modal - shown on first visit */}
         {!hasImage && <WelcomeModal />}
 
         {/* Three-panel layout */}
-        <div className="flex w-full flex-1 pt-16">
+        <div className="flex w-full flex-1 overflow-hidden">
           {/* Left Panel - AI Chat */}
-          <div className="w-96 flex-shrink-0 border-r border-gray-200 bg-white flex flex-col">
+          <div className="w-96 flex-shrink-0 border-r border-gray-200 bg-white flex flex-col overflow-hidden min-h-0">
             <div className="border-b border-gray-200 p-4">
               <h1 className="text-xl font-semibold text-gray-900">
                 Art Framer Studio
@@ -77,11 +73,13 @@ export default function StudioPage() {
               </p>
             </div>
             
-            <AIChat />
+            <div className="flex-1 min-h-0">
+              <AIChat />
+            </div>
           </div>
 
           {/* Center Panel - Frame Preview */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {hasImage ? (
               <FramePreview />
             ) : (
@@ -119,15 +117,12 @@ export default function StudioPage() {
       </div>
 
       {/* Mobile Layout (below lg) */}
-      <div className="lg:hidden flex flex-col h-screen w-full overflow-hidden bg-gray-50">
-        {/* Header */}
-        <Header onOpenAuthModal={() => setAuthModalVisible(true)} />
-
+      <div className="lg:hidden flex flex-col h-[calc(100vh-120px)] min-h-[calc(100vh-120px)] w-full bg-gray-50 overflow-hidden">
         {/* Welcome Modal - shown on first visit */}
         {!hasImage && <WelcomeModal />}
 
         {/* Mobile Header - Studio specific */}
-        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-shrink-0 mt-16">
+        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
 
             <div>

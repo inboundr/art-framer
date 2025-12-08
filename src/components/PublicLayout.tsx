@@ -41,10 +41,6 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       referenceImages: string[];
     };
   } | null>(null);
-  const [showNotification, setShowNotification] = useState(
-    process.env.NEXT_PUBLIC_SHOW_NOTIFICATION_BAR === 'true'
-  );
-
 
   // Show welcome modal once for brand new visitors (no sign-in required)
   useEffect(() => {
@@ -115,11 +111,6 @@ export function PublicLayout({ children }: PublicLayoutProps) {
           ) : (
             // Render default home page content - NO AUTH BLOCKING
             <div className="flex flex-col min-h-screen bg-gray-50">
-              {/* Notification Bar */}
-              {showNotification && (
-                <NotificationBar onClose={() => setShowNotification(false)} />
-              )}
-              
               {/* Search/Navigation Bar */}
               <SearchBar onOpenGenerationPanel={handleOpenGenerationPanel} />
               

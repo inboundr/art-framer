@@ -13,9 +13,11 @@ import { Badge } from '@/components/ui/badge';
 interface HeaderProps {
   onOpenAuthModal?: (redirectPath?: string) => void;
   onOpenCart?: () => void;
+  isFixed?: boolean;
+  offsetTop?: number;
 }
 
-export function Header({ onOpenAuthModal, onOpenCart }: HeaderProps) {
+export function Header({ onOpenAuthModal, onOpenCart, isFixed = true, offsetTop = 0 }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, profile, signOut } = useAuth();
@@ -39,8 +41,13 @@ export function Header({ onOpenAuthModal, onOpenCart }: HeaderProps) {
     }
   };
 
+  const positionClasses = isFixed ? 'fixed left-0 right-0' : 'relative';
+
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-[100] shadow-sm pointer-events-auto">
+    <header
+      className={`${positionClasses} h-16 bg-white border-b border-gray-200 z-[100] shadow-sm pointer-events-auto`}
+      style={isFixed ? { top: offsetTop } : undefined}
+    >
       <div className="flex items-center justify-between h-full px-4 lg:px-6">
         {/* Logo */}
         <div className="flex items-center gap-3">

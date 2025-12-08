@@ -332,7 +332,7 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
 
       {/* Footer - CTA */}
       {config.imageUrl && (
-        <div className="border-t border-gray-200 p-4 space-y-3 bg-white">
+        <div className="sticky bottom-0 border-t border-gray-200 p-4 space-y-3 bg-white z-10">
           <div className="flex gap-2">
             <button
               data-add-to-cart-button
