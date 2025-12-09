@@ -12,7 +12,6 @@ import { StudioPricingDisplay as PricingDisplay } from './PricingDisplay';
 import { ConfigurationSummary } from './ConfigurationSummary';
 import { SmartSuggestions } from './SmartSuggestions';
 import { CountrySelector } from '../CountrySelector';
-import { ShippingMethodSelector } from '../ShippingMethodSelector';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/contexts/CartContext';
 import { useCartSidebar } from '@/contexts/CartSidebarContext';
@@ -296,9 +295,6 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
         
         {/* Pricing */}
         {config.imageUrl && <PricingDisplay />}
-        
-        {/* Shipping Method Selector */}
-        {config.imageUrl && <ShippingMethodSelector />}
 
         {/* AI Confidence Score */}
         {config.aiConfidenceScore > 0 && (

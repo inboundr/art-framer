@@ -65,6 +65,8 @@ export interface PricingDisplayProps {
   pricing: PricingData;
   showBreakdown?: boolean;
   showShippingInfo?: boolean;
+  /** Toggle all shipping-related UI (breakdown line, range, disclaimers) */
+  showShippingDetails?: boolean;
   className?: string;
 }
 
@@ -72,6 +74,7 @@ export function PricingDisplay({
   pricing,
   showBreakdown: defaultShowBreakdown = false,
   showShippingInfo = true,
+  showShippingDetails = true,
   className = '',
 }: PricingDisplayProps) {
   const [showBreakdown, setShowBreakdown] = useState(defaultShowBreakdown);
@@ -189,27 +192,29 @@ export function PricingDisplay({
             </div>
           )}
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-700 font-medium flex items-center gap-1">
-              Shipping
-              {hasShippingRange && (
-                <span className="text-xs text-amber-600 flex items-center gap-0.5" title="Shipping cost may vary">
-                  <Info className="h-3 w-3" />
-                </span>
-              )}
-            </span>
-            <span className="font-bold text-gray-900">
-              {hasShippingRange ? (
-                <span className="text-xs">
-                  {formatPrice(shippingRange.min, pricing.currency)} - {formatPrice(shippingRange.max, pricing.currency)}
-                </span>
-              ) : hasExactShipping ? (
-                formatPrice(pricing.shipping!, pricing.currency)
-              ) : (
-                <span className="text-gray-500 italic text-xs">Calculated at checkout</span>
-              )}
-            </span>
-          </div>
+          {showShippingDetails && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-700 font-medium flex items-center gap-1">
+                Shipping
+                {hasShippingRange && (
+                  <span className="text-xs text-amber-600 flex items-center gap-0.5" title="Shipping cost may vary">
+                    <Info className="h-3 w-3" />
+                  </span>
+                )}
+              </span>
+              <span className="font-bold text-gray-900">
+                {hasShippingRange ? (
+                  <span className="text-xs">
+                    {formatPrice(shippingRange.min, pricing.currency)} - {formatPrice(shippingRange.max, pricing.currency)}
+                  </span>
+                ) : hasExactShipping ? (
+                  formatPrice(pricing.shipping!, pricing.currency)
+                ) : (
+                  <span className="text-gray-500 italic text-xs">Calculated at checkout</span>
+                )}
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-400 font-bold">
             <span className="text-gray-900">Total</span>
@@ -219,7 +224,7 @@ export function PricingDisplay({
       )}
 
       {/* Shipping Info */}
-      {showShippingInfo && (pricing.sla || pricing.productionCountry) && (
+      {showShippingDetails && showShippingInfo && (pricing.sla || pricing.productionCountry) && (
         <div className="mt-3 pt-3 border-t border-gray-300 flex items-center justify-between text-sm">
           {pricing.sla && (
             <div className="flex items-center gap-2 font-medium text-gray-700">
@@ -237,7 +242,7 @@ export function PricingDisplay({
       )}
 
       {/* Shipping Estimate Range */}
-      {hasShippingRange && (
+      {showShippingDetails && hasShippingRange && (
         <div className="mt-3 pt-3 border-t border-gray-300">
           <div className="flex items-start gap-2 text-xs text-gray-600">
             <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />

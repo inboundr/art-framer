@@ -225,69 +225,63 @@ export function buildProdigiAttributesHeuristic(
     return attributes;
   }
 
-  // Frame color
-  if (config.frameColor) {
+  const skuLower = sku?.toLowerCase() || '';
+  const isCanvasProduct = skuLower.includes('can-') ||
+                          skuLower.includes('canvas') ||
+                          skuLower.startsWith('global-can-');
+  const isFramedProduct = skuLower.includes('-fra-') || skuLower.includes('-frame') || skuLower.includes('-box-');
+  const isMetalProduct = skuLower.includes('met-') ||
+                         skuLower.includes('metal') ||
+                         skuLower.startsWith('global-met-');
+  const isAcrylicProduct = skuLower.includes('acr-') ||
+                           skuLower.includes('acrylic') ||
+                           skuLower.startsWith('global-acr-');
+  const isPaperPrint = skuLower.includes('pap-') ||
+                       skuLower.includes('poster') ||
+                       skuLower.includes('paper') ||
+                       skuLower.startsWith('global-pap-') ||
+                       skuLower.includes('fineart');
+
+  // Frame color (only include for framed products; avoid sending for rolled canvas)
+  if (config.frameColor && (!isCanvasProduct || isFramedProduct)) {
     attributes.color = config.frameColor;
   }
 
   // Canvas wrap detection based on SKU
-  const isCanvasProduct = sku?.toLowerCase().includes('can-') || 
-                          sku?.toLowerCase().includes('canvas') ||
-                          sku?.toLowerCase().startsWith('global-can-');
-  
-  if (config.wrap && config.wrap !== 'none') {
-    const wrapValue = config.wrap.toLowerCase();
-    if (wrapValue === 'black') {
-      attributes.wrap = 'Black';
-    } else if (wrapValue === 'white') {
-      attributes.wrap = 'White';
-    } else if (wrapValue === 'mirror' || wrapValue === 'mirrorwrap') {
-      attributes.wrap = 'MirrorWrap';
-    } else if (wrapValue === 'image' || wrapValue === 'imagewrap') {
-      attributes.wrap = 'ImageWrap';
-    } else {
-      attributes.wrap = config.wrap.charAt(0).toUpperCase() + config.wrap.slice(1).toLowerCase();
-    }
-  } else if (isCanvasProduct) {
-    // Canvas products require wrap - default to ImageWrap
+  // Only send wrap for canvas products to avoid UnexpectedAttributes elsewhere
+  if (isCanvasProduct) {
+    // Force a safe default (ImageWrap) for all canvas to avoid Prodigi rejections
     attributes.wrap = 'ImageWrap';
   }
 
-  // Glaze
-  if (config.glaze && config.glaze !== 'none') {
+  // Glaze (skip for canvas to prevent invalid attributes)
+  if (!isCanvasProduct && config.glaze && config.glaze !== 'none') {
     attributes.glaze = config.glaze === 'acrylic' ? 'Acrylic / Perspex' : config.glaze;
   }
 
-  // Mount and mountColor
-  if (config.mount && config.mount !== 'none') {
+  // Mount and mountColor (skip for canvas products)
+  if (!isCanvasProduct && config.mount && config.mount !== 'none') {
     attributes.mount = config.mount;
     if (config.mountColor) {
       attributes.mountColor = config.mountColor;
     }
   }
 
-  // Finish (for metal/acrylic products)
-  const isMetalProduct = sku?.toLowerCase().includes('met-') || 
-                         sku?.toLowerCase().includes('metal') ||
-                         sku?.toLowerCase().startsWith('global-met-');
-  const isAcrylicProduct = sku?.toLowerCase().includes('acr-') || 
-                            sku?.toLowerCase().includes('acrylic') ||
-                            sku?.toLowerCase().startsWith('global-acr-');
-  
-  if (config.finish && config.finish !== 'none') {
+  // Finish: only for metal/acrylic products (avoid sending for canvas/paper if not supported)
+  if (config.finish && config.finish !== 'none' && (isMetalProduct || isAcrylicProduct)) {
     attributes.finish = config.finish;
-  } else if (isMetalProduct || isAcrylicProduct) {
+  } else if (!config.finish && (isMetalProduct || isAcrylicProduct)) {
     // Metal and acrylic products often require finish - default to high gloss
     attributes.finish = 'high gloss';
   }
 
-  // Paper type
-  if (config.paperType) {
+  // Paper type: only include for paper/fine-art/poster SKUs
+  if (isPaperPrint && config.paperType) {
     attributes.paperType = config.paperType;
   }
 
-  // Edge
-  if (config.edge) {
+  // Edge: omit for canvas to avoid UnexpectedAttributes; allow for non-canvas if set
+  if (!isCanvasProduct && config.edge) {
     attributes.edge = config.edge;
   }
 

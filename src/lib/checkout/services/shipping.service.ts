@@ -108,6 +108,31 @@ export class ShippingService {
         console.log(`[Shipping] Got ${quotes?.length || 0} quotes from direct create`);
       }
 
+      // If we only got one method back, explicitly request the others (Prodigi sometimes returns a single method)
+      const desiredMethods: ShippingMethod[] = ['Budget', 'Standard', 'Express', 'Overnight'];
+      const haveMethods = new Set((quotes || []).map((q) => q.shipmentMethod));
+      const missingMethods = desiredMethods.filter((m) => !haveMethods.has(m));
+
+      if (missingMethods.length > 0) {
+        console.log(`[Shipping] Missing methods from compareShippingMethods: ${missingMethods.join(', ')}. Fetching individually...`);
+        for (const method of missingMethods) {
+          try {
+            const extra = await this.quotesAPI.create({
+              destinationCountryCode: address.country,
+              items: quoteItems,
+              shippingMethod: method,
+            });
+            if (extra && extra.length > 0) {
+              extra.forEach((q) => haveMethods.add(q.shipmentMethod));
+              quotes = [...(quotes || []), ...extra];
+              console.log(`[Shipping] Added ${extra.length} quote(s) for ${method}`);
+            }
+          } catch (err: any) {
+            console.warn(`[Shipping] Failed to fetch quote for ${method}:`, err?.message || err);
+          }
+        }
+      }
+
       if (!quotes || quotes.length === 0) {
         console.error(`[Shipping] No quotes returned. Items:`, JSON.stringify(quoteItems, null, 2));
         throw new ShippingError('No shipping quotes available from Prodigi');

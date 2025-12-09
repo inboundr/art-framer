@@ -14,23 +14,28 @@ export function StudioPricingDisplay() {
   const totalPrice = useTotalPrice();
 
   // Transform studio store data to unified PricingData format
+  // For studio we prefer to avoid overstating totals (shipping here is an estimate only).
+  // Show items only; hide shipping + original conversions to prevent misleading numbers.
+  const itemsSubtotal = config.price || 0;
   const pricingData: PricingData = {
-    subtotal: config.price || 0,
-    total: totalPrice,
-    shipping: config.shippingCost,
-    shippingOptions: shippingOptions?.map(option => ({
-      method: option.method,
-      cost: option.cost,
-      delivery: option.delivery,
-    })),
+    subtotal: itemsSubtotal,
+    total: itemsSubtotal,
+    shipping: undefined,
+    shippingOptions: undefined,
     currency: config.currency || 'USD',
-    originalCurrency: config.originalCurrency,
-    originalTotal: config.originalPrice,
+    originalCurrency: undefined,
+    originalTotal: undefined,
     isPricingLoading,
-    sla: config.sla,
-    productionCountry: config.productionCountry,
+    sla: undefined,
+    productionCountry: undefined,
   };
 
-  return <PricingDisplay pricing={pricingData} />;
+  return (
+    <PricingDisplay
+      pricing={pricingData}
+      showShippingInfo={false}
+      showShippingDetails={false}
+    />
+  );
 }
 

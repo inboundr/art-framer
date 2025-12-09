@@ -181,6 +181,16 @@ export class PricingService {
           quoteItems
         );
         console.log('[Pricing] Got quotes from compareShippingMethods:', allQuotes?.length || 0);
+        // Some Prodigi routes return 200 with an empty array; treat as failure and retry with direct create
+        if (!allQuotes || allQuotes.length === 0) {
+          console.warn('[Pricing] compareShippingMethods returned no quotes, retrying with direct create');
+          allQuotes = await this.quotesAPI.create({
+            destinationCountryCode: destinationCountry,
+            items: quoteItems,
+            shippingMethod: shippingMethod,
+          });
+          console.log('[Pricing] Got quotes from direct create (fallback):', allQuotes?.length || 0);
+        }
       } catch (error: any) {
         console.error('[Pricing] compareShippingMethods failed:', error);
         console.log('[Pricing] Trying direct create with:', {

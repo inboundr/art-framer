@@ -39,58 +39,85 @@ export async function GET(request: NextRequest) {
       
       // Get real-time pricing from Prodigi quotes (product details endpoint doesn't include prices)
       console.log(`💰 Fetching real-time pricing for SKU: ${sku}`);
-      let price = 0;
-      try {
-        // Build attributes for Prodigi API
-        // Canvas products require 'color' and 'wrap' attributes
-        const isCanvasProduct = sku.toLowerCase().startsWith('can-') || sku.toLowerCase().includes('canvas');
-        const attributes: Record<string, string> = {};
-        
-        if (isCanvasProduct) {
-          // Color attribute (lowercase for Prodigi)
-          if (validatedData.frameStyle) {
-            attributes.color = validatedData.frameStyle.toLowerCase();
-          } else {
-            // Default to black if not specified
-            attributes.color = 'black';
-          }
-          
-          // Wrap attribute (capitalized for Prodigi: White, MirrorWrap, ImageWrap, Black)
-          // Default to ImageWrap for canvas products
-          attributes.wrap = 'ImageWrap';
-        } else {
-          // For framed prints, use frame style as color
-          if (validatedData.frameStyle) {
-            attributes.color = validatedData.frameStyle.toLowerCase();
-          }
+      // Build attributes using product metadata to satisfy required fields (e.g., mountColor)
+      // Prodigi returns attributes as a map of string arrays; cast to a flexible record for safe indexing.
+      const validAttributes = (productDetails.attributes || {}) as Record<string, string[]>;
+      const normalize = (val: string) => val.trim().toLowerCase();
+      const pickValid = (key: string, requested?: string) => {
+        const opts: string[] | undefined = validAttributes[key];
+        if (!opts || opts.length === 0) return undefined;
+        if (requested) {
+          const match = opts.find(opt => normalize(opt) === normalize(requested));
+          if (match) return match;
         }
-        
-        console.log(`📦 Building quote with attributes:`, attributes);
-        
-        const quotes = await prodigiClient.getFullQuote({
-          items: [{
-            sku: sku,
-            quantity: 1,
-            attributes: attributes
-          }],
-          destinationCountryCode: 'US' // Default to US for base pricing
-        });
-        
-        if (quotes && quotes.length > 0) {
-          price = parseFloat(quotes[0].costSummary.items.amount);
-          console.log(`✅ Real-time price from Prodigi: $${price} USD`);
-        }
-      } catch (priceError) {
-        console.warn('⚠️ Failed to fetch real-time price, using fallback:', priceError);
-        // Fallback to mock price if quote fails
-        price = getMockPrice(validatedData.frameSize, validatedData.frameStyle, validatedData.frameMaterial);
+        return opts[0]; // fallback to first valid option
+      };
+
+      const attributes: Record<string, string> = {};
+      const isCanvasProduct = sku.toLowerCase().startsWith('can-') || sku.toLowerCase().includes('canvas');
+
+      // Color
+      const requestedColor = validatedData.frameStyle;
+      const chosenColor = pickValid('color', requestedColor);
+      if (chosenColor) {
+        attributes.color = chosenColor.toLowerCase(); // Prodigi quotes expect lowercase
       }
+
+      // Wrap
+      const chosenWrap = pickValid('wrap', 'ImageWrap');
+      if (chosenWrap) {
+        attributes.wrap = chosenWrap.toLowerCase();
+      } else if (isCanvasProduct) {
+        attributes.wrap = 'imagewrap';
+      }
+
+      // Mount + mountColor (required for many framed SKUs)
+      const chosenMount = pickValid('mount');
+      if (chosenMount) {
+        attributes.mount = chosenMount;
+      }
+      const chosenMountColor = pickValid('mountColor', validatedData.frameStyle);
+      if (chosenMountColor) {
+        attributes.mountColor = chosenMountColor;
+      }
+
+      // Glaze / finish / edge if required — pick first valid to avoid validation errors
+      const chosenGlaze = pickValid('glaze');
+      if (chosenGlaze) {
+        attributes.glaze = chosenGlaze;
+      }
+      const chosenEdge = pickValid('edge');
+      if (chosenEdge) {
+        attributes.edge = chosenEdge;
+      }
+      const chosenFinish = pickValid('finish');
+      if (chosenFinish) {
+        attributes.finish = chosenFinish;
+      }
+
+      console.log(`📦 Building quote with attributes:`, attributes);
+
+      const quotes = await prodigiClient.getFullQuote({
+        items: [{
+          sku: sku,
+          quantity: 1,
+          attributes: attributes
+        }],
+        destinationCountryCode: 'US' // Default to US for base pricing
+      });
+
+      if (!quotes || quotes.length === 0) {
+        throw new Error('No quotes returned from Prodigi');
+      }
+
+      const price = parseFloat(quotes[0].costSummary.items.amount);
+      console.log(`✅ Real-time price from Prodigi: $${price} USD`);
       
       console.log(`✅ Successfully fetched Prodigi product details:`, {
         sku: productDetails.sku,
         name: productDetails.name,
         price: price,
-        priceSource: price > 0 ? 'Prodigi quote' : 'Fallback'
+        priceSource: 'Prodigi quote'
       });
       
       return NextResponse.json({
@@ -117,28 +144,15 @@ export async function GET(request: NextRequest) {
         });
       }
       
-      // Fallback to mock frame data with placeholder images
-      console.log('🔄 Using fallback mock data for frame details');
-      return NextResponse.json({
-        success: true,
-        frame: {
-          sku,
-          name: `${validatedData.frameSize} ${validatedData.frameStyle} ${validatedData.frameMaterial} frame`,
-          description: `A beautiful ${validatedData.frameMaterial} frame in ${validatedData.frameStyle} finish`,
-          price: getMockPrice(validatedData.frameSize, validatedData.frameStyle, validatedData.frameMaterial),
-          dimensions: getMockDimensions(validatedData.frameSize),
-          images: [
-            {
-              url: getMockFrameImageUrl(validatedData.frameStyle, validatedData.frameMaterial),
-              type: 'preview' as const,
-              width: 400,
-              height: 500,
-            }
-          ],
+      // Prefer failing loudly over serving inaccurate pricing
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to fetch accurate Prodigi pricing',
+          details: prodigiError instanceof Error ? prodigiError.message : 'Unknown Prodigi error',
         },
-        fallback: true, // Indicate this is fallback data
-        error: prodigiError instanceof Error ? prodigiError.message : 'Unknown Prodigi error'
-      });
+        { status: 502 }
+      );
     }
   } catch (error) {
     console.error('Error in frame images API:', error);

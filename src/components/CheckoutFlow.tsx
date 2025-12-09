@@ -24,10 +24,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useAddresses } from '@/hooks/useAddresses';
 import { GooglePlacesAutocomplete } from '@/components/ui/google-places-autocomplete';
 import { supabase } from '@/lib/supabase/client';
-import type { ShippingAddress } from '@/lib/pricing';
 import { formatSizeWithCm } from '@/lib/utils/size-conversion';
 import { formatPrice } from '@/lib/prodigi-v2/utils';
 import { PricingDisplay, type PricingData } from '@/components/shared/PricingDisplay';
+import type { ShippingOption } from '@/lib/checkout/services/pricing.service';
 
 interface CheckoutFlowProps {
   onSuccess?: (orderId: string) => void;
@@ -68,6 +68,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [processing, setProcessing] = useState(false);
   const [sameAsShipping, setSameAsShipping] = useState(true);
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState<string | null>(null);
   const [calculatedShipping, setCalculatedShipping] = useState<{
     cost: number;
     estimatedDays: number;
@@ -226,20 +228,44 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     await new Promise(resolve => setTimeout(resolve, 200));
 
     // Enhanced validation with proper error handling
-    if (!address.country || !address.city || !address.zip) {
+    if (!address.country || !address.city || !address.zip || !address.address1) {
       console.log('📍 Address incomplete, clearing shipping calculation');
       setCalculatedShipping(null);
+      setShippingOptions([]);
+      setSelectedShippingMethod(null);
       isCalculatingRef.current = false;
       setShippingLoading(false);
       return;
     }
 
     // Additional validation for better address quality
-    if (address.zip.length < 3 || address.city.length < 2) {
-      console.log('📍 Address validation failed: insufficient data');
+    const requiresZip = ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT'].includes(address.country.toUpperCase());
+    const requiresState = ['US', 'CA', 'AU'].includes(address.country.toUpperCase());
+
+    if (
+      address.address1.trim().length < 3 ||
+      address.city.trim().length < 2 ||
+      (requiresZip && (!address.zip || address.zip.trim().length < 3)) ||
+      (requiresState && (!address.state || address.state.trim().length < 2))
+    ) {
+      console.log('📍 Address validation failed: insufficient data', {
+        address1: address.address1,
+        city: address.city,
+        state: address.state,
+        zip: address.zip,
+        requiresZip,
+        requiresState,
+      });
       setCalculatedShipping(null);
+      setShippingOptions([]);
+      setSelectedShippingMethod(null);
       isCalculatingRef.current = false;
       setShippingLoading(false);
+      toast({
+        title: 'Shipping address incomplete',
+        description: 'Please add street, city, postal code, and state/province (where required).',
+        variant: 'destructive',
+      });
       return;
     }
     
@@ -298,6 +324,19 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         };
       });
 
+      if (!shippingItems.length) {
+        console.error('❌ No items available for shipping calculation');
+        toast({
+          title: 'Cart is empty',
+          description: 'Add items to your cart before calculating shipping.',
+          variant: 'destructive',
+        });
+        setCalculatedShipping(null);
+        isCalculatingRef.current = false;
+        setShippingLoading(false);
+        return;
+      }
+
       const requestBody = {
         items: shippingItems,
         address: {
@@ -336,7 +375,14 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         // Extract the recommended option or first option
         const options = data.options || [];
         const recommendedMethod = data.recommended || 'Standard';
-        const selectedOption = options.find((opt: any) => opt.method === recommendedMethod) || options[0];
+      setShippingOptions(options);
+
+      const preferredMethod = (selectedShippingMethod && options.some((opt: ShippingOption) => opt.method === selectedShippingMethod))
+        ? selectedShippingMethod
+        : recommendedMethod;
+      setSelectedShippingMethod(preferredMethod);
+
+      const selectedOption = options.find((opt: ShippingOption) => opt.method === preferredMethod) || options[0];
         
         if (!selectedOption) {
           throw new Error('No shipping options available');
@@ -383,6 +429,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         });
       } else {
         console.error('❌ Failed to calculate shipping:', response.status, response.statusText);
+        setShippingOptions([]);
+        setSelectedShippingMethod(null);
         
         // Handle different error types
         if (response.status === 500) {
@@ -436,6 +484,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
         }
         
         setCalculatedShipping(null);
+        setShippingOptions([]);
+        setSelectedShippingMethod(null);
       }
     } catch (error) {
       console.error('❌ Error calculating shipping:', error);
@@ -462,12 +512,14 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       }
       
       setCalculatedShipping(null);
+      setShippingOptions([]);
+      setSelectedShippingMethod(null);
     } finally {
       console.log('🏁 Shipping calculation completed, setting loading to false');
       isCalculatingRef.current = false;
       setShippingLoading(false);
     }
-  }, [getDisplayCurrency, contextSession, toast]);
+  }, [getDisplayCurrency, contextSession, toast, cartItems, selectedShippingMethod]);
 
   // Track if address has been manually modified by user
   const [addressManuallyModified, setAddressManuallyModified] = useState(false);
@@ -480,6 +532,23 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
 
   // Store the function in ref to avoid circular dependencies
   calculateShippingRef.current = calculateShipping;
+
+  const handleShippingMethodSelect = useCallback((method: string) => {
+    setSelectedShippingMethod(method);
+    const option = shippingOptions.find((opt) => opt.method === method);
+    if (option) {
+      setCalculatedShipping({
+        cost: typeof option.cost === 'number' ? option.cost : parseFloat(String(option.cost || '0')),
+        estimatedDays: option.estimatedDays || 7,
+        estimatedDaysRange: undefined,
+        serviceName: option.serviceName || option.method || 'Standard',
+        isEstimated: false,
+        provider: 'prodigi',
+        addressValidated: true,
+        currency: option.currency || getDisplayCurrency(),
+      });
+    }
+  }, [getDisplayCurrency, shippingOptions]);
   
   // Cleanup timeouts on component unmount
   useEffect(() => {
@@ -537,6 +606,8 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
           hasZip: !!shippingAddress.zip
         });
         setCalculatedShipping(null);
+        setShippingOptions([]);
+        setSelectedShippingMethod(null);
       }
     }, 1000); // Increased debounce to 1 second to prevent rapid calculations
 
@@ -845,7 +916,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
             country: shippingAddress.country,
             phone: shippingAddress.phone,
           },
-          shippingMethod: calculatedShipping?.serviceName || 'Standard',
+          shippingMethod: selectedShippingMethod || calculatedShipping?.serviceName || 'Standard',
         }),
         signal: controller.signal
       });
@@ -1290,6 +1361,72 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
               </div>
               
               <Separator />
+
+              {/* Shipping method selector (moved from studio) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
+                    <Truck className="h-4 w-4" />
+                    Shipping Method
+                  </div>
+                  {shippingLoading && (
+                    <span className="text-xs text-blue-600">Updating…</span>
+                  )}
+                </div>
+
+                {shippingOptions.length === 0 ? (
+                  <div className="text-xs text-gray-500">
+                    Enter your shipping address and calculate to see available methods.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {shippingOptions.map((option) => {
+                      const isSelected =
+                        (selectedShippingMethod || calculatedShipping?.serviceName || 'Standard') === option.method;
+
+                      return (
+                        <label
+                          key={option.method}
+                          className={`flex items-start p-3 border rounded-lg cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="shipping-method"
+                            value={option.method}
+                            checked={isSelected}
+                            onChange={() => handleShippingMethodSelect(option.method)}
+                            className="mt-1 mr-3"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-gray-900">{option.method}</div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  ~{option.estimatedDays || 7} business days
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold text-gray-900">
+                                  {formatPrice(option.cost, option.currency || getDisplayCurrency())}
+                                </div>
+                              </div>
+                            </div>
+                            {option.serviceName && option.serviceName !== option.method && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {option.serviceName}
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               
               {/* Use unified PricingDisplay component */}
               <PricingDisplay
