@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarAvatar } from './SidebarAvatar';
@@ -15,7 +15,7 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
   const router = useRouter();
   const { user, profile, signOut } = useAuth();
   const popupRef = useRef<HTMLDivElement>(null);
-
+  const [position, setPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -38,6 +38,36 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
     };
   }, [isOpen, onClose, triggerRef]);
 
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const triggerRect = triggerRef.current.getBoundingClientRect();
+      const popupWidth = 320; // w-80 = 320px
+      const popupHeight = 300; // approximate height
+      const spacing = 8; // spacing between button and popup
+      
+      // Calculate position - align popup to the right edge of the button
+      let top = triggerRect.bottom + spacing;
+      let left = triggerRect.right - popupWidth; // Align right edge of popup with right edge of button
+      
+      // If popup would go off bottom of screen, position it above the button
+      if (top + popupHeight > window.innerHeight - 16) {
+        top = triggerRect.top - popupHeight - spacing;
+      }
+      
+      // If popup would go off left of screen, align it to the left edge of the button
+      if (left < 16) {
+        left = triggerRect.left;
+      }
+      
+      // If popup would go off right of screen, align it to the right edge with margin
+      if (left + popupWidth > window.innerWidth - 16) {
+        left = window.innerWidth - popupWidth - 16;
+      }
+      
+      setPosition({ top, left });
+    }
+  }, [isOpen, triggerRef]);
+
   if (!isOpen || !user) return null;
 
   // Simple user status - no plans needed
@@ -59,7 +89,11 @@ export function ProfilePopup({ isOpen, onClose, triggerRef }: ProfilePopupProps)
   return (
     <div 
       ref={popupRef}
-      className="fixed left-20 bottom-4 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden"
+      className="fixed w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden"
+      style={{
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+      }}
     >
       {/* User Info Section */}
       <div className="p-4">
