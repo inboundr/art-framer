@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { useGeneration } from '@/contexts/GenerationContext';
 import { useCart } from '@/contexts/CartContext';
@@ -60,23 +61,15 @@ export function Header({ onOpenAuthModal, onOpenCart, isFixed = true, offsetTop 
             className="flex items-center gap-2 hover:opacity-80 transition-opacity pointer-events-auto cursor-pointer"
             type="button"
           >
-            <svg 
-              width="30" 
-              height="30" 
-              viewBox="0 0 31 31" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-7 h-7"
-            >
-              <path 
-                d="M12.7616 7.62562H8.07338M12.7616 24.021H8.07338M1.63281 15.8302H12.7737M12.0266 28.0245H13.17C15.4162 28.0245 17.2371 26.2036 17.2371 23.9574C17.2371 21.7112 15.4162 19.8904 13.17 19.8904M13.17 19.8904H4.07995M13.17 19.8904C15.4162 19.8904 17.2371 18.0695 17.2371 15.8233C17.2371 13.8857 15.8821 12.2646 14.0681 11.8557C13.7792 11.7905 13.4786 11.7279 13.17 11.7279M12.0266 3.59375H13.17C15.4162 3.59375 17.2371 5.41465 17.2371 7.66082C17.2371 9.90702 15.4162 11.7279 13.17 11.7279M13.17 11.7279H4.07995" 
-                stroke="currentColor" 
-                strokeWidth="2.26667" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-lg font-semibold text-gray-900 hidden sm:inline">Art Framer</span>
+            <Image
+              src="/logo.png"
+              alt="Art Framer"
+              width={150}
+              height={150}
+              className="h-12 w-auto object-contain"
+              priority
+            />
+            <span className="text-lg font-semibold text-gray-900 hidden sm:inline">Cool Art</span>
           </button>
         </div>
 
@@ -102,7 +95,7 @@ export function Header({ onOpenAuthModal, onOpenCart, isFixed = true, offsetTop 
                 <path d="M9.94085 9.36656C9.61691 9.36598 9.3064 9.23704 9.07734 9.00798C8.84828 8.77891 8.71933 8.46841 8.71875 8.14446C8.71875 7.47016 9.26765 6.92236 9.93975 6.92236C10.614 6.92236 11.163 7.47016 11.163 8.14336C11.163 8.81656 10.6141 9.36656 9.94085 9.36656Z" fill="currentColor"/>
               </svg>
             }
-            label="Creations"
+            label="My creations"
             active={pathname === '/creations'}
             badge={activeGenerations > 0 ? activeGenerations : undefined}
             onClick={() => {

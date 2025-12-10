@@ -54,15 +54,15 @@ export async function GET(request: NextRequest) {
       };
 
       const attributes: Record<string, string> = {};
-      const isCanvasProduct = sku.toLowerCase().startsWith('can-') || sku.toLowerCase().includes('canvas');
+        const isCanvasProduct = sku.toLowerCase().startsWith('can-') || sku.toLowerCase().includes('canvas');
 
       // Color
       const requestedColor = validatedData.frameStyle;
       const chosenColor = pickValid('color', requestedColor);
       if (chosenColor) {
         attributes.color = chosenColor.toLowerCase(); // Prodigi quotes expect lowercase
-      }
-
+          }
+          
       // Wrap
       const chosenWrap = pickValid('wrap', 'ImageWrap');
       if (chosenWrap) {
@@ -93,25 +93,25 @@ export async function GET(request: NextRequest) {
       const chosenFinish = pickValid('finish');
       if (chosenFinish) {
         attributes.finish = chosenFinish;
-      }
-
-      console.log(`📦 Building quote with attributes:`, attributes);
-
-      const quotes = await prodigiClient.getFullQuote({
-        items: [{
-          sku: sku,
-          quantity: 1,
-          attributes: attributes
-        }],
-        destinationCountryCode: 'US' // Default to US for base pricing
-      });
-
+        }
+        
+        console.log(`📦 Building quote with attributes:`, attributes);
+        
+        const quotes = await prodigiClient.getFullQuote({
+          items: [{
+            sku: sku,
+            quantity: 1,
+            attributes: attributes
+          }],
+          destinationCountryCode: 'US' // Default to US for base pricing
+        });
+        
       if (!quotes || quotes.length === 0) {
         throw new Error('No quotes returned from Prodigi');
       }
 
       const price = parseFloat(quotes[0].costSummary.items.amount);
-      console.log(`✅ Real-time price from Prodigi: $${price} USD`);
+          console.log(`✅ Real-time price from Prodigi: $${price} USD`);
       
       console.log(`✅ Successfully fetched Prodigi product details:`, {
         sku: productDetails.sku,

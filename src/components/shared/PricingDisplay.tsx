@@ -193,27 +193,27 @@ export function PricingDisplay({
           )}
 
           {showShippingDetails && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-700 font-medium flex items-center gap-1">
-                Shipping
-                {hasShippingRange && (
-                  <span className="text-xs text-amber-600 flex items-center gap-0.5" title="Shipping cost may vary">
-                    <Info className="h-3 w-3" />
-                  </span>
-                )}
-              </span>
-              <span className="font-bold text-gray-900">
-                {hasShippingRange ? (
-                  <span className="text-xs">
-                    {formatPrice(shippingRange.min, pricing.currency)} - {formatPrice(shippingRange.max, pricing.currency)}
-                  </span>
-                ) : hasExactShipping ? (
-                  formatPrice(pricing.shipping!, pricing.currency)
-                ) : (
-                  <span className="text-gray-500 italic text-xs">Calculated at checkout</span>
-                )}
-              </span>
-            </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-700 font-medium flex items-center gap-1">
+              Shipping
+              {hasShippingRange && (
+                <span className="text-xs text-amber-600 flex items-center gap-0.5" title="Shipping cost may vary">
+                  <Info className="h-3 w-3" />
+                </span>
+              )}
+            </span>
+            <span className="font-bold text-gray-900">
+              {hasShippingRange ? (
+                <span className="text-xs">
+                  {formatPrice(shippingRange.min, pricing.currency)} - {formatPrice(shippingRange.max, pricing.currency)}
+                </span>
+              ) : hasExactShipping ? (
+                formatPrice(pricing.shipping!, pricing.currency)
+              ) : (
+                <span className="text-gray-500 italic text-xs">Calculated at checkout</span>
+              )}
+            </span>
+          </div>
           )}
 
           <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-400 font-bold">
