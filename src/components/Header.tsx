@@ -62,12 +62,13 @@ export function Header({ onOpenAuthModal, onOpenCart, isFixed = true, offsetTop 
             type="button"
           >
             <Image
-              src="/logo.png"
+              src="https://irugsjzjqdxulliobuwt.supabase.co/storage/v1/object/public/general/logo.png"
               alt="Art Framer"
               width={150}
               height={150}
               className="h-12 w-auto object-contain"
               priority
+              unoptimized
             />
             <span className="text-lg font-semibold text-gray-900 hidden sm:inline">Cool Art</span>
           </button>
