@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
     }));
 
     // Calculate shipping options
+    try {
     const options = await shippingService.calculateShipping(cartItems, address);
     const recommended = shippingService.getRecommendedMethod(options);
 
@@ -116,8 +117,44 @@ export async function POST(request: NextRequest) {
       recommended,
       addressValidated: true,
     });
+    } catch (shippingError) {
+      console.error('❌ Error calculating shipping:', shippingError);
+      
+      // If it's a quote error (no quotes available), provide more helpful error message
+      if (shippingError instanceof ShippingError) {
+        const errorMessage = shippingError.message;
+        const errorDetails = shippingError.details;
+        
+        // Check if it's a "no quotes" error
+        if (errorMessage.includes('No shipping quotes') || errorMessage.includes('No quotes')) {
+          console.warn('⚠️ No shipping quotes available - this may be due to invalid SKUs or Prodigi service issues');
+          return NextResponse.json(
+            { 
+              error: 'Unable to calculate shipping at this time. Please verify your items and try again.',
+              details: {
+                message: errorMessage,
+                originalError: errorDetails?.originalError,
+                suggestion: 'This may be due to invalid product SKUs or temporary Prodigi service issues. Please try again in a moment.',
+              }
+            },
+            { status: 400 }
+          );
+        }
+        
+        return NextResponse.json(
+          { 
+            error: errorMessage || 'Failed to calculate shipping',
+            details: errorDetails || {}
+          },
+          { status: shippingError.statusCode || 400 }
+        );
+      }
+      
+      // Re-throw to be caught by outer catch
+      throw shippingError;
+    }
   } catch (error) {
-    console.error('❌ Error calculating shipping:', error);
+    console.error('❌ Error in shipping API:', error);
     if (error instanceof z.ZodError) {
       console.error('❌ Validation error details:', JSON.stringify(error.issues, null, 2));
       return NextResponse.json(
@@ -135,13 +172,19 @@ export async function POST(request: NextRequest) {
     if (error instanceof ShippingError) {
       console.error('❌ Shipping error:', error.message, error.details);
       return NextResponse.json(
-        { error: error.message, details: error.details },
-        { status: error.statusCode }
+        { 
+          error: error.message || 'Failed to calculate shipping',
+          details: error.details || {}
+        },
+        { status: error.statusCode || 400 }
       );
     }
     console.error('❌ Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Failed to calculate shipping', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Failed to calculate shipping', 
+        details: error instanceof Error ? { message: error.message, name: error.name } : { error: String(error) }
+      },
       { status: 500 }
     );
   }

@@ -8,18 +8,17 @@
 import { useState, Suspense } from 'react';
 import { useStudioStore } from '@/store/studio';
 import { Scene3D } from './Scene3D';
-import { PreviewControls } from './PreviewControls';
 import { ViewModeSelector } from './ViewModeSelector';
 import { RoomScene } from './RoomScene';
 import { DynamicErrorBoundary } from '@/components/DynamicErrorBoundary';
+import { FallbackScene3D } from './FallbackScene3D';
 
 export type ViewMode = '3d' | 'room' | 'ar' | 'compare';
 
 export function FramePreview() {
   const { config } = useStudioStore();
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
-  const [showControls, setShowControls] = useState(true);
-  const [autoRotate, setAutoRotate] = useState(false);
+  const [autoRotate] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
 
   if (!config.imageUrl) {
@@ -35,16 +34,6 @@ export function FramePreview() {
       {/* View Mode Selector */}
       <div className="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 z-10 flex items-center justify-between">
         <ViewModeSelector mode={viewMode} onChange={setViewMode} />
-        
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowControls(!showControls)}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white text-gray-700 font-semibold rounded-lg shadow-sm text-xs sm:text-sm hover:bg-gray-50 hover:shadow-md transition-all border border-gray-200"
-          >
-            <span className="hidden sm:inline">{showControls ? 'Hide Controls' : 'Show Controls'}</span>
-            <span className="sm:hidden">{showControls ? 'Hide' : 'Show'}</span>
-          </button>
-        </div>
       </div>
 
       {/* 3D Scene */}
@@ -52,24 +41,34 @@ export function FramePreview() {
         <div className="w-full h-full">
           <DynamicErrorBoundary
             fallback={
-              <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                <div className="text-center p-8">
-                  <div className="text-4xl mb-4">🖼️</div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Preview Loading
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Frame preview is loading...
-                  </p>
-                </div>
-              </div>
+              <FallbackScene3D 
+                config={config} 
+                autoRotate={autoRotate}
+                resetTrigger={resetTrigger}
+              />
             }
           >
-          <Scene3D 
-            config={config} 
-            autoRotate={autoRotate}
-            resetTrigger={resetTrigger}
-          />
+            <Suspense
+              fallback={
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                  <div className="text-center p-8">
+                    <div className="text-4xl mb-4">⏳</div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Loading Preview
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Loading frame textures...
+                    </p>
+                  </div>
+                </div>
+              }
+            >
+              <Scene3D 
+                config={config} 
+                autoRotate={autoRotate}
+                resetTrigger={resetTrigger}
+              />
+            </Suspense>
           </DynamicErrorBoundary>
         </div>
       )}
@@ -133,16 +132,6 @@ export function FramePreview() {
         </div>
       )}
 
-      {/* Controls */}
-      {showControls && viewMode === '3d' && (
-        <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4 z-10">
-          <PreviewControls 
-            autoRotate={autoRotate}
-            onAutoRotateToggle={() => setAutoRotate(!autoRotate)}
-            onResetView={handleResetView}
-          />
-        </div>
-      )}
 
     </div>
   );

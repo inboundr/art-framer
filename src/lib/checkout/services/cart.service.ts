@@ -111,12 +111,16 @@ export class CartService {
         realTimePrice = pricing.subtotal / item.quantity;
         console.log('[CartService] Got real-time pricing:', realTimePrice);
       } catch (pricingError) {
-        console.error('[CartService] Pricing failed, using stored price:', {
-          error: pricingError,
-          storedPrice: product.price,
-        });
-        // Continue with stored price - pricing will be calculated later at checkout
-        // This allows users to add items to cart even if Prodigi pricing temporarily fails
+        console.error('[CartService] Pricing failed when adding to cart:', pricingError);
+        // Don't use stored price - pricing must succeed to add item
+        // This ensures cart always has accurate pricing
+        throw new CartError(
+          'Failed to get pricing for this item. Please try again.',
+          {
+            originalError: pricingError,
+            statusCode: 500,
+          }
+        );
       }
 
       // Check for existing cart item
@@ -236,8 +240,15 @@ export class CartService {
         );
         price = pricing.subtotal / quantity;
       } catch (pricingError) {
-        console.error('[CartService] Pricing failed in updateItem, using stored price:', pricingError);
-        // Continue with stored price
+        console.error('[CartService] Pricing failed in updateItem:', pricingError);
+        // Don't use stored price - throw error so frontend can handle it
+        throw new CartError(
+          'Failed to update item pricing. Please try again.',
+          {
+            originalError: pricingError,
+            statusCode: 500,
+          }
+        );
       }
 
       return this.formatCartItem(cartItem, price);
@@ -423,22 +434,19 @@ export class CartService {
           exchangeRate: pricing.exchangeRate,
         };
       } catch (pricingError) {
-        console.error('[CartService] Pricing failed in getCart, using stored prices:', pricingError);
-        // Fallback to stored prices
-        items = cartItems.map((item: any) =>
-          this.formatCartItem(item, (item.products as any).price)
+        console.error('[CartService] Pricing failed in getCart:', pricingError);
+        // Throw CartError with 500 status code for pricing failures
+        throw new CartError(
+          'Failed to calculate pricing for cart items. Please try again or contact support.',
+          {
+            originalError: pricingError instanceof Error ? {
+              message: pricingError.message,
+              name: pricingError.name,
+              stack: pricingError.stack,
+            } : pricingError,
+            statusCode: 500,
+          }
         );
-        const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        totals = {
-          subtotal,
-          shipping: 0, // Will be calculated at checkout
-          tax: 0, // Will be calculated at checkout
-          total: subtotal,
-          currency: 'USD',
-          originalCurrency: 'USD',
-          originalTotal: subtotal,
-          exchangeRate: 1,
-        };
       }
 
       return {

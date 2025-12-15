@@ -222,7 +222,24 @@ export async function POST(request: NextRequest) {
     const quotes = quoteResults.flat().filter(Boolean);
 
     if (quotes.length === 0) {
-      throw new Error('No shipping quotes available');
+      console.warn('[Pricing] No shipping quotes available from Prodigi', {
+        sku,
+        size: config.size,
+        country,
+        attributes,
+      });
+      return NextResponse.json(
+        {
+          error: 'No shipping quotes available',
+          message: 'Prodigi did not return any shipping quotes for this size/configuration.',
+          sku,
+          size: config.size,
+          country,
+          attributes,
+          retryable: false,
+        },
+        { status: 400 }
+      );
     }
 
     console.log(`[Pricing] Received ${quotes.length} quote(s) for ${quotes.map(q => q.shipmentMethod).join(', ')}`);

@@ -27,7 +27,7 @@ export interface UseCanvasTextureResult {
 export function useCanvasTexture({
   substrateType = 'substrate',
   wrapType,
-  enabled = true,
+  enabled = false, // Default to false - color-based materials are primary
 }: UseCanvasTextureOptions): UseCanvasTextureResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

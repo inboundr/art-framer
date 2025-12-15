@@ -120,8 +120,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.log('Cart: fetchCart API response', { 
           hasCart: !!data.cart,
           itemsCount: data.cart?.items?.length || 0,
-          dataKeys: Object.keys(data)
+          dataKeys: Object.keys(data),
+          hasPricingError: !!data.pricingError,
+          hasWarning: !!data.warning
         });
+        
+        // Show warning if pricing is unavailable
+        if (data.warning || data.pricingError) {
+          console.warn('Cart: Pricing unavailable:', data.warning || data.pricingError);
+        }
         
         // V2 API returns { cart: { items, totals } } format
         // Transform to match CartData interface: { cartItems, totals }

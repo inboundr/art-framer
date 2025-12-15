@@ -1,50 +1,61 @@
 /**
- * 3D Scene Component
- * Renders frame and artwork using Three.js
+ * Fallback Scene3D Component
+ * Renders the frame with color-based materials when textures fail to load
+ * This ensures the 3D preview always works, even without textures
  */
 
 'use client';
 
+import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows, PerspectiveCamera } from '@react-three/drei';
-import { Suspense, useRef, useEffect } from 'react';
+import { OrbitControls, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
 import { FrameModel } from './FrameModel';
 import { ArtworkPlane } from './ArtworkPlane';
 import type { FrameConfiguration } from '@/store/studio';
 
-interface Scene3DProps {
+interface FallbackScene3DProps {
   config: FrameConfiguration;
   autoRotate?: boolean;
-  resetTrigger?: number; // Increment this to trigger a reset
+  resetTrigger?: number;
 }
 
-// Component to handle OrbitControls with reset functionality
 function CameraControls({ autoRotate = false, resetTrigger = 0 }: { autoRotate?: boolean; resetTrigger?: number }) {
-  const controlsRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (resetTrigger > 0 && controlsRef.current) {
-      // Reset camera position and controls
-      controlsRef.current.reset();
-    }
-  }, [resetTrigger]);
-
   return (
     <OrbitControls
-      ref={controlsRef}
+      enablePan={true}
       enableZoom={true}
-      enablePan={false}
-      minPolarAngle={Math.PI / 4}
-      maxPolarAngle={Math.PI / 1.5}
+      enableRotate={true}
       minDistance={3}
-      maxDistance={8}
+      maxDistance={10}
+      minPolarAngle={0}
+      maxPolarAngle={Math.PI / 2}
       autoRotate={autoRotate}
       autoRotateSpeed={0.5}
     />
   );
 }
 
-export function Scene3D({ config, autoRotate = false, resetTrigger = 0 }: Scene3DProps) {
+function LoadingPlaceholder() {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+      <div className="text-center p-8">
+        <div className="text-4xl mb-4">⏳</div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          Loading Preview
+        </h3>
+        <p className="text-sm text-gray-600">
+          Loading frame preview...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Fallback Scene3D that renders with color-based materials
+ * This is used when texture loading fails, ensuring the preview always works
+ */
+export function FallbackScene3D({ config, autoRotate = false, resetTrigger = 0 }: FallbackScene3DProps) {
   return (
     <Canvas
       shadows
@@ -63,17 +74,15 @@ export function Scene3D({ config, autoRotate = false, resetTrigger = 0 }: Scene3
           penumbra={1}
           intensity={1}
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
         />
         <pointLight position={[-10, -10, -10]} intensity={0.3} />
 
         {/* Environment */}
         <Environment preset="studio" />
 
-        {/* Content */}
+        {/* Content - Render with textures disabled to use fallback materials */}
         <group>
-          {/* Artwork - size adjusts when mount is present */}
+          {/* Artwork */}
           <ArtworkPlane 
             imageUrl={config.imageUrl || ''} 
             size={config.size}
@@ -82,9 +91,10 @@ export function Scene3D({ config, autoRotate = false, resetTrigger = 0 }: Scene3
           />
           
           {/* Frame - Key prop forces re-render when critical config changes */}
-          {/* Using color-based materials (primary method) - textures are optional */}
+          {/* IMPORTANT: useTextures={false} ensures we use color-based fallback materials */}
+          {/* This prevents texture loading errors from crashing the preview */}
           <FrameModel
-            key={`${config.productType}-${config.frameColor}-${config.frameStyle}-${config.wrap}-${config.glaze}-${config.size}-${config.mount}-${config.mountColor}-${config.edge}-${config.canvasType}`}
+            key={`fallback-${config.productType}-${config.frameColor}-${config.frameStyle}-${config.wrap}-${config.glaze}-${config.size}-${config.mount}-${config.mountColor}-${config.edge}-${config.canvasType}`}
             color={config.frameColor}
             style={config.frameStyle}
             size={config.size}
@@ -96,7 +106,7 @@ export function Scene3D({ config, autoRotate = false, resetTrigger = 0 }: Scene3
             finish={config.finish}
             edge={config.edge}
             canvasType={config.canvasType}
-            useTextures={false} // Color-based materials are primary - textures optional
+            useTextures={false} // Disable textures for fallback rendering
           />
         </group>
 
@@ -106,22 +116,14 @@ export function Scene3D({ config, autoRotate = false, resetTrigger = 0 }: Scene3
           opacity={0.4}
           scale={10}
           blur={2}
-          far={4}
+          far={4.5}
+          resolution={256}
         />
 
-        {/* Controls with reset functionality */}
+        {/* Camera Controls */}
         <CameraControls autoRotate={autoRotate} resetTrigger={resetTrigger} />
       </Suspense>
     </Canvas>
-  );
-}
-
-function LoadingPlaceholder() {
-  return (
-    <mesh>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#cccccc" />
-    </mesh>
   );
 }
 

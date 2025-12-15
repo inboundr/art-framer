@@ -238,7 +238,7 @@ export function getMountSampleImage(color: string): string {
     'offwhite': 'off-white',
   };
   
-  const mountColor = mountColorMap[normalizedColor] || 'off-white';
+  const mountColor = mountColorMap[normalizedColor] || normalizedColor.replace(/\s+/g, '-');
   const path = `${basePath}/${mountColor}-mount.webp`;
   return getSupabaseAssetUrlSync(path);
 }

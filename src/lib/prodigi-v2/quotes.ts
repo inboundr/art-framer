@@ -106,13 +106,44 @@ export class QuotesAPI {
       body: quoteRequest,
     });
 
-    // Cache successful quotes
-    if (response.quotes && response.quotes.length > 0) {
-      this.quoteCache.set(cacheKey, response.quotes, this.CACHE_TTL);
-      console.log(`[QuotesAPI] Cached quote: ${cacheKey.substring(0, 16)}... (TTL: ${this.CACHE_TTL/1000}s)`);
+    // Log response for debugging
+    console.log('[QuotesAPI] Response received:', {
+      outcome: response.outcome,
+      hasQuotes: !!response.quotes,
+      quotesLength: response.quotes?.length || 0,
+      hasIssues: !!response.issues,
+      issuesCount: response.issues?.length || 0,
+    });
+
+    // Handle different outcomes
+    if (response.outcome === 'CreatedWithIssues' && response.issues) {
+      console.warn('[QuotesAPI] Quote created with issues:', response.issues);
+    } else if (response.outcome === 'NotAvailable') {
+      console.warn('[QuotesAPI] Quote not available:', {
+        issues: response.issues,
+        hasQuotes: !!response.quotes,
+        quotesLength: response.quotes?.length || 0,
+      });
     }
 
-    return response.quotes;
+    // Ensure we have quotes array (even if empty)
+    // Sometimes Prodigi returns quotes even with NotAvailable outcome (just warnings)
+    const quotes = response.quotes || [];
+
+    // Cache successful quotes (only if we have actual quotes)
+    if (quotes.length > 0) {
+      this.quoteCache.set(cacheKey, quotes, this.CACHE_TTL);
+      console.log(`[QuotesAPI] Cached ${quotes.length} quote(s): ${cacheKey.substring(0, 16)}... (TTL: ${this.CACHE_TTL/1000}s)`);
+    } else if (response.outcome === 'NotAvailable') {
+      // Log detailed info when quotes are not available
+      console.warn('[QuotesAPI] No quotes available:', {
+        outcome: response.outcome,
+        issues: response.issues?.map(i => ({ errorCode: i.errorCode, description: i.description })),
+        responseKeys: Object.keys(response),
+      });
+    }
+
+    return quotes;
   }
 
   /**

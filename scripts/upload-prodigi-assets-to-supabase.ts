@@ -13,9 +13,11 @@
 import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as dotenv from 'dotenv';
 
-// Get project root (assuming script is in scripts/ folder)
+// Load environment variables from .env.local
 const projectRoot = path.resolve(process.cwd());
+dotenv.config({ path: path.join(projectRoot, '.env.local') });
 
 // Get environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

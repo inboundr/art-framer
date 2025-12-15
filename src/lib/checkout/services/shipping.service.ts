@@ -6,8 +6,9 @@
 
 import { ProdigiClient } from '@/lib/prodigi-v2/client';
 import { QuotesAPI } from '@/lib/prodigi-v2/quotes';
+import { ProductsAPI } from '@/lib/prodigi-v2/products';
 import { ShippingError } from '../types/errors';
-import { buildProdigiAttributesHeuristic } from '../utils/attribute-builder';
+import { buildProdigiAttributes, buildProdigiAttributesHeuristic } from '../utils/attribute-builder';
 import type { ShippingAddress, ShippingMethod } from '../types/order.types';
 import type { CartItem } from '../types/cart.types';
 import type { ShippingOption } from './pricing.service';
@@ -22,9 +23,11 @@ export interface AddressValidationResult {
 
 export class ShippingService {
   private quotesAPI: QuotesAPI;
+  private productsAPI: ProductsAPI;
 
   constructor(private prodigiClient: ProdigiClient) {
     this.quotesAPI = new QuotesAPI(prodigiClient);
+    this.productsAPI = new ProductsAPI(prodigiClient);
   }
 
   /**
@@ -73,21 +76,30 @@ export class ShippingService {
     shippingMethod?: string
   ): Promise<ShippingOption[] | ShippingOption> {
     try {
-      const quoteItems: QuoteItem[] = items.map((item) => {
-        // Extract base SKU (remove image ID suffix if present)
-        // Prodigi API only accepts base SKUs, not SKUs with image ID suffixes
-        const baseSku = this.extractBaseSku(item.sku);
-        
-        // For quotes, assets only need printArea (not url - that's only for orders)
-        return {
-          sku: baseSku,
-          copies: item.quantity,
-          attributes: this.buildAttributes(item.frameConfig, baseSku),
-          assets: [{
-            printArea: 'default',
-          }],
-        };
-      });
+      const quoteItems: QuoteItem[] = await Promise.all(
+        items.map(async (item) => {
+          // Extract base SKU (remove image ID suffix if present)
+          // Prodigi API only accepts base SKUs, not SKUs with image ID suffixes
+          const baseSku = this.extractBaseSku(item.sku);
+          
+          // Build attributes using same logic as pricing service
+          const attributes = await this.buildAttributes(item.frameConfig, baseSku);
+          
+          // IMPORTANT: Prodigi API expects camelCase attribute keys (mountColor, paperType, etc.)
+          // We normalize for matching in pricing service, but send original camelCase keys to Prodigi
+          // Send original attributes (camelCase keys) to Prodigi, not normalized (lowercase keys)
+          
+          // For quotes, assets only need printArea (not url - that's only for orders)
+          return {
+            sku: baseSku,
+            copies: item.quantity,
+            attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
+            assets: [{
+              printArea: 'default',
+            }],
+          };
+        })
+      );
 
       // Get quotes for all shipping methods
       let quotes;
@@ -100,12 +112,40 @@ export class ShippingService {
       } catch (error: any) {
         console.log(`[Shipping] compareShippingMethods failed, trying direct create:`, error.message);
         // If compareShippingMethods fails, try getting quotes directly
+        try {
         quotes = await this.quotesAPI.create({
           destinationCountryCode: address.country,
           items: quoteItems,
           shippingMethod: 'Standard',
         });
         console.log(`[Shipping] Got ${quotes?.length || 0} quotes from direct create`);
+        } catch (createError: any) {
+          console.error(`[Shipping] Direct create also failed:`, createError.message);
+          // Try individual item quotes as last resort
+          console.warn('[Shipping] Attempting individual item quotes as last resort');
+          const individualQuotes: any[] = [];
+          for (const item of quoteItems) {
+            try {
+              const itemQuotes = await this.quotesAPI.create({
+                destinationCountryCode: address.country,
+                items: [item],
+                shippingMethod: 'Standard',
+              });
+              if (itemQuotes && itemQuotes.length > 0) {
+                individualQuotes.push(...itemQuotes);
+                console.log(`[Shipping] Successfully got quote for item ${item.sku}`);
+              }
+            } catch (itemError: any) {
+              console.warn(`[Shipping] Failed to get quote for item ${item.sku}:`, itemError.message);
+            }
+          }
+          if (individualQuotes.length > 0) {
+            quotes = individualQuotes;
+            console.log(`[Shipping] Got ${quotes.length} quote(s) from individual item requests`);
+          } else {
+            throw createError; // Re-throw original error if individual quotes also fail
+          }
+        }
       }
 
       // If we only got one method back, explicitly request the others (Prodigi sometimes returns a single method)
@@ -135,7 +175,14 @@ export class ShippingService {
 
       if (!quotes || quotes.length === 0) {
         console.error(`[Shipping] No quotes returned. Items:`, JSON.stringify(quoteItems, null, 2));
-        throw new ShippingError('No shipping quotes available from Prodigi');
+        throw new ShippingError(
+          'No shipping quotes available from Prodigi. This may be due to invalid SKUs, incompatible attributes, or the items not being available for the destination country.',
+          {
+            destinationCountry: address.country,
+            itemsCount: quoteItems.length,
+            items: quoteItems.map(item => ({ sku: item.sku, attributes: item.attributes })),
+          }
+        );
       }
 
       // If specific method requested, return single option
@@ -264,16 +311,46 @@ export class ShippingService {
 
   /**
    * Build Prodigi attributes from frame config
-   * Uses heuristic approach since we don't have product API access here
+   * Fetches product details to use valid attributes
    */
-  private buildAttributes(frameConfig: CartItem['frameConfig'], sku?: string): Record<string, string> {
+  private async buildAttributes(frameConfig: CartItem['frameConfig'], sku?: string): Promise<Record<string, string>> {
     // Handle undefined frameConfig
     if (!frameConfig) {
       console.warn('[Shipping] buildAttributes: frameConfig is undefined, returning empty attributes');
       return {};
     }
 
-    // Use unified attribute builder with heuristic approach
+    // Try to fetch product details to get valid attributes
+    if (sku) {
+      try {
+        const product = await this.productsAPI.get(sku);
+        if (product && product.attributes) {
+          console.log(`[Shipping] Fetched product details for ${sku}, using valid attributes`);
+          // Use product's valid attributes to build correct attributes
+          return buildProdigiAttributes(
+            {
+              frameColor: frameConfig.color,
+              wrap: frameConfig.wrap,
+              glaze: frameConfig.glaze,
+              mount: frameConfig.mount,
+              mountColor: frameConfig.mountColor,
+              paperType: frameConfig.paperType,
+              finish: frameConfig.finish,
+              edge: frameConfig.edge,
+              frameStyle: frameConfig.style,
+            },
+            {
+              validAttributes: product.attributes,
+              sku,
+            }
+          );
+        }
+      } catch (error: any) {
+        console.warn(`[Shipping] Failed to fetch product details for ${sku}, using heuristic:`, error.message);
+      }
+    }
+
+    // Fallback to heuristic approach if product fetch fails or no SKU
     return buildProdigiAttributesHeuristic(
       {
         frameColor: frameConfig.color,

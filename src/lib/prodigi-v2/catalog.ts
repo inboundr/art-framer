@@ -319,7 +319,11 @@ export class ProdigiCatalogService {
   /**
    * Get available sizes for a product type by querying Azure Search
    */
-  async getAvailableSizes(productType: string, country: string = 'US'): Promise<string[]> {
+  async getAvailableSizes(
+    productType: string,
+    country: string = 'US',
+    aspectRatio?: 'Landscape' | 'Portrait' | 'Square'
+  ): Promise<string[]> {
     try {
       const prodigiProductTypes = PRODUCT_TYPE_MAP[productType.toLowerCase()] || [productType];
       
@@ -328,6 +332,22 @@ export class ProdigiCatalogService {
         category: 'Wall art', // Keep this - we only sell wall art
         productTypes: prodigiProductTypes,
       };
+
+      // Apply aspect ratio filter if provided (matches Prodigi dashboard logic)
+      if (aspectRatio) {
+        const ar = aspectRatio.toLowerCase();
+        if (ar === 'landscape') {
+          filters.aspectRatioMin = 105;
+          filters.aspectRatioMax = 100000;
+        } else if (ar === 'portrait') {
+          filters.aspectRatioMin = 0;
+          filters.aspectRatioMax = 95;
+        } else {
+          // Square
+          filters.aspectRatioMin = 95;
+          filters.aspectRatioMax = 105;
+        }
+      }
 
       const result = await azureSearchClient.search(filters, {
         top: 100,

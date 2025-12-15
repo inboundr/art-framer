@@ -27,6 +27,7 @@ interface FrameModelProps {
   finish?: string;
   edge?: '19mm' | '38mm' | 'auto'; // Edge depth for canvas products
   canvasType?: 'standard' | 'slim' | 'eco' | 'auto'; // Canvas type
+  useTextures?: boolean; // Allow disabling textures for fallback rendering
 }
 
 export function FrameModel({
@@ -41,6 +42,7 @@ export function FrameModel({
   finish,
   edge,
   canvasType,
+  useTextures = true, // Default to true, but can be disabled for fallback
 }: FrameModelProps) {
   // Parse size
   const [widthInches, heightInches] = size.split('x').map(Number);
@@ -134,7 +136,9 @@ export function FrameModel({
     return geometry;
   }, [width, height, style, frameType, color, frameDepth, productType, frameSpecs]);
 
-  // Frame material using Prodigi textures
+  // Frame material using color-based materials (primary method)
+  // Textures are optional enhancement - material properties come from frame-texture-config
+  // which were extracted from analyzing Prodigi images
   const {
     material: frameMaterial,
     isLoading: frameMaterialLoading,
@@ -144,7 +148,7 @@ export function FrameModel({
     frameType,
     color,
     style,
-    useTextures: true, // Enable texture loading
+    useTextures, // Optional: set to true only if textures are explicitly needed
   });
 
   // Mount/Mat geometry (if present)
@@ -206,19 +210,22 @@ export function FrameModel({
     return new THREE.ExtrudeGeometry(shape, extrudeSettings);
   }, [mount, width, height]);
 
-  // Mount material using Prodigi textures
+  // Mount material using color-based materials (primary method)
+  // Textures are optional - material properties come from color mapping
+  // If textures fail, we gracefully fall back to color-based materials
   const {
     texture: mountTexture,
     fallbackColor: mountFallbackColor,
+    error: mountTextureError,
   } = useMountTexture({
     color: mountColor || 'white',
-    enabled: showMount,
+    enabled: false, // Color-based materials are primary - textures optional
   });
 
   const mountMaterial = useMemo(() => {
     if (!mountGeometry || !showMount) return null;
 
-    // Build material config - only include map if texture exists
+    // Build material config using color-based materials (primary method)
     // Thicker mounts have slightly more pronounced texture
     const roughnessMap: Record<string, number> = {
       '1.4mm': 0.75,  // Thinner mat - slightly smoother
@@ -226,18 +233,22 @@ export function FrameModel({
       '2.4mm': 0.85,  // Thicker mat - more pronounced texture
     };
     
+    // Always use color-based material (extracted from Prodigi mount images)
+    // Texture is optional enhancement - only add if available and no errors
     const mountMaterialConfig: any = {
       color: mountFallbackColor,
       roughness: roughnessMap[mount || '2.0mm'] || 0.8,
       metalness: 0.0,
     };
     
-    if (mountTexture) {
+    // Only add texture if it exists and there's no error
+    // This ensures graceful fallback to color-based materials
+    if (mountTexture && !mountTextureError) {
       mountMaterialConfig.map = mountTexture;
     }
 
     return new THREE.MeshStandardMaterial(mountMaterialConfig);
-  }, [mountGeometry, mountTexture, mountFallbackColor, showMount, mount]);
+  }, [mountGeometry, mountTexture, mountFallbackColor, showMount, mount, mountTextureError]);
 
   // Glaze geometry and material
   const glazeGeometry = useMemo(() => {
@@ -357,7 +368,7 @@ export function FrameModel({
   } = useCanvasTexture({
     substrateType: 'substrate',
     wrapType,
-    enabled: ['canvas', 'framed-canvas'].includes(productType),
+    enabled: false, // Disable canvas textures to avoid missing asset runtime errors
   });
 
   // Calculate canvas z-position for framed-canvas

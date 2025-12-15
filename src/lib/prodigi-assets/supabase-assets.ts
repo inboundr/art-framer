@@ -15,7 +15,13 @@ const PRODIGI_ASSETS_BUCKET = 'prodigi-assets';
  */
 export async function getSupabaseAssetUrl(localPath: string): Promise<string> {
   // Remove leading slash and convert to storage path
-  const storagePath = localPath.startsWith('/') ? localPath.slice(1) : localPath;
+  let storagePath = localPath.startsWith('/') ? localPath.slice(1) : localPath;
+  
+  // IMPORTANT: Strip "prodigi-assets/" prefix if present (same logic as sync version)
+  // Only strip if it's "prodigi-assets/" not "prodigi-assets-extracted/"
+  if (storagePath.startsWith('prodigi-assets/') && !storagePath.startsWith('prodigi-assets-extracted/')) {
+    storagePath = storagePath.slice('prodigi-assets/'.length);
+  }
   
   try {
     const { data, error } = await supabase.storage
@@ -72,6 +78,21 @@ export function getSupabaseAssetUrlSync(localPath: string): string {
   // Remove leading slash and convert to storage path
   let storagePath = localPath.startsWith('/') ? localPath.slice(1) : localPath;
   
+  // IMPORTANT: Files are uploaded to Supabase with paths relative to the public/ directory
+  // - Files from public/prodigi-assets/ are stored as "prodigi-assets/frames/..."
+  // - Files from public/prodigi-assets-extracted/ are stored as "prodigi-assets-extracted/..."
+  // - Files from public/samples/ are stored as "samples/..."
+  //
+  // The bucket name is "prodigi-assets", so when constructing the URL:
+  // - For "prodigi-assets/frames/..." → we need to strip the prefix to avoid duplication
+  // - For "prodigi-assets-extracted/..." → we keep it as-is (different folder)
+  // - For "samples/..." → we keep it as-is (different folder)
+  //
+  // Only strip "prodigi-assets/" prefix if it's the first segment (not "prodigi-assets-extracted")
+  if (storagePath.startsWith('prodigi-assets/') && !storagePath.startsWith('prodigi-assets-extracted/')) {
+    storagePath = storagePath.slice('prodigi-assets/'.length);
+  }
+  
   // Sanitize the path to match uploaded file names (handles em dashes, special chars, etc.)
   storagePath = sanitizeStoragePath(storagePath);
   
@@ -91,6 +112,10 @@ export function getSupabaseAssetUrlSync(localPath: string): string {
     .join('/');
   
   // Construct public URL: {supabaseUrl}/storage/v1/object/public/{bucket}/{path}
+  // The bucket name is "prodigi-assets" and the path is:
+  // - "frames/..." (after stripping prodigi-assets/ prefix)
+  // - "prodigi-assets-extracted/..." (kept as-is)
+  // - "samples/..." (kept as-is)
   return `${supabaseUrl}/storage/v1/object/public/${PRODIGI_ASSETS_BUCKET}/${encodedPath}`;
 }
 

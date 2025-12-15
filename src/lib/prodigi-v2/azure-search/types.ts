@@ -229,7 +229,6 @@ export const PRODIGI_CONSTANTS = {
     'snow white',
     'black',
     'off-white',
-    'navy',
   ] as const,
   
   // Finishes

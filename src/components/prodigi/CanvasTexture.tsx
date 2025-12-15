@@ -25,7 +25,7 @@ export interface CanvasTextureProps {
 export function CanvasTexture({
   substrateType = 'substrate',
   wrapType,
-  useTextures = true,
+  useTextures = false, // Default off: use color-based materials; textures optional
   children,
 }: CanvasTextureProps) {
   const { substrateTexture, wrapTexture, isLoading, error } = useCanvasTexture({

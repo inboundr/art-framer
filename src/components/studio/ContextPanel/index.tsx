@@ -358,35 +358,6 @@ export function ContextPanel({ onOpenAuthModal }: ContextPanelProps = {}) {
             ${totalPrice.toFixed(2)} • Shipping calculated at checkout
           </div>
 
-          <div className="flex gap-2">
-            <button
-              className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm"
-              onClick={async () => {
-                try {
-                  await useStudioStore.getState().saveConfiguration('My Frame');
-                  alert('Configuration saved!');
-                } catch (error) {
-                  alert('Failed to save configuration');
-                }
-              }}
-            >
-              💾 Save
-            </button>
-
-            <button
-              className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition-colors text-sm"
-              onClick={() => {
-                // Share functionality
-                navigator.share?.({
-                  title: 'My Custom Frame',
-                  text: 'Check out my custom frame design!',
-                  url: window.location.href,
-                });
-              }}
-            >
-              📤 Share
-            </button>
-          </div>
         </div>
       )}
     </div>

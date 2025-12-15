@@ -20,7 +20,7 @@ export interface MountTextureProps {
  */
 export function MountTexture({
   color,
-  useTextures = true,
+  useTextures = false, // Default to false - color-based materials are primary
   children,
 }: MountTextureProps) {
   const { texture, isLoading, error, fallbackColor } = useMountTexture({

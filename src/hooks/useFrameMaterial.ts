@@ -13,7 +13,10 @@ export interface UseFrameMaterialOptions extends UseProdigiTextureOptions {
 }
 
 export function useFrameMaterial(options: UseFrameMaterialOptions) {
-  const { useTextures = true, frameType, color, ...textureOptions } = options;
+  // IMPORTANT: Default to false - textures are optional enhancement, not required
+  // Color-based materials (from frame-texture-config) are the primary rendering method
+  // Textures were used to discover/extract material properties, not as a runtime dependency
+  const { useTextures = false, frameType, color, ...textureOptions } = options;
   
   // Get enhanced configuration from our database
   const textureConfig = useMemo(
@@ -50,7 +53,9 @@ export function useFrameMaterial(options: UseFrameMaterialOptions) {
     };
 
     // Only add textures if they exist (don't pass undefined)
-    if (useTextures && hasTextures && !error) {
+    // IMPORTANT: Always provide a valid material, even if textures fail
+    // This ensures the frame always renders, even with fallback colors
+    if (useTextures && hasTextures && !error && diffuseMap) {
       if (diffuseMap) {
         materialConfig.map = diffuseMap;
         

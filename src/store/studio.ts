@@ -53,6 +53,9 @@ export interface FrameConfiguration {
   customWidth?: number;
   customHeight?: number;
   
+  // Aspect Ratio (editable option that filters sizes)
+  aspectRatio?: 'Portrait' | 'Landscape' | 'Square';
+  
   // Paper
   paperType: string;
   finish: string;
@@ -148,6 +151,7 @@ export interface RoomVisualization {
 export interface AvailableOptions {
   // What options are available for current configuration
   hasFrameColor: boolean;
+  hasFrameStyle: boolean;
   hasGlaze: boolean;
   hasMount: boolean;
   hasMountColor: boolean;
@@ -155,9 +159,11 @@ export interface AvailableOptions {
   hasFinish: boolean;
   hasEdge: boolean;
   hasWrap: boolean;
+  hasAspectRatio: boolean;
   
   // Available values for each option
   frameColors: string[];
+  frameStyles: string[];
   glazes: string[];
   mounts: string[];
   mountColors: string[];
@@ -166,6 +172,7 @@ export interface AvailableOptions {
   edges: string[];
   wraps: string[];
   sizes: string[];
+  aspectRatios: string[];
 }
 
 // ============================================================================
@@ -240,7 +247,7 @@ interface StudioStore {
   
   // Facets
   updateAvailableOptions: (options: AvailableOptions) => void;
-  updateAvailableOptionsAsync: (productType?: string) => Promise<void>;
+  updateAvailableOptionsAsync: (productType?: string, filters?: Partial<Record<string, string[]>>) => Promise<void>;
   setFacetsLoading: (isLoading: boolean) => void;
   
   setSuggestions: (suggestions: Suggestion[]) => void;
@@ -296,6 +303,7 @@ const getDefaultConfig = (): FrameConfiguration => ({
   edge: 'auto', // Auto-select edge depth based on product
   canvasType: 'auto', // Auto-select canvas type (standard/slim/eco)
   size: '16x20',
+  aspectRatio: 'Landscape', // Default aspect ratio
   paperType: 'enhanced-matte',
   finish: 'matte',
   price: 0,
@@ -413,13 +421,40 @@ export const useStudioStore = create<StudioStore>()(
         set({ availableOptions: options });
       },
       
-      updateAvailableOptionsAsync: async (productType) => {
+      updateAvailableOptionsAsync: async (productType, filters) => {
         const { config, setFacetsLoading, updateAvailableOptions } = get();
         const typeToUse = productType || config.productType;
+        const country = config.destinationCountry || 'US'; // Use selected country or default to US
+        const aspectRatio = (filters as any)?.aspectRatioLabel || config.aspectRatio;
         
         setFacetsLoading(true);
         
         try {
+          // Normalize filters (map aspectRatioLabel to ProdigiSearchFilters)
+          let normalizedFilters: any = filters || {};
+          if (aspectRatio) {
+            const arLower = aspectRatio.toLowerCase();
+            if (arLower === 'landscape') {
+              normalizedFilters = {
+                ...normalizedFilters,
+                aspectRatioMin: 105,
+                aspectRatioMax: 100000,
+              };
+            } else if (arLower === 'portrait') {
+              normalizedFilters = {
+                ...normalizedFilters,
+                aspectRatioMin: 0,
+                aspectRatioMax: 95,
+              };
+            } else {
+              normalizedFilters = {
+                ...normalizedFilters,
+                aspectRatioMin: 95,
+                aspectRatioMax: 105,
+              };
+            }
+          }
+
           // Fetch facets and sizes in parallel
           const [facetsResponse, sizesResponse] = await Promise.allSettled([
             fetch('/api/studio/facets', {
@@ -427,10 +462,11 @@ export const useStudioStore = create<StudioStore>()(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 productType: typeToUse,
-                country: 'US',
+                country: country,
+                filters: normalizedFilters,
               }),
             }),
-            fetch(`/api/studio/sizes?productType=${typeToUse}&country=US`, {
+            fetch(`/api/studio/sizes?productType=${typeToUse}&country=${country}${aspectRatio ? `&aspectRatio=${aspectRatio}` : ''}`, {
               method: 'GET',
             }),
           ]);
@@ -530,8 +566,28 @@ export const useStudioStore = create<StudioStore>()(
           // Refresh available options
           await updateAvailableOptionsAsync(updates.productType);
         } else {
-          // Normal update
+          // Normal update - refresh available options to get adaptive options
           updateConfig(updates);
+          
+          // Refresh available options with current configuration filters
+          // This ensures options adapt when frame style or other selections change
+          const filters: Partial<Record<string, string[]>> = {};
+          const newConfig = { ...config, ...updates };
+          
+          if (newConfig.frameStyle && newConfig.frameStyle !== 'classic' && newConfig.frameStyle !== 'Classic') {
+            filters.frameStyles = [newConfig.frameStyle];
+          }
+          
+          if (newConfig.size) {
+            filters.sizes = [newConfig.size];
+          }
+          
+          if (newConfig.frameColor && newConfig.frameColor !== 'black') {
+            filters.frameColors = [newConfig.frameColor];
+          }
+          
+          // Refresh options with filters to get compatible options
+          await updateAvailableOptionsAsync(newConfig.productType, filters);
         }
       },
       

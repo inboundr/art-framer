@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const productType = searchParams.get('productType');
     const country = searchParams.get('country') || 'US';
+    const aspectRatio = searchParams.get('aspectRatio') as 'Landscape' | 'Portrait' | 'Square' | null;
 
     if (!productType) {
       return NextResponse.json(
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`[Sizes API] Fetching sizes for ${productType} in ${country}`);
 
-    const sizes = await catalogService.getAvailableSizes(productType, country);
+    const sizes = await catalogService.getAvailableSizes(productType, country, aspectRatio || undefined);
 
     console.log(`[Sizes API] Found ${sizes.length} sizes for ${productType}:`, sizes);
 
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productType, country = 'US' } = body;
+    const { productType, country = 'US', aspectRatio } = body;
 
     if (!productType) {
       return NextResponse.json(
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Sizes API] POST: Fetching sizes for ${productType} in ${country}`);
 
-    const sizes = await catalogService.getAvailableSizes(productType, country);
+    const sizes = await catalogService.getAvailableSizes(productType, country, aspectRatio);
 
     console.log(`[Sizes API] Found ${sizes.length} sizes for ${productType}:`, sizes);
 

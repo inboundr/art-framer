@@ -1,7 +1,18 @@
 /**
- * Frame Texture Configuration
- * Stores material properties and texture settings for each frame type and color
- * This configuration is based on analyzing Prodigi's actual frame materials
+ * Frame Material Configuration
+ * Stores color-based material properties for each frame type and color
+ * 
+ * IMPORTANT: This is the PRIMARY rendering method. Material properties (baseColor, 
+ * metalness, roughness) were extracted by analyzing Prodigi's frame images/textures.
+ * 
+ * Textures are OPTIONAL and only used for enhancement. The system always uses
+ * color-based materials from this configuration, which provides:
+ * - Accurate colors extracted from Prodigi images
+ * - Realistic material properties (metalness, roughness) discovered from textures
+ * - No dependency on texture files at runtime
+ * 
+ * The textureSource field is for reference only - it shows which Prodigi image
+ * was analyzed to extract these material properties.
  */
 
 export interface FrameTextureConfig {

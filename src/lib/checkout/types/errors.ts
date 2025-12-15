@@ -17,7 +17,13 @@ export class CheckoutError extends Error {
 
 export class CartError extends CheckoutError {
   constructor(message: string, details?: any) {
-    super(message, 'CART_ERROR', 400, details);
+    // Allow statusCode to be overridden in details
+    const statusCode = details?.statusCode || 400;
+    const detailsWithoutStatusCode = details ? { ...details } : undefined;
+    if (detailsWithoutStatusCode && 'statusCode' in detailsWithoutStatusCode) {
+      delete detailsWithoutStatusCode.statusCode;
+    }
+    super(message, 'CART_ERROR', statusCode, detailsWithoutStatusCode);
     this.name = 'CartError';
     Object.setPrototypeOf(this, CartError.prototype);
   }

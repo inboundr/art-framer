@@ -384,9 +384,14 @@ export interface Quote {
 }
 
 export interface CreateQuoteResponse {
-  outcome: 'Created';
-  quotes: Quote[];
-  traceParent: string;
+  outcome: 'Created' | 'CreatedWithIssues' | 'NotAvailable';
+  quotes?: Quote[]; // Quotes may be empty or undefined for NotAvailable
+  issues?: Array<{
+    objectId?: string | null;
+    errorCode?: string;
+    description?: string;
+  }>;
+  traceParent?: string;
 }
 
 // ============================================================================

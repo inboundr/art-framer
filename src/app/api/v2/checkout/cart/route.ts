@@ -44,7 +44,6 @@ const getProdigiClientV2 = () => {
 };
 
 export async function GET(request: NextRequest) {
-  try {
     // Authenticate
     const { user, error: authError } = await authenticateRequest(request);
     if (authError || !user) {
@@ -72,19 +71,131 @@ export async function GET(request: NextRequest) {
     const cartService = new CartService(supabase, prodigiClientV1, pricingService);
 
     // Get cart
+  try {
     const cart = await cartService.getCart(user.id, destinationCountry, shippingMethod);
-
     return NextResponse.json({ cart });
   } catch (error) {
     console.error('Error fetching cart:', error);
+      
+      // If it's a pricing error, try to return cart items without pricing
+      // This allows users to see their cart even if pricing temporarily fails
+      const isPricingError = error instanceof CartError && 
+        (error.message.includes('pricing') || error.message.includes('quote') || error.message.includes('No quotes'));
+      
+      if (isPricingError) {
+        try {
+          // Try to get cart items without pricing
+          const supabase = createServiceClient();
+          const { data: cartItems, error: dbError } = await supabase
+            .from('cart_items')
+            .select(`
+              *,
+              products (*)
+            `)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+          if (dbError) {
+            throw dbError;
+          }
+
+          if (!cartItems || cartItems.length === 0) {
+            return NextResponse.json({ 
+              cart: {
+                items: [],
+                totals: {
+                  subtotal: 0,
+                  shipping: 0,
+                  tax: 0,
+                  total: 0,
+                  currency: 'USD',
+                  originalCurrency: 'USD',
+                  originalTotal: 0,
+                  exchangeRate: 1,
+                },
+                shippingMethod,
+                destinationCountry,
+                updatedAt: new Date().toISOString(),
+              },
+              pricingError: error instanceof CartError ? error.message : 'Pricing unavailable',
+              warning: 'Pricing temporarily unavailable. Please try again in a moment.',
+            });
+          }
+
+          // Format items without pricing
+          const items = cartItems.map((item: any) => ({
+            id: item.id,
+            productId: item.product_id,
+            sku: item.sku || item.products?.sku || '',
+            quantity: item.quantity,
+            price: 0, // Pricing unavailable
+            currency: 'USD',
+            frameConfig: item.frame_config || item.products?.frame_config || {},
+            imageUrl: item.products?.images?.[0]?.image_url || '',
+            name: item.products?.name || `Frame ${item.products?.frame_size || ''}`,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+          }));
+
+          return NextResponse.json({
+            cart: {
+              items,
+              totals: {
+                subtotal: 0,
+                shipping: 0,
+                tax: 0,
+                total: 0,
+                currency: 'USD',
+                originalCurrency: 'USD',
+                originalTotal: 0,
+                exchangeRate: 1,
+              },
+              shippingMethod,
+              destinationCountry,
+              updatedAt: new Date().toISOString(),
+            },
+            pricingError: error instanceof CartError ? error.message : 'Pricing unavailable',
+            warning: 'Pricing temporarily unavailable. Please try again in a moment.',
+          });
+        } catch (fallbackError) {
+          console.error('Error in fallback cart fetch:', fallbackError);
+          // If fallback also fails, return the original error
+          if (error instanceof CartError) {
+            return NextResponse.json(
+              { 
+                error: error.message || 'Failed to fetch cart', 
+                details: error.details || {},
+                statusCode: error.statusCode || 500
+              },
+              { status: error.statusCode || 500 }
+            );
+          }
+          return NextResponse.json(
+            { 
+              error: 'Failed to fetch cart', 
+              details: fallbackError instanceof Error ? { message: fallbackError.message, stack: fallbackError.stack } : { error: String(fallbackError) }
+            },
+            { status: 500 }
+          );
+        }
+      }
+
+      // For other errors, return error response
     if (error instanceof CartError) {
       return NextResponse.json(
-        { error: error.message, details: error.details },
-        { status: error.statusCode }
+          { 
+            error: error.message || 'Failed to fetch cart', 
+            details: error.details || {},
+            statusCode: error.statusCode || 500
+          },
+          { status: error.statusCode || 500 }
       );
     }
     return NextResponse.json(
-      { error: 'Failed to fetch cart' },
+        { 
+          error: 'Failed to fetch cart', 
+          details: error instanceof Error ? { message: error.message, name: error.name } : { error: String(error) }
+        },
       { status: 500 }
     );
   }

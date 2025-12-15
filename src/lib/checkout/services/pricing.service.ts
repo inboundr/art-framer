@@ -10,9 +10,11 @@
 
 import { ProdigiClient } from '@/lib/prodigi-v2/client';
 import { QuotesAPI } from '@/lib/prodigi-v2/quotes';
+import { ProductsAPI } from '@/lib/prodigi-v2/products';
 import { CurrencyService } from '@/lib/currency';
 import { PricingError } from '../types/errors';
-import { buildProdigiAttributesHeuristic } from '../utils/attribute-builder';
+import { buildProdigiAttributes, buildProdigiAttributesHeuristic } from '../utils/attribute-builder';
+import { generateQuoteKey } from '../utils/attribute-normalizer';
 import type {
   CartItem,
   CartTotals,
@@ -46,12 +48,14 @@ export interface ShippingOption {
 
 export class PricingService {
   private quotesAPI: QuotesAPI;
+  private productsAPI: ProductsAPI;
 
   constructor(
     private prodigiClient: ProdigiClient,
     private currencyService: CurrencyService
   ) {
     this.quotesAPI = new QuotesAPI(prodigiClient);
+    this.productsAPI = new ProductsAPI(prodigiClient);
   }
 
   /**
@@ -92,7 +96,9 @@ export class PricingService {
       const quoteItemsMap = new Map<string, QuoteItem>();
       const cartItemToQuoteKey = new Map<number, string>(); // cart index -> quote key
       
-      items.forEach((item, cartIndex) => {
+      for (let cartIndex = 0; cartIndex < items.length; cartIndex++) {
+        const item = items[cartIndex];
+        
         // Extract base SKU (remove image ID suffix if present)
         // Prodigi API only accepts base SKUs, not SKUs with image ID suffixes
         const baseSku = this.extractBaseSku(item.sku);
@@ -107,7 +113,7 @@ export class PricingService {
           console.log(`🔧 Extracted base SKU: ${item.sku} -> ${baseSku}`);
         }
         
-        const attributes = this.buildAttributes(item.frameConfig, baseSku);
+        const attributes = await this.buildAttributes(item.frameConfig, baseSku);
         
         // Log what we're processing for debugging
         console.log('[Pricing] Quote item:', {
@@ -117,23 +123,8 @@ export class PricingService {
           frameConfig: item.frameConfig,
         });
         
-        // For quotes, assets only need printArea (not url - that's only for orders)
-        // Prodigi expects lowercase 'default' for printArea
-        // Also filter out undefined values from attributes and normalize for matching
-        const cleanAttributes: Record<string, string> = {};
-        Object.entries(attributes).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            // Normalize to lowercase for consistent matching with quote response
-            cleanAttributes[key.toLowerCase()] = String(value).toLowerCase().trim();
-          }
-        });
-        
-        // Create a unique key for this SKU + attributes combination
-        // Items with the same base SKU and attributes should be combined
-        // Normalize SKU to lowercase for consistent matching
-        const normalizedSku = baseSku.toLowerCase();
-        const attributesKey = JSON.stringify(cleanAttributes);
-        const uniqueKey = `${normalizedSku}:${attributesKey}`;
+        // Generate quote key for matching (generateQuoteKey normalizes internally)
+        const uniqueKey = generateQuoteKey(baseSku, attributes);
         
         // Track which cart item maps to which quote key
         cartItemToQuoteKey.set(cartIndex, uniqueKey);
@@ -145,6 +136,9 @@ export class PricingService {
           console.log(`[Pricing] Combined item with existing: ${uniqueKey}, total copies: ${existing.copies}`);
         } else {
           // Build the quote item
+          // IMPORTANT: Prodigi API expects camelCase attribute keys (mountColor, paperType, etc.)
+          // but lowercase values for some attributes (like wrap: 'black' not 'Black')
+          // We normalize for matching, but need to send original camelCase keys to Prodigi
           const quoteItem: QuoteItem = {
             sku: baseSku,
             copies: item.quantity,
@@ -154,13 +148,15 @@ export class PricingService {
           };
           
           // Only include attributes if we have any (Prodigi may reject empty attributes object)
-          if (Object.keys(cleanAttributes).length > 0) {
-            quoteItem.attributes = cleanAttributes;
+          // Send original attributes (camelCase keys) to Prodigi, not normalized (lowercase keys)
+          // The normalization is only for matching quote responses back to cart items
+          if (Object.keys(attributes).length > 0) {
+            quoteItem.attributes = attributes;
           }
           
           quoteItemsMap.set(uniqueKey, quoteItem);
         }
-      });
+      }
       
       // Convert map to array
       const quoteItems: QuoteItem[] = Array.from(quoteItemsMap.values());
@@ -208,13 +204,99 @@ export class PricingService {
           console.log('[Pricing] Got quotes from direct create:', allQuotes?.length || 0);
         } catch (createError: any) {
           console.error('[Pricing] Direct create also failed:', createError);
-          throw createError;
+          // Last resort: try getting quotes for each item individually
+          // Sometimes Prodigi fails on combined quotes but succeeds on individual items
+          console.warn('[Pricing] Attempting individual item quotes as last resort');
+          try {
+            const individualQuotes: any[] = [];
+            for (const item of quoteItems) {
+              try {
+                const itemQuotes = await this.quotesAPI.create({
+                  destinationCountryCode: destinationCountry,
+                  items: [item],
+                  shippingMethod: shippingMethod,
+                });
+                if (itemQuotes && itemQuotes.length > 0) {
+                  individualQuotes.push(...itemQuotes);
+                  console.log(`[Pricing] Successfully got quote for item ${item.sku}`);
+                }
+              } catch (itemError: any) {
+                console.warn(`[Pricing] Failed to get quote for item ${item.sku}:`, itemError.message);
+                // Continue with other items
+              }
+            }
+            if (individualQuotes.length > 0) {
+              console.log(`[Pricing] Got ${individualQuotes.length} quote(s) from individual item requests`);
+              // Combine individual quotes into a single combined quote
+              // Group by shipping method and sum costs
+              const quotesByMethod = new Map<string, any[]>();
+              individualQuotes.forEach(quote => {
+                const method = quote.shipmentMethod || 'Standard';
+                if (!quotesByMethod.has(method)) {
+                  quotesByMethod.set(method, []);
+                }
+                quotesByMethod.get(method)!.push(quote);
+              });
+              
+              // Create combined quotes for each shipping method
+              const combinedQuotes: any[] = [];
+              quotesByMethod.forEach((quotes, method) => {
+                // Sum item costs and shipping costs
+                let totalItemsCost = 0;
+                let totalShippingCost = 0;
+                const allItems: any[] = [];
+                let currency = 'USD';
+                
+                quotes.forEach(quote => {
+                  const itemsCost = parseFloat(quote.costSummary?.items?.amount || '0');
+                  const shippingCost = parseFloat(quote.costSummary?.shipping?.amount || '0');
+                  totalItemsCost += itemsCost;
+                  totalShippingCost += shippingCost; // Sum shipping (Prodigi may charge per item)
+                  currency = quote.costSummary?.items?.currency || currency;
+                  if (quote.items && quote.items.length > 0) {
+                    allItems.push(...quote.items);
+                  }
+                });
+                
+                // Create combined quote structure
+                const combinedQuote = {
+                  shipmentMethod: method,
+                  costSummary: {
+                    items: {
+                      amount: totalItemsCost.toFixed(2),
+                      currency: currency,
+                    },
+                    shipping: {
+                      amount: totalShippingCost.toFixed(2),
+                      currency: currency,
+                    },
+                    totalCost: {
+                      amount: (totalItemsCost + totalShippingCost).toFixed(2),
+                      currency: currency,
+                    },
+                  },
+                  items: allItems,
+                  shipments: quotes[0]?.shipments || [],
+                };
+                
+                combinedQuotes.push(combinedQuote);
+                console.log(`[Pricing] Combined ${quotes.length} individual quotes for ${method}: items=$${totalItemsCost.toFixed(2)}, shipping=$${totalShippingCost.toFixed(2)}`);
+              });
+              
+              allQuotes = combinedQuotes;
+            } else {
+              throw createError; // Re-throw original error if individual quotes also fail
+            }
+          } catch (individualError: any) {
+            console.error('[Pricing] Individual item quotes also failed:', individualError);
+            throw createError; // Re-throw original error
+          }
         }
       }
 
       if (!allQuotes || allQuotes.length === 0) {
         throw new PricingError(
-          `No quotes available for destination: ${destinationCountry}`
+          `No quotes available for destination: ${destinationCountry}. This may be due to invalid SKUs, incompatible attributes, or Prodigi service issues.`
         );
       }
 
@@ -244,18 +326,16 @@ export class PricingService {
         // Create a map: quote key -> unit cost
         // Match by SKU and normalized attributes
         const quoteKeyToUnitCost = new Map<string, number>();
-        quote.items.forEach((quoteItem) => {
-          // Normalize attributes for matching (same as we did when building quote items)
-          const normalizedAttrs = quoteItem.attributes || {};
-          // Normalize attribute values (lowercase, trim) to match how we built them
-          const normalizedAttrsForKey: Record<string, string> = {};
-          Object.entries(normalizedAttrs).forEach(([key, value]) => {
-            normalizedAttrsForKey[key.toLowerCase()] = String(value).toLowerCase().trim();
-          });
-          const attrsKey = JSON.stringify(normalizedAttrsForKey);
-          // Normalize SKU to lowercase to match cart item quote keys
-          const normalizedSku = quoteItem.sku.toLowerCase();
-          const quoteKey = `${normalizedSku}:${attrsKey}`;
+        quote.items.forEach((quoteItem: {
+          id: string;
+          sku: string;
+          copies: number;
+          unitCost?: { amount: string; currency: string };
+          attributes?: Record<string, string>;
+          assets: Array<{ printArea: string }>;
+        }) => {
+          // Normalize attributes for matching (same normalization function as when building quote items)
+          const quoteKey = generateQuoteKey(quoteItem.sku, quoteItem.attributes);
           const unitCost = parseFloat(quoteItem.unitCost?.amount || '0');
           quoteKeyToUnitCost.set(quoteKey, unitCost);
           console.log(`[Pricing] Mapped quote item to unit cost: ${quoteKey} = ${unitCost}`);
@@ -269,8 +349,44 @@ export class PricingService {
             itemPrices.set(cartIndex, unitCost);
             console.log(`[Pricing] Mapped cart item ${cartIndex} to unit cost: ${unitCost} (quoteKey: ${quoteKey})`);
           } else {
-            // Fallback: if we can't find exact match, log warning
-            console.warn(`[Pricing] Could not find unit cost for cart item ${cartIndex} (quoteKey: ${quoteKey})`);
+            // Fallback: if we can't find exact match, try to find by SKU only (for items with no attributes)
+            // This handles cases where Prodigi returns items without attributes even though we sent some
+            const baseSku = this.extractBaseSku(item.sku).toLowerCase();
+            let foundMatch = false;
+            
+            // Try to find a match by SKU only (if no attributes in quote response)
+            for (const [key, cost] of quoteKeyToUnitCost.entries()) {
+              if (key.startsWith(`${baseSku}:{}`) || key.startsWith(`${baseSku}:`)) {
+                // Check if this is a match (either no attributes or attributes match)
+                const keyAttrs = key.substring(baseSku.length + 1);
+                if (keyAttrs === '{}' || keyAttrs === quoteKey?.substring(baseSku.length + 1)) {
+                  itemPrices.set(cartIndex, cost);
+                  console.warn(`[Pricing] Mapped cart item ${cartIndex} to unit cost using fallback match: ${cost} (quoteKey: ${key})`);
+                  foundMatch = true;
+                  break;
+                }
+              }
+            }
+            
+            if (!foundMatch) {
+              // Last resort: calculate average price per item from quote
+              // This should rarely happen if matching logic is correct
+              const totalItemCost = Array.from(quoteKeyToUnitCost.values()).reduce((sum: number, cost: number) => sum + cost, 0);
+              const totalCopies = quote.items.reduce((sum: number, item: { copies: number }) => sum + item.copies, 0);
+              const avgPrice = totalCopies > 0 ? totalItemCost / totalCopies : 0;
+              
+              // Only use average if we have valid quotes, otherwise throw error
+              if (avgPrice > 0) {
+                itemPrices.set(cartIndex, avgPrice);
+                console.error(`[Pricing] Could not find exact match for cart item ${cartIndex} (quoteKey: ${quoteKey}), using average: ${avgPrice}. This may indicate an attribute mismatch.`);
+              } else {
+                // This is a critical error - we should not proceed with $0 price
+                throw new PricingError(
+                  `Failed to match cart item ${cartIndex} to quote response. QuoteKey: ${quoteKey}, Available keys: ${Array.from(quoteKeyToUnitCost.keys()).join(', ')}`,
+                  { cartIndex, quoteKey, availableKeys: Array.from(quoteKeyToUnitCost.keys()) }
+                );
+              }
+            }
           }
         });
       }
@@ -384,20 +500,22 @@ export class PricingService {
     destinationCountry: string
   ): Promise<ShippingOption[]> {
     try {
-      const quoteItems: QuoteItem[] = items.map((item) => {
-        // Extract base SKU (remove image ID suffix if present)
-        const baseSku = this.extractBaseSku(item.sku);
-        
-        // For quotes, assets only need printArea (not url - that's only for orders)
-        return {
-          sku: baseSku,
-          copies: item.quantity,
-          attributes: this.buildAttributes(item.frameConfig),
-          assets: [{
-            printArea: 'Default',
-          }],
-        };
-      });
+      const quoteItems: QuoteItem[] = await Promise.all(
+        items.map(async (item) => {
+          // Extract base SKU (remove image ID suffix if present)
+          const baseSku = this.extractBaseSku(item.sku);
+          
+          // For quotes, assets only need printArea (not url - that's only for orders)
+          return {
+            sku: baseSku,
+            copies: item.quantity,
+            attributes: await this.buildAttributes(item.frameConfig, baseSku),
+            assets: [{
+              printArea: 'Default',
+            }],
+          };
+        })
+      );
 
       // Get quotes for all shipping methods (use Standard as default, API returns all methods)
       const quotes = await this.quotesAPI.create({
@@ -451,11 +569,12 @@ export class PricingService {
 
     try {
       for (const item of items) {
+        const baseSku = this.extractBaseSku(item.sku);
         const quoteItems: QuoteItem[] = [
           {
-            sku: this.extractBaseSku(item.sku),
+            sku: baseSku,
             copies: item.quantity,
-            attributes: this.buildAttributes(item.frameConfig),
+            attributes: await this.buildAttributes(item.frameConfig, baseSku),
             assets: [{ printArea: 'default' }],
           },
         ];
@@ -506,14 +625,44 @@ export class PricingService {
    * Build Prodigi attributes from frame config
    * Uses heuristic approach since we don't have product API access here
    */
-  private buildAttributes(frameConfig: CartItem['frameConfig'], sku?: string): Record<string, string> {
+  private async buildAttributes(frameConfig: CartItem['frameConfig'], sku?: string): Promise<Record<string, string>> {
     // Handle undefined frameConfig
     if (!frameConfig) {
       console.warn('[Pricing] buildAttributes: frameConfig is undefined, returning empty attributes');
       return {};
     }
 
-    // Use unified attribute builder with heuristic approach
+    // Try to fetch product details to get valid attributes
+    if (sku) {
+      try {
+        const product = await this.productsAPI.get(sku);
+        if (product && product.attributes) {
+          console.log(`[Pricing] Fetched product details for ${sku}, using valid attributes`);
+          // Use product's valid attributes to build correct attributes
+          return buildProdigiAttributes(
+            {
+              frameColor: frameConfig.color,
+              wrap: frameConfig.wrap,
+              glaze: frameConfig.glaze,
+              mount: frameConfig.mount,
+              mountColor: frameConfig.mountColor,
+              paperType: frameConfig.paperType,
+              finish: frameConfig.finish,
+              edge: frameConfig.edge,
+              frameStyle: frameConfig.style,
+            },
+            {
+              validAttributes: product.attributes,
+              sku,
+            }
+          );
+        }
+      } catch (error: any) {
+        console.warn(`[Pricing] Failed to fetch product details for ${sku}, using heuristic:`, error.message);
+      }
+    }
+
+    // Fallback to heuristic approach if product fetch fails or no SKU
     return buildProdigiAttributesHeuristic(
       {
         frameColor: frameConfig.color,
