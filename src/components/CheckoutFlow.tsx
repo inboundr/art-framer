@@ -28,6 +28,7 @@ import { formatSizeWithCm } from '@/lib/utils/size-conversion';
 import { formatPrice } from '@/lib/prodigi-v2/utils';
 import { PricingDisplay, type PricingData } from '@/components/shared/PricingDisplay';
 import type { ShippingOption } from '@/lib/checkout/services/pricing.service';
+import { getProductTypeLabelFromProduct } from '@/lib/utils/product-type-labels';
 
 interface CheckoutFlowProps {
   onSuccess?: (orderId: string) => void;
@@ -562,6 +563,25 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
     };
   }, []);
   
+  // Update cart destination country when shipping address country changes
+  useEffect(() => {
+    if (shippingAddress.country && typeof window !== 'undefined') {
+      const currentStoredCountry = localStorage.getItem('cartDestinationCountry');
+      if (currentStoredCountry !== shippingAddress.country) {
+        console.log('💱 Updating cart destination country:', {
+          from: currentStoredCountry,
+          to: shippingAddress.country
+        });
+        localStorage.setItem('cartDestinationCountry', shippingAddress.country);
+        // Trigger cart refresh to get prices in the correct currency
+        if (addressManuallyModified) {
+          // Only refresh if user has manually changed the address to avoid initial load refresh
+          window.dispatchEvent(new Event('storage')); // This will trigger cart context to refetch
+        }
+      }
+    }
+  }, [shippingAddress.country, addressManuallyModified]);
+
   // Enhanced address change detection - only trigger for user interactions
   useEffect(() => {
     console.log('📍 Address change detected, checking if should calculate shipping:', {
@@ -917,6 +937,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
             phone: shippingAddress.phone,
           },
           shippingMethod: selectedShippingMethod || calculatedShipping?.serviceName || 'Standard',
+          currency: getDisplayCurrency(), // Pass the expected currency to ensure consistency
         }),
         signal: controller.signal
       });
@@ -1251,7 +1272,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                       </div>
                       <div className="flex-1">
                         <h5 className="font-medium">
-                          {getFrameSizeLabel(item.products.frame_size)} Frame
+                          {getFrameSizeLabel(item.products.frame_size)} {getProductTypeLabelFromProduct(item.products.product_type, item.products.sku)}
                         </h5>
                         <p className="text-sm text-gray-600">
                           {getFrameStyleLabel(item.products.frame_style)} {getFrameMaterialLabel(item.products.frame_material)}
@@ -1353,7 +1374,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex justify-between text-sm">
                     <span className="line-clamp-1">
-                      {getFrameSizeLabel(item.products.frame_size)} Frame × {item.quantity}
+                      {getFrameSizeLabel(item.products.frame_size)} {getProductTypeLabelFromProduct(item.products.product_type, item.products.sku)} × {item.quantity}
                     </span>
                     <span>{formatPrice((item.price || item.products.price) * item.quantity, item.currency || item.products.currency || totals.currency || 'USD')}</span>
                   </div>

@@ -19,6 +19,7 @@ export interface CartItem {
     color: string;
     style: string;
     material: string;
+    productType?: string; // Product type (framed-print, canvas, poster, etc.)
     mount?: string;
     mountColor?: string;
     glaze?: string;

@@ -29,6 +29,7 @@ interface CartItem {
     };
     status: string;
     sku: string;
+    product_type?: string; // Product type (framed-print, canvas, poster, etc.)
     currency?: string; // Currency for this product
     images: {
       id: string;
@@ -92,7 +93,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         sessionExpiry: session?.expires_at
       });
       
-      // Get destination country and shipping method from localStorage (set by studio)
+      // Get destination country and shipping method from localStorage (set by studio or checkout)
       // or default to US/Standard
       const destinationCountry = typeof window !== 'undefined' 
         ? (localStorage.getItem('cartDestinationCountry') || 'US')
@@ -166,6 +167,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 dimensions_cm: { width: 0, height: 0, depth: 0 },
                 status: 'active',
                 sku: item.sku || '',
+                product_type: item.frameConfig?.productType, // Product type from frameConfig
                 currency: item.currency || 'USD', // Add currency to products
                 images: {
                   id: '',
@@ -470,6 +472,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setCartData(null);
     }
   }, [user, session?.access_token, fetchCart]);
+
+  // Listen for storage events to refetch cart when destination country changes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent | Event) => {
+      if (e instanceof StorageEvent) {
+        // Real storage event from another tab/window
+        if (e.key === 'cartDestinationCountry' && e.newValue !== e.oldValue) {
+          console.log('Cart: Destination country changed in storage, refetching...', {
+            oldValue: e.oldValue,
+            newValue: e.newValue
+          });
+          fetchCart();
+        }
+      } else {
+        // Custom event dispatched by same-window updates
+        console.log('Cart: Storage event triggered (same window), refetching cart...');
+        fetchCart();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [fetchCart]);
 
   const value: CartContextType = {
     cartData,

@@ -20,6 +20,7 @@ import { getProxiedImageUrl } from '@/lib/utils/imageProxy';
 import { FramePreview } from '@/components/FramePreview';
 import { formatSizeWithCm } from '@/lib/utils/size-conversion';
 import { formatPrice } from '@/lib/prodigi-v2/utils';
+import { getProductTypeLabelFromProduct } from '@/lib/utils/product-type-labels';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
@@ -177,7 +178,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     {/* Product Details */}
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm line-clamp-2 mb-1">
-                        {getFrameSizeLabel(item.products.frame_size)} Frame
+                        {getFrameSizeLabel(item.products.frame_size)} {getProductTypeLabelFromProduct(item.products.product_type, item.products.sku)}
                       </h4>
                       <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                         &ldquo;{item.products.images.prompt}&rdquo;

@@ -73,6 +73,7 @@ export interface OrderItem {
     color: string;
     style: string;
     material: string;
+    productType?: string;
     mount?: string;
     mountColor?: string;
     glaze?: string;

@@ -26,6 +26,7 @@ import { FramePreview } from '@/components/FramePreview';
 import { formatSizeWithCm } from '@/lib/utils/size-conversion';
 import { formatPrice } from '@/lib/prodigi-v2/utils';
 import { PricingDisplay, type PricingData } from '@/components/shared/PricingDisplay';
+import { getProductTypeLabelFromProduct } from '@/lib/utils/product-type-labels';
 import { createClient } from '@supabase/supabase-js';
 
 interface ShoppingCartProps {
@@ -184,7 +185,7 @@ export function ShoppingCart({ onCheckout, showAsModal = false, trigger }: Shopp
                   {/* Product Details */}
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-base line-clamp-2 mb-2">
-                      {getFrameSizeLabel(item.products.frame_size)} Frame
+                      {getFrameSizeLabel(item.products.frame_size)} {getProductTypeLabelFromProduct(item.products.product_type, item.products.sku)}
                     </h4>
                     <p className="text-sm text-muted-foreground mb-2">
                       {getFrameStyleLabel(item.products.frame_style)} {getFrameMaterialLabel(item.products.frame_material)}

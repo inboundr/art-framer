@@ -9,6 +9,7 @@ import { ShoppingCart, Heart, Eye, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useCartNotification } from './CartNotificationToast';
+import { getProductTypeLabelFromProduct } from '@/lib/utils/product-type-labels';
 
 interface Product {
   id: string;
@@ -25,6 +26,7 @@ interface Product {
   status: 'active' | 'inactive' | 'discontinued';
   sku: string;
   name?: string;
+  product_type?: string;
   created_at: string;
   images: {
     id: string;
@@ -399,7 +401,7 @@ export function ProductCatalog({
 
             <CardHeader className="pb-2">
               <CardTitle className="text-lg line-clamp-2">
-                {getFrameSizeLabel(product.frame_size)} Frame
+                {getFrameSizeLabel(product.frame_size)} {getProductTypeLabelFromProduct(product.product_type, product.sku)}
               </CardTitle>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <span>{getFrameStyleLabel(product.frame_style)}</span>

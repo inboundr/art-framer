@@ -533,11 +533,15 @@ export class CartService {
     // Infer missing metadata from SKU and product type for backward compatibility
     const inferredMetadata = this.inferMetadataFromSku(product.sku, productType, metadata);
     
+    // Build proper product name with product type
+    const productTypeName = this.getProductTypeLabel(productType);
+    const productName = product.name || productTypeName;
+    
     return {
       id: dbItem.id,
       productId: dbItem.product_id,
       sku: product.sku || '',
-      name: product.name || 'Framed Print', // Use stored product name (now includes productType)
+      name: productName,
       imageUrl: product.images?.image_url || product.images?.thumbnail_url || '',
       quantity: dbItem.quantity,
       price,
@@ -548,6 +552,7 @@ export class CartService {
         color: product.frame_style || 'black',
         style: product.frame_style || 'black',
         material: product.frame_material || 'wood',
+        productType, // Store product type in frameConfig for easier access
         // Use metadata if available, otherwise infer from SKU/product type
         // Only include fields that are relevant for the product type
         ...(metadata.wrap || inferredMetadata.wrap ? { wrap: metadata.wrap || inferredMetadata.wrap } : {}),
@@ -561,6 +566,22 @@ export class CartService {
       createdAt: new Date(dbItem.created_at),
       updatedAt: new Date(dbItem.updated_at || dbItem.created_at),
     };
+  }
+
+  /**
+   * Get product type label for display
+   */
+  private getProductTypeLabel(productType: string | undefined): string {
+    const labels: Record<string, string> = {
+      'framed-print': 'Framed Print',
+      'canvas': 'Canvas',
+      'framed-canvas': 'Framed Canvas',
+      'poster': 'Poster',
+      'acrylic': 'Acrylic Print',
+      'metal': 'Metal Print',
+    };
+    
+    return labels[productType || ''] || 'Framed Print';
   }
 
   /**

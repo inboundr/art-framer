@@ -45,7 +45,7 @@ export class PaymentService {
           price_data: {
             currency: cart.totals.currency.toLowerCase(),
             product_data: {
-              name: item.name,
+              name: item.name, // This now includes proper product type (Canvas, Poster, etc.)
               description: `Framed print: ${item.name}`,
               images: item.imageUrl ? [item.imageUrl] : undefined,
               metadata: {
@@ -54,6 +54,7 @@ export class PaymentService {
                 frameSize: item.frameConfig.size,
                 frameStyle: item.frameConfig.style,
                 frameMaterial: item.frameConfig.material,
+                productType: item.frameConfig.productType || 'framed-print',
                 price_usd: item.originalPrice.toString(),
               },
             },
