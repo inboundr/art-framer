@@ -191,10 +191,17 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
   const signInWithGoogle = async () => {
     try {
       console.log('🔐 CentralizedAuth: Signing in with Google...');
+      
+      // Use production URL if available, otherwise fall back to current origin
+      const redirectUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      const callbackUrl = `${redirectUrl}/auth/callback`;
+      
+      console.log('🔗 OAuth redirect URL:', callbackUrl);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
