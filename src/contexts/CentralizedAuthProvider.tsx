@@ -16,6 +16,7 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
   updateProfile: (updates: any) => Promise<{ error: Error | null }>;
@@ -187,6 +188,34 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      console.log('🔐 CentralizedAuth: Signing in with Google...');
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+      
+      if (error) {
+        console.error('❌ CentralizedAuth: Google sign in error:', error);
+        return { error };
+      }
+      
+      console.log('✅ CentralizedAuth: Google sign in initiated');
+      // User will be redirected to Google, then back to our callback URL
+      return { error: null };
+    } catch (error) {
+      console.error('❌ CentralizedAuth: Google sign in exception:', error);
+      return { error: error as Error };
+    }
+  };
+
   const signOut = async () => {
     console.log('CentralizedAuth: Signing out...');
     
@@ -330,6 +359,7 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
     isInitialized,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
     refreshSession,
     updateProfile,

@@ -126,3 +126,8 @@ enable_confirmations = false
 # # or any other third-party OIDC providers.
 # url = ""
 
+[auth.external.google]
+enabled = true
+client_id = "your-client-id-here.apps.googleusercontent.com"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+redirect_uri = "http://localhost:54321/auth/v1/callback"
