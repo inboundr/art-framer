@@ -581,7 +581,7 @@ export function CheckoutFlow({ onCancel }: CheckoutFlowProps) {
       }
     }
   }, [shippingAddress.country, addressManuallyModified]);
-
+  
   // Enhanced address change detection - only trigger for user interactions
   useEffect(() => {
     console.log('📍 Address change detected, checking if should calculate shipping:', {
