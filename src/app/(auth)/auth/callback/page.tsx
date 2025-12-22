@@ -32,21 +32,46 @@ export default function AuthCallbackPage() {
           // Exchange the code for a session (client-side)
           const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
+          console.log('🔍 Exchange result:', { 
+            hasData: !!data, 
+            hasSession: !!data?.session,
+            hasUser: !!data?.user,
+            hasError: !!exchangeError,
+            errorMessage: exchangeError?.message 
+          });
+
           if (exchangeError) {
             console.error('❌ Code exchange error:', exchangeError);
             router.push(`/login?error=${encodeURIComponent(exchangeError.message)}`);
             return;
           }
 
-          if (data.session) {
+          if (data?.session) {
             console.log('✅ Session established:', { userId: data.user?.id });
             setStatus('Success! Redirecting...');
             
             // Small delay to ensure session is fully established
             await new Promise(resolve => setTimeout(resolve, 500));
             
+            console.log('🏠 Navigating to home page...');
             router.push('/');
             return;
+          } else {
+            console.warn('⚠️ Code exchange succeeded but no session in data');
+            // Wait for the onAuthStateChange event to fire and establish session
+            console.log('⏳ Waiting for auth state change...');
+            setStatus('Finalizing authentication...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Check if session is now available
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            if (currentSession) {
+              console.log('✅ Session now available, redirecting...');
+              router.push('/');
+            } else {
+              console.error('❌ Still no session after waiting');
+              router.push('/login?error=Session not established');
+            }
           }
         }
 
