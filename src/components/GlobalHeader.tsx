@@ -21,7 +21,8 @@ export function GlobalHeader() {
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 z-[120]">
+      {/* Fixed Header Container - z-40 */}
+      <div className="fixed top-0 left-0 right-0 z-40">
         {showBanner && (
           <NotificationBar onClose={() => setShowBanner(false)} />
         )}
@@ -36,10 +37,14 @@ export function GlobalHeader() {
       </div>
       {/* Spacer to offset fixed header + banner */}
       <div aria-hidden style={{ height: spacerHeight }} />
+      
+      {/* Cart Sidebar - z-50, above header */}
       <CartSidebar
         isOpen={cartSidebarOpen}
         onClose={closeCartSidebar}
       />
+      
+      {/* Auth Modal - z-60, above cart */}
       <AuthModal
         isOpen={authModalVisible}
         onClose={() => {

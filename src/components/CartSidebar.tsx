@@ -109,25 +109,29 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay - z-45 (above header z-40, below sidebar) */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+          className="fixed inset-0 bg-black/50 z-45 transition-opacity"
           onClick={onClose}
+          aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - z-50 (above overlay and header) */}
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-screen w-full sm:max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
-        } flex flex-col`}
+        } flex flex-col overflow-hidden`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cart-sidebar-title"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <ShoppingCartIcon className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">Shopping Cart</h2>
+            <h2 id="cart-sidebar-title" className="text-lg font-semibold">Shopping Cart</h2>
             {totals.itemCount > 0 && (
               <Badge variant="secondary">
                 {totals.itemCount} {totals.itemCount === 1 ? 'item' : 'items'}

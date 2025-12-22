@@ -46,7 +46,7 @@ export function Header({ onOpenAuthModal, onOpenCart, isFixed = true, offsetTop 
 
   return (
     <header
-      className={`${positionClasses} h-16 bg-white border-b border-gray-200 z-[100] shadow-sm pointer-events-auto`}
+      className={`${positionClasses} h-16 bg-white border-b border-gray-200 shadow-sm pointer-events-auto`}
       style={isFixed ? { top: offsetTop } : undefined}
     >
       <div className="flex items-center justify-between h-full px-4 lg:px-6">

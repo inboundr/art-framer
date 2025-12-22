@@ -437,9 +437,9 @@ export function OrderManagement({ userId }: OrderManagementProps) {
 
       {/* Order Detail Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true">
           <div className="flex h-full">
-            <div className="flex-1 bg-white overflow-y-auto">
+            <div className="flex-1 bg-white overflow-y-auto max-h-screen">
               <div className="max-w-4xl mx-auto p-6">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between mb-6">

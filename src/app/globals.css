@@ -124,6 +124,13 @@
   }
 }
 
+@layer utilities {
+  /* Custom z-index values for proper layering */
+  .z-45 {
+    z-index: 45;
+  }
+}
+
 /* Custom slider styles for aspect ratio dropdown */
 .slider::-webkit-slider-thumb {
   appearance: none;

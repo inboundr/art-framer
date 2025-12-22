@@ -146,7 +146,7 @@ export function CreationsModal({
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true">
         <div className="flex flex-col h-full">
           {/* Mobile Header */}
           <div className="flex items-center justify-between p-4 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200">
@@ -256,7 +256,7 @@ export function CreationsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true">
       <div className="flex h-full">
         <div className="flex flex-col lg:flex-row flex-1 bg-background">
           {/* Left Side - Image Area */}
@@ -272,7 +272,7 @@ export function CreationsModal({
             </button>
 
             {/* Image Container */}
-            <div className="w-full h-full max-w-4xl max-h-[80vh] flex items-center justify-center relative">
+            <div className="w-full h-full max-w-4xl max-h-[calc(100vh-8rem)] flex items-center justify-center relative">
               <div
                 className="w-full h-full rounded-lg overflow-hidden shadow-2xl"
                 style={{
