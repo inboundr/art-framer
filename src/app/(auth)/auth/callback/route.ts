@@ -71,11 +71,22 @@ export async function GET(request: NextRequest) {
       if (data.session) {
         console.log('✅ Session established in route handler:', {
           userId: data.user?.id,
-          email: data.user?.email
+          email: data.user?.email,
+          accessToken: data.session.access_token ? 'present' : 'missing',
+          refreshToken: data.session.refresh_token ? 'present' : 'missing'
         });
+
+        // Log cookies being set
+        const cookieNames = response.cookies.getAll().map(c => c.name);
+        console.log('🍪 Cookies set on response:', cookieNames);
 
         console.log('🏠 Redirecting to home page with session cookies');
         return response;
+      } else {
+        console.error('⚠️ Code exchange succeeded but no session returned');
+        return NextResponse.redirect(
+          `${origin}/login?error=${encodeURIComponent('Session creation failed')}`
+        );
       }
     } catch (err) {
       console.error('❌ Unexpected error in callback route:', err);
