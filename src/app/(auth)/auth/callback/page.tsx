@@ -10,11 +10,26 @@ export default function AuthCallbackPage() {
   const [status, setStatus] = useState('Completing sign in...');
 
   useEffect(() => {
+    let redirected = false;
+
+    // Listen for auth state change
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+      console.log('🎧 Callback page: Auth event:', event);
+      
+      if (event === 'SIGNED_IN' && session && !redirected) {
+        console.log('✅ User signed in, redirecting...');
+        redirected = true;
+        setStatus('Success! Redirecting...');
+        
+        // Immediate redirect
+        router.push('/');
+      }
+    });
+
     const handleCallback = async () => {
       try {
         console.log('🔄 OAuth callback page: Starting...');
         
-        // Get the code from URL
         const searchParams = new URLSearchParams(window.location.search);
         const code = searchParams.get('code');
         const error = searchParams.get('error');
@@ -25,66 +40,40 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        if (code) {
-          console.log('🔑 Found OAuth code, exchanging...');
-          setStatus('Exchanging code for session...');
-          
-          // Exchange the code for a session (client-side)
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-          console.log('🔍 Exchange result:', { 
-            hasData: !!data, 
-            hasSession: !!data?.session,
-            hasUser: !!data?.user,
-            hasError: !!exchangeError,
-            errorMessage: exchangeError?.message 
-          });
-
-          if (exchangeError) {
-            console.error('❌ Code exchange error:', exchangeError);
-            router.push(`/login?error=${encodeURIComponent(exchangeError.message)}`);
-            return;
-          }
-
-          if (data?.session) {
-            console.log('✅ Session established:', { userId: data.user?.id });
-            setStatus('Success! Redirecting...');
-            
-            // Small delay to ensure session is fully established
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            console.log('🏠 Navigating to home page...');
-            router.push('/');
-            return;
-          } else {
-            console.warn('⚠️ Code exchange succeeded but no session in data');
-            // Wait for the onAuthStateChange event to fire and establish session
-            console.log('⏳ Waiting for auth state change...');
-            setStatus('Finalizing authentication...');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // Check if session is now available
-            const { data: { session: currentSession } } = await supabase.auth.getSession();
-            if (currentSession) {
-              console.log('✅ Session now available, redirecting...');
-              router.push('/');
-            } else {
-              console.error('❌ Still no session after waiting');
-              router.push('/login?error=Session not established');
-            }
-          }
+        if (!code) {
+          console.warn('⚠️ No code in URL');
+          router.push('/login');
+          return;
         }
 
-        // No code found
-        console.warn('⚠️ No code in URL');
-        router.push('/login');
+        console.log('🔑 Found OAuth code, exchanging...');
+        setStatus('Exchanging code for session...');
+        
+        // Exchange the code - this will trigger SIGNED_IN event
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (exchangeError) {
+          console.error('❌ Code exchange error:', exchangeError);
+          router.push(`/login?error=${encodeURIComponent(exchangeError.message)}`);
+          return;
+        }
+
+        console.log('✅ Code exchange initiated, waiting for auth event...');
+        // The auth state listener will handle the redirect
+        
       } catch (err) {
         console.error('❌ Callback error:', err);
-        router.push('/login?error=Authentication failed');
+        if (!redirected) {
+          router.push('/login?error=Authentication failed');
+        }
       }
     };
 
     handleCallback();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   return (
