@@ -32,22 +32,7 @@ export const supabase = (() => {
     return {} as any;
   }
 
-  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false, // Disabled - OAuth handled by server route handler
-      flowType: 'pkce', // Use PKCE flow for OAuth
-    },
-    global: {
-      headers: {
-        'X-Client-Info': 'art-framer-web'
-      }
-      // Note: Don't override fetch - Supabase SSR automatically handles cookies
-      // via the cookie configuration in middleware and server-side client
-      // The browser client reads from localStorage which is synced from cookies
-    }
-  });
+  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
   // Add a ready check method
   (supabaseInstance as any).isReady = () => {

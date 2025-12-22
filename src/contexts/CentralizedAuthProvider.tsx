@@ -66,38 +66,7 @@ export function CentralizedAuthProvider({ children }: { children: React.ReactNod
           return;
         }
 
-        // Check if we have OAuth session cookies but no session in localStorage yet
-        // This happens right after OAuth redirect
-        const hasAuthCookies = typeof document !== 'undefined' && 
-          document.cookie.includes('sb-') && 
-          document.cookie.includes('-auth-token');
-        
-        if (hasAuthCookies) {
-          console.log('🔄 CentralizedAuth: Detected auth cookies, attempting session refresh...');
-          try {
-            // Force a session refresh from cookies
-            const { data: { session: refreshedSession }, error: refreshError } = 
-              await supabase.auth.refreshSession();
-            
-            if (refreshedSession) {
-              console.log('✅ CentralizedAuth: Session refreshed from cookies', { 
-                userId: refreshedSession.user.id 
-              });
-              setSession(refreshedSession);
-              setUser(refreshedSession.user);
-              fetchProfile(refreshedSession.user.id);
-              setIsInitialized(true);
-              setLoading(false);
-              return;
-            } else if (refreshError) {
-              console.warn('⚠️ CentralizedAuth: Session refresh failed:', refreshError);
-            }
-          } catch (refreshErr) {
-            console.warn('⚠️ CentralizedAuth: Session refresh exception:', refreshErr);
-          }
-        }
-
-        // Standard session check
+        // Get the session - Supabase client will read from localStorage/cookies
         console.log('🔍 CentralizedAuth: Checking for existing session...');
         
         try {
