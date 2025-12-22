@@ -33,10 +33,10 @@ export function FramePreview() {
 
   return (
     <div className="relative h-full bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* View Mode Selector - Vertical on desktop, horizontal on mobile */}
+      {/* View Mode Selector - Vertical on desktop (top-left), horizontal on mobile (bottom-left) */}
       <div className="absolute z-10 
-        lg:top-4 lg:right-4 lg:flex-col lg:space-y-2
-        bottom-4 right-4 left-4 lg:left-auto flex lg:flex-col flex-row space-x-2 lg:space-x-0 lg:space-y-2 justify-end">
+        lg:top-4 lg:left-4 lg:flex-col lg:space-y-2
+        bottom-4 left-4 right-4 lg:right-auto flex lg:flex-col flex-row space-x-2 lg:space-x-0 lg:space-y-2">
         <ViewModeSelector mode={viewMode} onChange={setViewMode} config={config} />
       </div>
 
