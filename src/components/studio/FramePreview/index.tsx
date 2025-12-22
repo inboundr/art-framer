@@ -12,8 +12,10 @@ import { ViewModeSelector } from './ViewModeSelector';
 import { RoomScene } from './RoomScene';
 import { DynamicErrorBoundary } from '@/components/DynamicErrorBoundary';
 import { FallbackScene3D } from './FallbackScene3D';
+import { ExplodedView } from './ExplodedView';
+import { UnboxingVideo } from './UnboxingVideo';
 
-export type ViewMode = '3d' | 'room' | 'ar' | 'compare';
+export type ViewMode = '3d' | 'exploded' | 'room' | 'unboxing';
 
 export function FramePreview() {
   const { config } = useStudioStore();
@@ -31,9 +33,11 @@ export function FramePreview() {
 
   return (
     <div className="relative h-full bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* View Mode Selector */}
-      <div className="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 z-10 flex items-center justify-between">
-        <ViewModeSelector mode={viewMode} onChange={setViewMode} />
+      {/* View Mode Selector - Vertical on desktop, horizontal on mobile */}
+      <div className="absolute z-10 
+        lg:top-4 lg:right-4 lg:flex-col lg:space-y-2
+        bottom-4 right-4 left-4 lg:left-auto flex lg:flex-col flex-row space-x-2 lg:space-x-0 lg:space-y-2 justify-end">
+        <ViewModeSelector mode={viewMode} onChange={setViewMode} config={config} />
       </div>
 
       {/* 3D Scene */}
@@ -73,10 +77,46 @@ export function FramePreview() {
         </div>
       )}
 
+      {/* Exploded View */}
+      {viewMode === 'exploded' && (
+        <div className="w-full h-full">
+          <DynamicErrorBoundary
+            fallback={
+              <FallbackScene3D 
+                config={config} 
+                autoRotate={autoRotate}
+                resetTrigger={resetTrigger}
+              />
+            }
+          >
+            <Suspense
+              fallback={
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                  <div className="text-center p-8">
+                    <div className="text-4xl mb-4">⏳</div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Loading Exploded View
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Preparing frame components...
+                    </p>
+                  </div>
+                </div>
+              }
+            >
+              <ExplodedView 
+                config={config} 
+                autoRotate={autoRotate}
+                resetTrigger={resetTrigger}
+              />
+            </Suspense>
+          </DynamicErrorBoundary>
+        </div>
+      )}
+
       {/* Room View */}
       {viewMode === 'room' && (
         <div className="w-full h-full relative">
-          {/* Room Scene */}
           <Suspense
             fallback={
               <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
@@ -96,42 +136,12 @@ export function FramePreview() {
         </div>
       )}
 
-      {/* AR View */}
-      {viewMode === 'ar' && (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="text-center p-8">
-            <div className="text-6xl mb-4">📱</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              AR Mode
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Use your camera to place the frame in your space in real-time
-            </p>
-            <button className="px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
-              Open Camera
-            </button>
-          </div>
+      {/* Unboxing Video */}
+      {viewMode === 'unboxing' && (
+        <div className="w-full h-full">
+          <UnboxingVideo />
         </div>
       )}
-
-      {/* Compare View */}
-      {viewMode === 'compare' && (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="text-center p-8">
-            <div className="text-6xl mb-4">⚖️</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Compare Options
-            </h3>
-            <p className="text-gray-600 mb-6">
-              See multiple frame options side-by-side
-            </p>
-            <button className="px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
-              Generate Variations
-            </button>
-          </div>
-        </div>
-      )}
-
 
     </div>
   );

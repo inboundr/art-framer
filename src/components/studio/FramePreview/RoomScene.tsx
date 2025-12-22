@@ -822,6 +822,7 @@ export function RoomScene({ config, environment, resetTrigger = 0 }: RoomScenePr
             finish={config.finish}
             edge={config.edge}
             canvasType={config.canvasType}
+            useTextures={false}
           />
         </group>
 

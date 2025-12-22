@@ -553,12 +553,13 @@ export function FrameModel({
         />
       ))}
 
-      {/* Special material overlay for acrylic/metal */}
+      {/* Special material backing for acrylic/metal */}
+      {/* This represents the substrate material behind the printed image */}
       {specialMaterial && (
         <mesh
           geometry={new THREE.PlaneGeometry(width, height)}
           material={specialMaterial}
-          position={[0, 0, 0.02]}
+          position={[0, 0, -0.02]}
         />
       )}
     </group>
