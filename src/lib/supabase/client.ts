@@ -36,10 +36,8 @@ export const supabase = (() => {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true, // Auto-detect OAuth session in URL
+      detectSessionInUrl: false, // Disabled - OAuth handled by server route handler
       flowType: 'pkce', // Use PKCE flow for OAuth
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      storageKey: 'supabase.auth.token',
     },
     global: {
       headers: {

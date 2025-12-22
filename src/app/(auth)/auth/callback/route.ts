@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -12,7 +13,8 @@ export async function GET(request: NextRequest) {
     hasCode: !!code,
     hasError: !!error,
     origin,
-    url: request.url
+    url: request.url,
+    cookies: request.cookies.getAll().map(c => c.name)
   });
 
   // Handle OAuth errors
@@ -24,6 +26,10 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
+    // Create response first
+    let response = NextResponse.redirect(`${origin}/`);
+    
+    // Create Supabase client with proper cookie handling
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -33,9 +39,16 @@ export async function GET(request: NextRequest) {
             return request.cookies.getAll();
           },
           setAll(cookiesToSet) {
-            // Set cookies in the response
+            // Set cookies on both request and response
             cookiesToSet.forEach(({ name, value, options }) => {
               request.cookies.set(name, value);
+              response.cookies.set(name, value, {
+                ...options,
+                httpOnly: false, // Allow client-side access
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/',
+              });
             });
           },
         },
@@ -59,24 +72,6 @@ export async function GET(request: NextRequest) {
         console.log('✅ Session established in route handler:', {
           userId: data.user?.id,
           email: data.user?.email
-        });
-
-        // Create response with proper cookie setting
-        const response = NextResponse.redirect(`${origin}/`);
-        
-        // Set cookies from Supabase
-        const cookiesToSet = await supabase.auth.getSession().then(() => {
-          return request.cookies.getAll();
-        });
-        
-        cookiesToSet.forEach(({ name, value }) => {
-          response.cookies.set(name, value, {
-            httpOnly: false,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-          });
         });
 
         console.log('🏠 Redirecting to home page with session cookies');
