@@ -6,10 +6,52 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useStudioStore } from '@/store/studio';
 import { FRAME_SIZES, getSizeInCm, getSizeEntry } from '@/lib/utils/size-conversion';
 import { getAspectRatioCategory } from '@/lib/utils/aspect-ratio';
+import { ColorPicker } from './ColorPicker';
+import { HorizontalButtonGroup } from './HorizontalButtonGroup';
+import { ProductTypeSelector } from './ProductTypeSelector';
+
+// Info icon with tooltip component
+function InfoTooltip({ text }: { text: string }) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  return (
+    <div 
+      className="relative inline-block ml-1.5"
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+    >
+      {/* Info icon */}
+      <svg 
+        className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help transition-colors" 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+      >
+        <path 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          strokeWidth={2} 
+          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+        />
+      </svg>
+
+      {/* Tooltip */}
+      {isVisible && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 pointer-events-none z-50">
+          <div className="bg-gray-900 text-white text-xs rounded-lg p-2.5 shadow-xl">
+            {text}
+            {/* Arrow */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ConfigurationSummary() {
   const { 
@@ -430,79 +472,154 @@ export function ConfigurationSummary() {
         )}
       </div>
       <div className="space-y-2">
-        {options.map((option) => (
+        {options.map((option) => {
+          // Check if this option should use product type selector
+          const useProductTypeSelector = option.key === 'productType';
+          
+          // Check if this option should use color picker
+          const useColorPicker = (option.key === 'frameColor' || option.key === 'wrap') && option.options;
+          
+          // Check if this option should use horizontal button group
+          const useButtonGroup = (option.key === 'aspectRatio' || option.key === 'finish') && option.options;
+          
+          return (
             <div
               key={option.key}
               className="py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
             >
-              <div className="flex items-center justify-between mb-1">
+            {/* Label with info icon */}
+            <div className={`${(useColorPicker || useButtonGroup || useProductTypeSelector) ? 'mb-3' : 'flex items-center justify-between mb-1'}`}>
+              <div className="flex items-center">
                 <span className="text-sm font-medium text-gray-700">{option.label}</span>
-                {option.editable ? (
-                  <select
-                    value={option.value}
-                    onChange={(e) => {
-                      const newValue = e.target.value;
-                      
-                      // Handle aspect ratio changes - filter sizes and update size if needed
-                      if (option.key === 'aspectRatio') {
-                        const newAspectRatio = newValue as 'Portrait' | 'Landscape' | 'Square';
-                        const currentSizeAspectRatio = config.size ? getAspectRatioCategory(config.size) : 'Landscape';
-                        
-                        // If current size doesn't match new aspect ratio, find first matching size
-                        if (currentSizeAspectRatio !== newAspectRatio) {
-                          // Get sizes filtered by new aspect ratio
-                          const matchingSizes = getNormalizedSizes(newAspectRatio);
+                {option.description && <InfoTooltip text={option.description} />}
+              </div>
+                
+                {/* Product Type Selector with cards */}
+                {useProductTypeSelector ? (
+                  <div className="mt-2">
+                    <ProductTypeSelector
+                      selectedType={option.value}
+                      onChange={(newType) => {
+                        updateConfigAsync({ productType: newType } as any);
+                      }}
+                      disabled={isFacetsLoading}
+                    />
+                  </div>
+                ) : useColorPicker ? (
+                  /* Color Picker for frame/wrap colors */
+                  <div className="mt-2">
+                    <ColorPicker
+                      colors={option.options || []}
+                      selectedColor={option.value}
+                      onChange={(newColor) => {
+                        updateConfigAsync({ [option.key]: newColor } as any);
+                      }}
+                      disabled={isFacetsLoading && option.key !== 'productType'}
+                    />
+                  </div>
+                ) : useButtonGroup ? (
+                  /* Horizontal Button Group for aspect ratio and finish */
+                  <div className="mt-2">
+                    <HorizontalButtonGroup
+                      options={option.options || []}
+                      selectedOption={option.value}
+                      onChange={(newValue) => {
+                        // Handle aspect ratio changes - filter sizes and update size if needed
+                        if (option.key === 'aspectRatio') {
+                          const newAspectRatio = newValue as 'Portrait' | 'Landscape' | 'Square';
+                          const currentSizeAspectRatio = config.size ? getAspectRatioCategory(config.size) : 'Landscape';
                           
-                          if (matchingSizes.length > 0) {
-                            updateConfigAsync({ 
-                              aspectRatio: newAspectRatio,
-                              size: matchingSizes[0] // Use first (smallest) matching size
-                            } as any);
+                          // If current size doesn't match new aspect ratio, find first matching size
+                          if (currentSizeAspectRatio !== newAspectRatio) {
+                            // Get sizes filtered by new aspect ratio
+                            const matchingSizes = getNormalizedSizes(newAspectRatio);
+                            
+                            if (matchingSizes.length > 0) {
+                              updateConfigAsync({ 
+                                aspectRatio: newAspectRatio,
+                                size: matchingSizes[0] // Use first (smallest) matching size
+                              } as any);
+                            } else {
+                              updateConfigAsync({ aspectRatio: newAspectRatio } as any);
+                            }
                           } else {
                             updateConfigAsync({ aspectRatio: newAspectRatio } as any);
                           }
                         } else {
-                          updateConfigAsync({ aspectRatio: newAspectRatio } as any);
+                          updateConfigAsync({ [option.key]: newValue } as any);
                         }
-                      } 
-                      // Handle size changes - update aspect ratio to match
-                      else if (option.key === 'size') {
-                        const newSize = newValue;
-                        const newAspectRatio = getAspectRatioCategory(newSize);
-                        updateConfigAsync({ 
-                          size: newSize,
-                          aspectRatio: newAspectRatio 
-                        } as any);
-                      }
-                      // Handle other option changes normally
-                      else {
-                        updateConfigAsync({ [option.key]: newValue } as any);
-                      }
-                    }}
-                    disabled={isFacetsLoading && option.key !== 'productType'}
-                    className="text-sm font-semibold text-gray-900 bg-white border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent cursor-pointer capitalize hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {option.options?.map((opt) => (
-                      <option key={opt} value={opt} className="capitalize bg-white text-gray-900">
-                        {option.displayNames && opt in option.displayNames 
-                          ? option.displayNames[opt as keyof typeof option.displayNames] 
-                          : opt}
-                      </option>
-                    ))}
-                  </select>
+                      }}
+                      disabled={isFacetsLoading && option.key !== 'productType'}
+                      displayNames={option.displayNames}
+                    />
+                  </div>
                 ) : (
-                  <span className="text-sm font-semibold text-gray-900 capitalize">
-                    {option.displayNames && option.value in option.displayNames 
-                      ? option.displayNames[option.value as keyof typeof option.displayNames] 
-                      : option.value}
-                  </span>
+                  /* Regular dropdown for other options */
+                  option.editable ? (
+                    <select
+                      value={option.value}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        
+                        // Handle aspect ratio changes - filter sizes and update size if needed
+                        if (option.key === 'aspectRatio') {
+                          const newAspectRatio = newValue as 'Portrait' | 'Landscape' | 'Square';
+                          const currentSizeAspectRatio = config.size ? getAspectRatioCategory(config.size) : 'Landscape';
+                          
+                          // If current size doesn't match new aspect ratio, find first matching size
+                          if (currentSizeAspectRatio !== newAspectRatio) {
+                            // Get sizes filtered by new aspect ratio
+                            const matchingSizes = getNormalizedSizes(newAspectRatio);
+                            
+                            if (matchingSizes.length > 0) {
+                              updateConfigAsync({ 
+                                aspectRatio: newAspectRatio,
+                                size: matchingSizes[0] // Use first (smallest) matching size
+                              } as any);
+                            } else {
+                              updateConfigAsync({ aspectRatio: newAspectRatio } as any);
+                            }
+                          } else {
+                            updateConfigAsync({ aspectRatio: newAspectRatio } as any);
+                          }
+                        } 
+                        // Handle size changes - update aspect ratio to match
+                        else if (option.key === 'size') {
+                          const newSize = newValue;
+                          const newAspectRatio = getAspectRatioCategory(newSize);
+                          updateConfigAsync({ 
+                            size: newSize,
+                            aspectRatio: newAspectRatio 
+                          } as any);
+                        }
+                        // Handle other option changes normally
+                        else {
+                          updateConfigAsync({ [option.key]: newValue } as any);
+                        }
+                      }}
+                      disabled={isFacetsLoading && option.key !== 'productType'}
+                      className="text-sm font-semibold text-gray-900 bg-white border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent cursor-pointer capitalize hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {option.options?.map((opt) => (
+                        <option key={opt} value={opt} className="capitalize bg-white text-gray-900">
+                          {option.displayNames && opt in option.displayNames 
+                            ? option.displayNames[opt as keyof typeof option.displayNames] 
+                            : opt}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-sm font-semibold text-gray-900 capitalize">
+                      {option.displayNames && option.value in option.displayNames 
+                        ? option.displayNames[option.value as keyof typeof option.displayNames] 
+                        : option.value}
+                    </span>
+                  )
                 )}
               </div>
-              {option.description && (
-                <p className="text-xs text-gray-600 mt-1.5">{option.description}</p>
-              )}
             </div>
-          ))}
+          );
+        })}
       </div>
     </div>
   );

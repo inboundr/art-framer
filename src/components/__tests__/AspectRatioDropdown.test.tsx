@@ -55,8 +55,8 @@ describe('AspectRatioDropdown', () => {
     expect(mockOnSelect).toHaveBeenCalledWith({
       label: '2:3',
       value: '2:3',
-      width: 1024,
-      height: 1536
+      width: 832,
+      height: 1248
     });
   });
 
@@ -106,12 +106,12 @@ describe('AspectRatioDropdown', () => {
     expect(mockOnSelect).toHaveBeenCalled();
   });
 
-  it('should show locked ratios with lock icon', () => {
+  it('should show all aspect ratios are now unlocked except Custom', () => {
     render(<AspectRatioDropdown {...defaultProps} />);
     
-    // Check for locked ratios (1:3, 1:2, 3:1, 2:1, Custom)
-    const lockedRatios = ['1:3', '1:2', '3:1', '2:1', 'Custom'];
-    lockedRatios.forEach(ratio => {
+    // All Ideogram-supported ratios are now available (only Custom remains locked)
+    const allRatios = ['1:3', '1:2', '9:16', '10:16', '2:3', '3:4', '4:5', '3:1', '2:1', '16:9', '16:10', '3:2', '4:3', '5:4', '1:1 (Square)', 'Custom'];
+    allRatios.forEach(ratio => {
       const ratioElement = screen.getByText(ratio);
       expect(ratioElement).toBeInTheDocument();
     });
@@ -139,8 +139,8 @@ describe('AspectRatioDropdown', () => {
     const newCurrentRatio = {
       label: '2:3',
       value: '2:3',
-      width: 1024,
-      height: 1536
+      width: 832,
+      height: 1248
     };
     
     rerender(<AspectRatioDropdown {...defaultProps} currentRatio={newCurrentRatio} />);
@@ -204,8 +204,8 @@ describe('AspectRatioDropdown', () => {
     rerender(<AspectRatioDropdown {...defaultProps} currentRatio={{
       label: '2:3',
       value: '2:3',
-      width: 1024,
-      height: 1536
+      width: 832,
+      height: 1248
     }} />);
     
     const slider = screen.getByRole('slider');

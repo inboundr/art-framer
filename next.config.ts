@@ -12,6 +12,17 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
 
+  // Configure allowed image domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'irugsjzjqdxulliobuwt.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  },
+
   // Optimize for Vercel deployment
   serverExternalPackages: ["sharp"],
 

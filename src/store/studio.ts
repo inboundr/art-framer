@@ -419,6 +419,105 @@ export const useStudioStore = create<StudioStore>()(
       // Facets and Available Options
       updateAvailableOptions: (options) => {
         set({ availableOptions: options });
+        
+        // Validate and auto-correct current configuration against available options
+        const { config } = get();
+        const updates: Partial<FrameConfiguration> = {};
+        let needsUpdate = false;
+        
+        // Validate frame color
+        if (options.hasFrameColor && config.frameColor) {
+          const validColors = options.frameColors.map(c => c.toLowerCase());
+          if (!validColors.includes(config.frameColor.toLowerCase())) {
+            updates.frameColor = options.frameColors[0] || 'black';
+            needsUpdate = true;
+            console.log(`[Validation] Invalid frame color "${config.frameColor}", switching to "${updates.frameColor}"`);
+          }
+        }
+        
+        // Validate frame style
+        if (options.hasFrameStyle && config.frameStyle) {
+          const validStyles = options.frameStyles.map(s => s.toLowerCase());
+          if (!validStyles.includes(config.frameStyle.toLowerCase())) {
+            updates.frameStyle = options.frameStyles[0] || 'Classic';
+            needsUpdate = true;
+            console.log(`[Validation] Invalid frame style "${config.frameStyle}", switching to "${updates.frameStyle}"`);
+          }
+        }
+        
+        // Validate glaze
+        if (options.hasGlaze && config.glaze && config.glaze !== 'none') {
+          const validGlazes = options.glazes.map(g => g.toLowerCase().replace(/\s+/g, '-'));
+          const currentGlaze = config.glaze.toLowerCase().replace(/\s+/g, '-');
+          if (!validGlazes.includes(currentGlaze)) {
+            updates.glaze = (validGlazes[0] as 'acrylic' | 'glass' | 'motheye') || 'none';
+            needsUpdate = true;
+            console.log(`[Validation] Invalid glaze "${config.glaze}", switching to "${updates.glaze}"`);
+          }
+        }
+        
+        // Validate mount
+        if (options.hasMount && config.mount && config.mount !== 'none') {
+          const validMounts = options.mounts.map(m => m.toLowerCase());
+          if (!validMounts.includes(config.mount.toLowerCase())) {
+            updates.mount = (validMounts[0] as '1.4mm' | '2.0mm' | '2.4mm') || 'none';
+            needsUpdate = true;
+            console.log(`[Validation] Invalid mount "${config.mount}", switching to "${updates.mount}"`);
+          }
+        }
+        
+        // Validate mount color
+        if (options.hasMountColor && config.mountColor) {
+          const validMountColors = options.mountColors.map(c => c.toLowerCase());
+          if (!validMountColors.includes(config.mountColor.toLowerCase())) {
+            updates.mountColor = options.mountColors[0] || 'white';
+            needsUpdate = true;
+            console.log(`[Validation] Invalid mount color "${config.mountColor}", switching to "${updates.mountColor}"`);
+          }
+        }
+        
+        // Validate wrap
+        if (options.hasWrap && config.wrap) {
+          const validWraps = options.wraps.map(w => w.toLowerCase());
+          if (!validWraps.includes(config.wrap.toLowerCase())) {
+            updates.wrap = (options.wraps[0] as 'Black' | 'White' | 'ImageWrap' | 'MirrorWrap') || 'Black';
+            needsUpdate = true;
+            console.log(`[Validation] Invalid wrap "${config.wrap}", switching to "${updates.wrap}"`);
+          }
+        }
+        
+        // Validate finish
+        if (options.hasFinish && config.finish) {
+          const validFinishes = options.finishes.map(f => f.toLowerCase());
+          if (!validFinishes.includes(config.finish.toLowerCase())) {
+            updates.finish = options.finishes[0] || 'gloss';
+            needsUpdate = true;
+            console.log(`[Validation] Invalid finish "${config.finish}", switching to "${updates.finish}"`);
+          }
+        }
+        
+        // Validate edge
+        if (options.hasEdge && config.edge && config.edge !== 'auto') {
+          const validEdges = options.edges.map(e => e.toLowerCase());
+          if (!validEdges.includes(config.edge.toLowerCase())) {
+            updates.edge = (options.edges[0] as '19mm' | '38mm') || 'auto';
+            needsUpdate = true;
+            console.log(`[Validation] Invalid edge "${config.edge}", switching to "${updates.edge}"`);
+          }
+        }
+        
+        // Apply updates if needed
+        if (needsUpdate) {
+          console.log('[Validation] Auto-correcting configuration:', updates);
+          set((state) => ({
+            config: { ...state.config, ...updates }
+          }));
+          
+          // Update pricing with corrected config
+          setTimeout(() => {
+            get().updatePricingAsync();
+          }, 100);
+        }
       },
       
       updateAvailableOptionsAsync: async (productType, filters) => {
@@ -558,6 +657,29 @@ export const useStudioStore = create<StudioStore>()(
               cleanedUpdates.glaze = 'none';
               cleanedUpdates.mount = 'none';
               break;
+          }
+          
+          // Validate size for new product type
+          try {
+            const country = config.destinationCountry || 'US';
+            const aspectRatio = config.aspectRatio;
+            const sizesResponse = await fetch(
+              `/api/studio/sizes?productType=${updates.productType}&country=${country}${aspectRatio ? `&aspectRatio=${aspectRatio}` : ''}`
+            );
+            
+            if (sizesResponse.ok) {
+              const sizesData = await sizesResponse.json();
+              const availableSizes = sizesData.sizes || [];
+              
+              // If current size is not available for new product type, reset to first available
+              if (availableSizes.length > 0 && !availableSizes.includes(config.size)) {
+                console.log(`[Config] Size ${config.size} not available for ${updates.productType}, resetting to ${availableSizes[0]}`);
+                cleanedUpdates.size = availableSizes[0];
+              }
+            }
+          } catch (error) {
+            console.error('[Config] Failed to validate size:', error);
+            // Continue with update even if size validation fails
           }
           
           // Update config with cleaned attributes
@@ -723,7 +845,33 @@ export const useStudioStore = create<StudioStore>()(
       
       // Pricing
       updatePricingAsync: async () => {
-        const { config, setPricingLoading } = get();
+        const { config, setPricingLoading, availableOptions } = get();
+        
+        // Validate configuration before making API call
+        if (availableOptions) {
+          const validationErrors: string[] = [];
+          
+          // Check if selected options are available
+          if (availableOptions.hasFrameColor && config.frameColor) {
+            const validColors = availableOptions.frameColors.map(c => c.toLowerCase());
+            if (!validColors.includes(config.frameColor.toLowerCase())) {
+              validationErrors.push(`Frame color "${config.frameColor}" is not available`);
+            }
+          }
+          
+          if (availableOptions.hasFrameStyle && config.frameStyle) {
+            const validStyles = availableOptions.frameStyles.map(s => s.toLowerCase());
+            if (!validStyles.includes(config.frameStyle.toLowerCase())) {
+              validationErrors.push(`Frame style "${config.frameStyle}" is not available`);
+            }
+          }
+          
+          if (validationErrors.length > 0) {
+            console.warn('[Pricing] Configuration validation failed:', validationErrors);
+            console.warn('[Pricing] Skipping pricing update - configuration will be auto-corrected');
+            return;
+          }
+        }
         
         try {
           setPricingLoading(true);
@@ -787,6 +935,7 @@ export const useStudioStore = create<StudioStore>()(
             // Handle API errors - parse error response and clean invalid config
             const errorData = await response.json().catch(() => ({}));
             console.error('[Pricing] API error:', response.status, errorData);
+            console.error('[Pricing] Current config:', config);
             
             // If validation error, try to clean invalid attributes from config
             if (response.status === 400 && errorData.validationErrors) {

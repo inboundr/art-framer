@@ -19,23 +19,23 @@ interface AspectRatioDropdownProps {
 }
 
 const aspectRatios: AspectRatio[] = [
-  // Portrait
-  { label: '1:3', value: '1:3', width: 1024, height: 3072, locked: true },
-  { label: '1:2', value: '1:2', width: 1024, height: 2048, locked: true },
-  { label: '9:16', value: '9:16', width: 1024, height: 1820 },
-  { label: '10:16', value: '10:16', width: 1024, height: 1638 },
-  { label: '2:3', value: '2:3', width: 1024, height: 1536 },
-  { label: '3:4', value: '3:4', width: 1024, height: 1365 },
-  { label: '4:5', value: '4:5', width: 1024, height: 1280 },
+  // Portrait - All supported by Ideogram API v3
+  { label: '1:3', value: '1:3', width: 512, height: 1536 },
+  { label: '1:2', value: '1:2', width: 704, height: 1408 },
+  { label: '9:16', value: '9:16', width: 736, height: 1312 },
+  { label: '10:16', value: '10:16', width: 800, height: 1280 },
+  { label: '2:3', value: '2:3', width: 832, height: 1248 },
+  { label: '3:4', value: '3:4', width: 864, height: 1152 },
+  { label: '4:5', value: '4:5', width: 896, height: 1120 },
   
-  // Landscape
-  { label: '3:1', value: '3:1', width: 3072, height: 1024, locked: true },
-  { label: '2:1', value: '2:1', width: 2048, height: 1024, locked: true },
-  { label: '16:9', value: '16:9', width: 1820, height: 1024 },
-  { label: '16:10', value: '16:10', width: 1638, height: 1024 },
-  { label: '3:2', value: '3:2', width: 1536, height: 1024 },
-  { label: '4:3', value: '4:3', width: 1365, height: 1024 },
-  { label: '5:4', value: '5:4', width: 1280, height: 1024 },
+  // Landscape - All supported by Ideogram API v3
+  { label: '3:1', value: '3:1', width: 1536, height: 512 },
+  { label: '2:1', value: '2:1', width: 1408, height: 704 },
+  { label: '16:9', value: '16:9', width: 1312, height: 736 },
+  { label: '16:10', value: '16:10', width: 1280, height: 800 },
+  { label: '3:2', value: '3:2', width: 1248, height: 832 },
+  { label: '4:3', value: '4:3', width: 1152, height: 864 },
+  { label: '5:4', value: '5:4', width: 1120, height: 896 },
   
   // Square
   { label: '1:1 (Square)', value: '1:1', width: 1024, height: 1024 },
